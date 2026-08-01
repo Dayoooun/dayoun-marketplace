@@ -1,0 +1,4 @@
+interface:
+  display_name: "사업계획서 초안 작성"
+  short_description: "공식 평가기준과 검증된 근거에 맞춰 핵심 초안을 작성합니다"
+  default_prompt: "Use $draft-modoo-plan to draft a rubric-aligned startup plan from verified sources."
