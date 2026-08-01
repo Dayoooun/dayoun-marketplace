@@ -17,6 +17,9 @@
 
 ## dayoun 플러그인
 
+- 공개 저장소 `Dayoooun/dayoun-marketplace`: PUBLIC, 기본 브랜치 main
+- 익명 GitHub 접근: 저장소·마켓플레이스 JSON·플러그인 매니페스트·ZIP 모두 HTTP 200
+- 공개 설치 명령 형식: 현재 Codex CLI 도움말과 일치
 - 플러그인 구조 및 매니페스트 검증: 통과
 - 6개 스킬 구조 검증: 통과
 - 프로젝트 폴더 생성: 13개 템플릿 생성 확인
@@ -29,6 +32,7 @@
 
 ## 공개 경로
 
+- 공개 원본: `https://github.com/Dayoooun/dayoun-marketplace`
 - 전체 과정: `/courses/practice/12-modoo-startup-plan`
 - 자료공유: `/resources`
 - 공개 ZIP: `/files/dayoun-marketplace-v0.1.0.zip`
