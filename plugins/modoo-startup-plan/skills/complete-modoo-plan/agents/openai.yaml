@@ -1,0 +1,4 @@
+interface:
+  display_name: "모두의창업 한바퀴 완주"
+  short_description: "회사자료 정리부터 HWPX 결과물까지 한 번에 안내합니다"
+  default_prompt: "Use $complete-modoo-plan to guide my startup-plan project from source review to HWPX output."

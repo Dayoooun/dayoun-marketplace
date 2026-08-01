@@ -1,0 +1,20 @@
+{
+  "name": "dayoun",
+  "interface": {
+    "displayName": "Dayoun"
+  },
+  "plugins": [
+    {
+      "name": "modoo-startup-plan",
+      "source": {
+        "source": "local",
+        "path": "./plugins/modoo-startup-plan"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Education"
+    }
+  ]
+}

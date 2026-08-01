@@ -1,0 +1,26 @@
+{
+  "name": "modoo-startup-plan",
+  "version": "0.1.0",
+  "description": "Evidence-first workflow for researching, drafting, reviewing, and filling HWPX startup-plan templates.",
+  "author": {
+    "name": "Dayoun",
+    "url": "https://github.com/Dayoooun"
+  },
+  "license": "MIT",
+  "keywords": ["startup", "business-plan", "hwpx", "research", "education"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "모두의창업 AI 사업계획서 코치",
+    "shortDescription": "근거조사부터 HWPX 결과물까지 실습형으로 안내합니다.",
+    "longDescription": "비개발자도 프로젝트 폴더를 만들고, 회사 사실과 공식 평가기준을 정리하고, 출처가 있는 시장조사와 초안을 작성한 뒤, HWPX 양식의 중괄호 항목을 안전하게 치환하도록 돕는 교육용 플러그인입니다.",
+    "developerName": "Dayoun",
+    "category": "Education",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "사업계획서 프로젝트를 만들고 첫 단계부터 안내해줘.",
+      "공고문과 회사자료를 읽고 근거 중심 초안을 작성해줘.",
+      "HWPX 양식의 중괄호 항목을 검사하고 채워줘."
+    ],
+    "brandColor": "#5B5BD6"
+  }
+}
