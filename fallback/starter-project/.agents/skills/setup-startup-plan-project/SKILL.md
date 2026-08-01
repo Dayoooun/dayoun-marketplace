@@ -11,8 +11,21 @@ description: "창업 사업계획 고도화를 시작하기 위한 표준 프로
 2. 사용자가 원하는 프로젝트 경로, 프로그램명, 트랙, 작업 모드(DEMO / PARTIAL / REAL)를 확인한다. 트랙이 불명확하면 unknown, 작업 모드가 불명확하면 PARTIAL을 사용한다.
 3. 이 SKILL.md가 있는 폴더를 스킬 루트로 정하고 그 아래 `scripts/create_project.py`를 실행한다. 프로젝트 루트의 scripts로 해석하지 않는다.
 
+운영체제에 맞는 Python 실행어를 사용한다.
+
+- Windows: `python`
+- macOS/Linux: `python3`
+
+Windows 예시:
+
 ~~~powershell
 python "<이 SKILL.md가 있는 폴더>\scripts\create_project.py" --path "C:\작업\창업_사업계획서" --track unknown --mode PARTIAL
+~~~
+
+macOS/Linux 예시:
+
+~~~bash
+python3 "<이 SKILL.md가 있는 폴더>/scripts/create_project.py" --path "/home/user/work/창업_사업계획서" --track unknown --mode PARTIAL
 ~~~
 
 4. 생성 결과를 확인하고 00. 시작하기/프로그램프로필.json, 프로젝트상태.md, 사전점검.md, 입력자료목록.csv, 실습범위카드.md를 읽는다.

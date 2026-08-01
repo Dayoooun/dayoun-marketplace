@@ -1,6 +1,6 @@
 {
   "name": "modoo-startup-plan",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Evidence-first workflow for diagnosing startup-plan gaps, validating claims, recording decisions, and optionally filling HWPX templates.",
   "author": {
     "name": "Dayoun",

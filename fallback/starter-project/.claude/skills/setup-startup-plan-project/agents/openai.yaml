@@ -1,0 +1,4 @@
+interface:
+  display_name: "사업계획서 프로젝트 만들기"
+  short_description: "표준 폴더와 기본 작성 파일을 안전하게 자동 생성합니다"
+  default_prompt: "$setup-startup-plan-project로 고객과 사용상황을 먼저 확인한 뒤 안전한 사업계획 프로젝트를 만들어 주세요."

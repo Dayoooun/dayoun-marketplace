@@ -43,15 +43,15 @@ HWPX는 기본 완료 기준이 아니다. 제출 이후 수정 허용, 실제 �
 
 ## 단계
 
-1. 준비·사전점검: 초보자 최소 입력을 확인한 뒤 $setup-startup-plan-project로 표준 폴더와 기본 파일을 만들고 Green / Yellow / Red 실습 경로와 DEMO / PARTIAL / REAL 작업 모드를 정한다.
+1. 준비·사전점검: 초보자 최소 입력을 확인한 뒤 `setup-startup-plan-project` 스킬로 표준 폴더와 기본 파일을 만들고 Green / Yellow / Red 실습 경로와 DEMO / PARTIAL / REAL 작업 모드를 정한다.
 2. 자료·요구사항 정리: 사용자가 이미 말한 프로그램명·평가기준·배점·아이템·고객·사용상황을 먼저 프로그램프로필과 회사사실표에 `사용자 제공·미검증`으로 기록한다. 그 뒤 입력자료목록, 실습범위카드, 공식 공고·평가기준, 양식 필드와 요구사항추적표를 작성한다. 제공된 정보를 빈 템플릿으로 남긴 채 공식 문서만 다시 요구하지 않는다.
 3. 공백 진단: 평가기준 중 가장 중요한 공백 하나와 확인 질문을 공백진단표에 기록한다.
-4. 근거 조사: $research-startup-evidence로 선택한 핵심 주장 하나를 C001로 고정하고 공식 출처 또는 기존 고객 근거 하나를 연결해 검증활동기록을 만든다. 회사 내부 입력 F001 계열과 섞지 않는다.
+4. 근거 조사: `research-startup-evidence` 스킬로 선택한 핵심 주장 하나를 C001로 고정하고 공식 출처 또는 기존 고객 근거 하나를 연결해 검증활동기록을 만든다. 회사 내부 입력 F001 계열과 섞지 않는다.
 5. 변화 기록: 제출 당시 생각과 새 근거를 비교해 유지·수정·보류 결정과 이유를 멘토링변화기록에 남긴다.
 6. 다음 행동: 다음 공식 마감까지의 행동·담당·기한·완료 증거와 1분 IR을 실행카드에 작성한다.
-7. 콘텐츠 검토·승인: $review-modoo-plan의 content 단계에서 검토 범위를 먼저 선언하고 PASS/WARN/BLOCK/NOT_RUN을 확인한 뒤 사용자가 최종 표현을 승인한다. 2시간 실습 기본값은 EDUCATION_SINGLE_CLAIM이다.
-8. 조건부 HWPX: 허용 조건이 확인된 경우에만 $draft-modoo-plan과 $fill-hwpx-template로 승인값을 복사본에 반영한다. 플레이스홀더가 없으면 MANUAL_MAPPING으로 전환한다.
-9. 조건부 산출물 검토: HWPX를 만들었을 때만 $review-modoo-plan의 hwpx-output 단계에서 구조·치환로그·한글 육안검수를 확인한다.
+7. 콘텐츠 검토·승인: `review-modoo-plan` 스킬의 content 단계에서 검토 범위를 먼저 선언하고 PASS/WARN/BLOCK/NOT_RUN을 확인한 뒤 사용자가 최종 표현을 승인한다. 2시간 실습 기본값은 EDUCATION_SINGLE_CLAIM이다.
+8. 조건부 HWPX: 허용 조건이 확인된 경우에만 `draft-modoo-plan`과 `fill-hwpx-template` 스킬로 승인값을 복사본에 반영한다. 플레이스홀더가 없으면 MANUAL_MAPPING으로 전환한다.
+9. 조건부 산출물 검토: HWPX를 만들었을 때만 `review-modoo-plan` 스킬의 hwpx-output 단계에서 구조·치환로그·한글 육안검수를 확인한다.
 
 각 단계가 끝날 때 00. 시작하기/프로젝트상태.md에 완료 항목, 남은 확인사항, 다음 행동을 기록한다.
 

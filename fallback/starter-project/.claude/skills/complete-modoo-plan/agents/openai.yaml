@@ -1,0 +1,4 @@
+interface:
+  display_name: "모두의창업 고도화 한바퀴"
+  short_description: "평가 공백·근거·변화·다음 행동을 한 흐름으로 안내합니다"
+  default_prompt: "$complete-modoo-plan으로 먼저 필요한 질문 하나를 하고, 제출본 보존부터 공백 1개·C001 근거·변화결정·다음 행동까지 안내해 주세요."

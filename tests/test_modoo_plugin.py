@@ -16,6 +16,9 @@ SKILLS = PLUGIN / "skills"
 STARTER_SKILLS = (
     ROOT / "fallback" / "starter-project" / ".agents" / "skills"
 )
+CLAUDE_STARTER_SKILLS = (
+    ROOT / "fallback" / "starter-project" / ".claude" / "skills"
+)
 
 
 def run_python(script: Path, *args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
@@ -56,11 +59,42 @@ def load_create_project_module():
 
 
 class ModooPluginTests(unittest.TestCase):
-    def test_plugin_version_is_0_3_0(self) -> None:
+    def test_plugin_version_is_0_4_0(self) -> None:
         manifest = json.loads(
             (PLUGIN / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(manifest["version"], "0.3.0")
+        self.assertEqual(manifest["version"], "0.4.0")
+
+    def test_each_agent_provider_has_a_native_manifest(self) -> None:
+        codex = json.loads(
+            (PLUGIN / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+        )
+        claude = json.loads(
+            (PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
+        )
+        antigravity = json.loads(
+            (PLUGIN / "plugin.json").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(codex["name"], "modoo-startup-plan")
+        self.assertEqual(claude["name"], codex["name"])
+        self.assertEqual(claude["version"], codex["version"])
+        self.assertEqual(antigravity["name"], codex["name"])
+
+    def test_claude_marketplace_points_to_the_canonical_plugin(self) -> None:
+        marketplace = json.loads(
+            (ROOT / ".claude-plugin" / "marketplace.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(marketplace["name"], "dayoun")
+        plugin = next(
+            item
+            for item in marketplace["plugins"]
+            if item["name"] == "modoo-startup-plan"
+        )
+        self.assertEqual(plugin["source"], "./plugins/modoo-startup-plan")
+        self.assertEqual(plugin["version"], "0.4.0")
 
     def test_all_skills_have_valid_frontmatter_and_ui_metadata(self) -> None:
         skill_dirs = sorted(path.parent for path in SKILLS.glob("*/SKILL.md"))
@@ -75,6 +109,33 @@ class ModooPluginTests(unittest.TestCase):
 
     def test_starter_skills_exactly_match_plugin_skills(self) -> None:
         self.assertEqual(skill_files(SKILLS), skill_files(STARTER_SKILLS))
+        self.assertEqual(skill_files(SKILLS), skill_files(CLAUDE_STARTER_SKILLS))
+
+    def test_skill_instructions_are_provider_neutral(self) -> None:
+        for skill_file in sorted(SKILLS.glob("*/SKILL.md")):
+            content = skill_file.read_text(encoding="utf-8")
+            self.assertNotRegex(content, r"\$[a-z][a-z0-9-]+")
+            self.assertNotIn("Codex 실행", content)
+
+    def test_script_skills_explain_windows_and_mac_linux_launchers(self) -> None:
+        for skill_name in ("setup-startup-plan-project", "fill-hwpx-template"):
+            content = (SKILLS / skill_name / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("Windows", content)
+            self.assertIn("macOS/Linux", content)
+            self.assertIn("python", content)
+            self.assertIn("python3", content)
+
+    def test_provider_guide_promises_one_workflow_not_identical_installation(self) -> None:
+        guide = (ROOT / "course" / "07-multi-provider-guide.md").read_text(
+            encoding="utf-8"
+        )
+        for provider in ("Codex", "Claude Code", "Antigravity"):
+            self.assertIn(provider, guide)
+        for output in ("공백진단표", "검증활동기록", "멘토링변화기록", "실행카드"):
+            self.assertIn(output, guide)
+        self.assertIn("설치 방법은 서로 다릅니다", guide)
+        self.assertIn("일반 채팅형 AI", guide)
+        self.assertIn("프롬프트", guide)
 
     def test_starter_project_templates_match_generator(self) -> None:
         module = load_create_project_module()
@@ -100,7 +161,7 @@ class ModooPluginTests(unittest.TestCase):
             encoding="utf-8"
         )
         intake_at = content.index("초보자 최소 입력")
-        setup_at = content.index("$setup-startup-plan-project")
+        setup_at = content.index("`setup-startup-plan-project` 스킬")
         self.assertLess(intake_at, setup_at)
         self.assertIn("질문 하나만", content)
         self.assertIn("프로젝트를 생성하지 않는다", content)

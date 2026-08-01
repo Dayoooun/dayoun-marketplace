@@ -4,24 +4,38 @@
 
 제출본 보존, 평가 공백 진단, 주장 검증, 멘토링 변화기록, 다음 공식 마감 실행카드를 같은 순서로 안내합니다. HWPX 반영은 수정 허용과 양식 검증이 확인된 경우에만 선택합니다. 누구나 무료로 설치하고 수정할 수 있도록 MIT 라이선스로 공개합니다.
 
-## 가장 쉬운 설치
+## 가장 쉬운 시작
 
-PowerShell 또는 터미널에서 아래 두 줄을 실행합니다.
+수업에서는 [`fallback/starter-project`](fallback/starter-project)를 내려받아 작업 폴더로 여는 방법을 권장합니다. 같은 여섯 스킬을 Codex·Claude Code·Antigravity가 각자의 워크스페이스 경로에서 읽습니다.
+
+- Codex·Antigravity: `.agents/skills`
+- Claude Code: `.claude/skills`
+
+스킬을 읽을 수 있는 에이전트에서 다음처럼 자연어로 요청합니다.
+
+```text
+complete-modoo-plan 스킬을 사용해 제출본을 보존하고 평가 공백 하나부터 안내해줘.
+```
+
+자료가 거의 없으면 파일을 만들기 전에 고객과 사용상황을 묻는 질문 하나부터 시작합니다.
+
+### Codex 마켓플레이스 설치
 
 ```powershell
 codex plugin marketplace add Dayoooun/dayoun-marketplace --ref main
 codex plugin add modoo-startup-plan@dayoun
 ```
 
-설치가 끝나면 Codex를 새로 시작하고 다음과 같이 요청합니다.
+### Claude Code 마켓플레이스 설치
+
+Claude Code 안에서 다음 명령을 실행합니다.
 
 ```text
-$complete-modoo-plan 제출본을 보존하고 평가 공백 하나부터 안내해줘.
+/plugin marketplace add Dayoooun/dayoun-marketplace
+/plugin install modoo-startup-plan@dayoun
 ```
 
-자료가 거의 없으면 Codex가 폴더를 만들기 전에 고객과 사용상황을 묻는 질문 하나부터 시작합니다.
-
-Codex를 설치하지 못한 참가자는 [`fallback/starter-project`](fallback/starter-project) 폴더를 내려받아 열면 로컬 스킬 6개와 빈 작업표를 바로 사용할 수 있습니다.
+Antigravity와 일반 채팅형 AI를 포함한 차이는 [멀티 프로바이더 안내](course/07-multi-provider-guide.md)에서 확인할 수 있습니다. 설치 방법은 서로 다르지만 네 가지 기본 결과물은 같습니다.
 
 ## 두 시간에 만드는 네 가지
 
@@ -32,7 +46,7 @@ Codex를 설치하지 못한 참가자는 [`fallback/starter-project`](fallback/
 
 회사 내부 입력은 `F001` 계열, 이번에 외부·고객 근거로 검증할 핵심 주장은 `C001`로 분리합니다. 네 결과물은 같은 C001을 사용합니다.
 
-GPT, Gemini, Claude 등 다른 생성형 AI를 쓰는 참가자도 [`course/06-participant-quick-start.md`](course/06-participant-quick-start.md)의 같은 질문과 출력 형식으로 공통 경로를 완주할 수 있습니다.
+일반 채팅형 GPT, Gemini, Claude 등을 쓰는 참가자도 [`course/06-participant-quick-start.md`](course/06-participant-quick-start.md)의 같은 질문과 출력 형식으로 공통 경로를 완주할 수 있습니다. 다만 파일 생성·추적·HWPX 자동화는 에이전트 도구와 같은 기능이라고 안내하지 않습니다.
 
 ## 제공하는 6개 스킬
 
@@ -87,6 +101,7 @@ codex plugin add modoo-startup-plan@dayoun
 - [수업 전 체크리스트](course/03-preclass-checklist.md)
 - [강사 운영 가이드](course/04-instructor-guide.md)
 - [참가자 한 장 빠른 시작](course/06-participant-quick-start.md)
+- [Codex·Claude Code·Antigravity 공통 사용 안내](course/07-multi-provider-guide.md)
 - [설치 없는 스타터 프로젝트](fallback/starter-project)
 - [완성 예시](fallback/completed-project)
 - [인터넷 장애용 오프라인 근거팩](fallback/offline-evidence-pack)
@@ -100,7 +115,7 @@ codex plugin add modoo-startup-plan@dayoun
 
 ## 버전
 
-현재 공개 버전은 `0.3.0`입니다. 특정 기관·날짜를 공통 스킬에서 분리하고, 여러 창업지원사업에서도 공식 프로그램프로필을 기준으로 같은 흐름을 사용할 수 있습니다.
+현재 공개 버전은 `0.4.0`입니다. 같은 스킬 원본을 Codex·Claude Code·Antigravity에서 사용하며, 일반 채팅형 AI에는 동일한 사고 순서와 출력 형식의 프롬프트 경로를 제공합니다.
 
 ## 기여와 문의
 

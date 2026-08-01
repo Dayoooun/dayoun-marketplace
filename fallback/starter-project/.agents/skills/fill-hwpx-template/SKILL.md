@@ -23,10 +23,19 @@ description: "한글 HWP를 HWPX로 저장하도록 안내하고, HWPX의 중괄
 ## 절차
 
 1. 이 SKILL.md가 있는 폴더를 스킬 루트로 정하고 그 아래 `scripts/hwpx_placeholders.py`를 사용한다. 프로젝트 루트의 scripts로 해석하지 않는다.
+   - Windows에서는 `python`, macOS/Linux에서는 `python3`를 사용한다.
 2. 작업용 HWPX를 스캔한다.
+
+Windows 예시:
 
 ~~~powershell
 python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_placeholders.py" scan "03. 사업계획서양식\작업용 HWPX\양식.hwpx" --map-out "03. 사업계획서양식\placeholder-values.draft.json"
+~~~
+
+macOS/Linux 예시:
+
+~~~bash
+python3 "<이 SKILL.md가 있는 폴더>/scripts/hwpx_placeholders.py" scan "03. 사업계획서양식/작업용 HWPX/양식.hwpx" --map-out "03. 사업계획서양식/placeholder-values.draft.json"
 ~~~
 
 3. 0개가 나오면 자동치환을 중단한다. 실제 양식이면 `--manual-mapping`으로 전환하고 template-field-map.csv를 작성한다.
@@ -36,6 +45,8 @@ python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_placeholders.py" scan "03. 
 ~~~powershell
 python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_placeholders.py" fill "03. 사업계획서양식\작업용 HWPX\양식.hwpx" --values "03. 사업계획서양식\placeholder-values.approved.json" --output "05. 작성초안\사업계획서_고도화_v01.hwpx"
 ~~~
+
+macOS/Linux에서는 같은 인자를 유지하고 `python3`와 `/` 경로 구분자를 사용한다.
 
 6. 구조를 다시 검증한다.
 

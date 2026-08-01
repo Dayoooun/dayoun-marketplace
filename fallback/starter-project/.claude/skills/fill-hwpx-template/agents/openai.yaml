@@ -1,0 +1,4 @@
+interface:
+  display_name: "HWPX 양식 채우기"
+  short_description: "HWPX 중괄호 항목을 안전하게 치환하고 결과를 검증합니다"
+  default_prompt: "$fill-hwpx-template로 원본을 보존하면서 승인된 값만 HWPX 복사본에 반영해 주세요."

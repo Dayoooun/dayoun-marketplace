@@ -1,0 +1,4 @@
+interface:
+  display_name: "시장조사와 근거 정리"
+  short_description: "시장·고객·경쟁 근거를 신뢰 가능한 출처와 함께 정리합니다"
+  default_prompt: "$research-startup-evidence로 핵심 주장 C001 하나를 공식 출처 또는 고객 근거로 확인해 주세요."
