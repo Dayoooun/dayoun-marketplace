@@ -1,3 +1,2 @@
 claim_id,criterion_id,form_field_id,section,claim,claim_type,source_name,source_path_or_url,page_or_location,published_date,accessed_date,unit_and_base_date,verification_status,approved_wording,notes
-C001,PNU-AUTH,F001,문제인식,자료가 여러 폴더와 채팅에 흩어져 다시 찾기 어렵다,가정,교육용 가상 고객 메모,../offline-evidence-pack/03-fictional-customer-notes.md,D001;D002,,,교육용 가상자료,확인필요,초기 창업자는 자료가 흩어져 근거와 초안의 연결을 다시 확인하는 데 어려움을 겪을 수 있다,실제 제출에는 고객검증 필요
-C002,PNU-CONCRETE,F001,문제인식,근거와 문장을 연결한 작업 흐름이 필요하다,향후계획,모두랩 가상 회사자료,../offline-evidence-pack/02-fictional-company-brief.md,해결방식,,,교육용 가상자료,확인,근거와 문장을 한 흐름에서 관리하는 작업방식을 검증한다,효과를 사실처럼 단정하지 않음
+C001,PNU-AUTH,FF001,문제인식,자료가 여러 폴더와 채팅에 흩어져 다시 찾기 어렵다,가정,교육용 가상 고객 메모,../offline-evidence-pack/03-fictional-customer-notes.md,D001;D002,,,교육용 가상자료,확인필요,초기 창업자는 자료가 흩어져 근거와 초안의 연결을 다시 확인하는 데 어려움을 겪을 수 있다,실제 제출에는 고객검증 필요

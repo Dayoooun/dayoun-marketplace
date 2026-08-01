@@ -1,0 +1,23 @@
+name: Validate open skills
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Check generated starter skills
+        run: python scripts/sync_starter_skills.py
+      - name: Check generated starter project
+        run: python scripts/sync_starter_project.py
+      - name: Run plugin tests
+        run: python -m unittest discover -s tests -v

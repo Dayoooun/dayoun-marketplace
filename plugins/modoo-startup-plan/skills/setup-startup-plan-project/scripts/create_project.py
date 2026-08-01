@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 FOLDERS = (
@@ -51,6 +52,21 @@ TEMPLATES = {
 3. 제출본 사본과 공고문·평가표 배치
 4. Green / Yellow / Red 실습 경로 결정
 """,
+    "00. 시작하기/프로그램프로필.json": """{
+  "program_name": "",
+  "program_pack": "generic",
+  "track": {track_json},
+  "submission_name": "",
+  "deadline": "",
+  "post_submission_edit": "unknown",
+  "criteria_source": "",
+  "criteria_status": "unknown",
+  "criteria": [],
+  "form_received": false,
+  "user_provided_summary": "",
+  "notes": "공식 원문에서 확인한 값만 입력"
+}
+""",
     "00. 시작하기/제출요건.md": """# 제출요건
 
 | 항목 | 공식 요구 | 원문 위치 | 상태 |
@@ -81,33 +97,32 @@ TEMPLATES = {
 - 검증할 핵심 주장 C001: {확인필요}
 - 사용할 공식 출처 또는 기존 고객 근거 1개: {확인필요}
 - 다음 공식 마감: {확인필요}
+- 콘텐츠 검토 범위: EDUCATION_SINGLE_CLAIM
 - HWPX 선택 트랙 사용 여부: {확인필요: 사용 안 함 / ANNOTATED_TEMPLATE / MANUAL_MAPPING}
 """,
     "00. 시작하기/증거원장.csv": "claim_id,criterion_id,form_field_id,section,claim,claim_type,source_name,source_path_or_url,page_or_location,published_date,accessed_date,unit_and_base_date,verification_status,approved_wording,notes\n",
     "00. 시작하기/요구사항추적표.csv": "criterion_id,form_field_id,official_prompt,source_page,required_or_optional,length_limit,claim_ids,draft_file,placeholder,approval_status,hwpx_status\n",
     "01. 회사내용/회사사실표.md": """# 회사사실표
 
-근거가 없으면 내용을 만들지 말고 {확인필요}로 남깁니다. 모든 항목은 증거원장과 같은 C001 형식의 claim_id를 사용합니다.
+근거가 없으면 내용을 만들지 말고 {확인필요}로 남깁니다. 회사 내부 입력은 F001 형식의 fact_id를 사용하고, 외부·고객 근거로 검증할 핵심 주장은 증거원장에서 C001로 관리합니다.
 
-| claim_id | 구분 | 내용 | 근거 파일·위치 | 상태 |
+| fact_id | 구분 | 내용 | 근거 파일·위치 | 상태 |
 |---|---|---|---|---|
-| C001 | 대표자 문제 발견 경험 |  |  | 확인필요 |
-| C002 | 아이템 한 문장 |  |  | 확인필요 |
-| C003 | 목표고객 |  |  | 확인필요 |
-| C004 | 현재 보유 기술·자원 |  |  | 확인필요 |
-| C005 | 확인된 실적 |  |  | 확인필요 |
-| C006 | 향후 계획 |  |  | 계획 |
+| F001 | 대표자 문제 발견 경험 |  |  | 확인필요 |
+| F002 | 아이템 한 문장 |  |  | 확인필요 |
+| F003 | 목표고객 |  |  | 확인필요 |
+| F004 | 현재 보유 기술·자원 |  |  | 확인필요 |
+| F005 | 확인된 실적 |  |  | 확인필요 |
+| F006 | 향후 계획 |  |  | 계획 |
 """,
     "01. 회사내용/누락정보.md": "# 누락정보\n\n- [ ] {확인필요}\n",
     "02. 공고문 및 평가지표/평가기준표.md": """# 평가기준표
 
-실제 공고·부산대 내부 평가표가 일반 참조보다 우선합니다. 공식 배점이 없으면 임의 점수를 공식처럼 표시하지 않습니다.
+프로그램프로필에 기록한 실제 공고·평가표가 모든 일반 참조보다 우선합니다. 공식 배점이 없으면 임의 점수를 공식처럼 표시하지 않습니다.
 
-| 평가영역 | 공식 문구 | 원문 위치 | 필요한 근거 | 상태 |
-|---|---|---|---|---|
-| 도전의 진정성 |  |  | 문제 발견 경험·신청 배경 | 확인필요 |
-| 사회적 가치 |  |  | 차별성·기대효과 | 확인필요 |
-| 아이디어 구체성 |  |  | 시장성·실현 가능성 | 확인필요 |
+| criterion_id | 평가영역 | 공식 문구 | 원문 위치 | 필요한 근거 | 상태 |
+|---|---|---|---|---|---|
+| R001 | {확인필요} |  |  |  | 확인필요 |
 """,
     "02. 공고문 및 평가지표/공백진단표.md": """# 공백진단표
 
@@ -189,12 +204,16 @@ TEMPLATES = {
     "06. 검토결과/콘텐츠검토.md": """# 콘텐츠 검토
 
 - 검토 상태: NOT_RUN
+- 검토 범위: EDUCATION_SINGLE_CLAIM
 - 검토 대상 버전: {확인필요}
+- 범위 내 필수항목 분모: {확인필요}
+- 범위 내 사실 주장 분모: {확인필요}
+- 범위 밖 항목: NOT_REVIEWED
 - PASS: -
 - WARN: -
 - BLOCK: -
-- 필수항목 커버리지: {확인필요}
-- 사실 주장 근거 커버리지: {확인필요}
+- 범위 내 필수항목 커버리지: {확인필요}
+- 범위 내 사실 주장 근거 커버리지: {확인필요}
 """,
     "06. 검토결과/산출물검토.md": """# HWPX 산출물 검토
 
@@ -254,9 +273,23 @@ TEMPLATES = {
 }
 
 
+def render_template(template: str, track: str, mode: str) -> str:
+    return (
+        template.replace("{track_json}", json.dumps(track, ensure_ascii=False))
+        .replace("{track}", track)
+        .replace("{mode}", mode)
+    )
+
+
 def safe_write(path: Path, content: str, force: bool) -> str:
-    if path.exists() and not force:
-        return "SKIP"
+    if path.exists():
+        try:
+            current = path.read_text(encoding="utf-8-sig")
+        except UnicodeDecodeError:
+            return "PROTECTED_MODIFIED" if force else "SKIP"
+        if current == content:
+            return "SAME"
+        return "PROTECTED_MODIFIED" if force else "SKIP"
     path.write_text(content, encoding="utf-8", newline="\n")
     return "WRITE"
 
@@ -266,9 +299,8 @@ def main() -> int:
     parser.add_argument("--path", required=True, help="생성할 프로젝트 폴더")
     parser.add_argument(
         "--track",
-        choices=("general-tech", "local", "unknown"),
         default="unknown",
-        help="모두의 창업 트랙",
+        help="공식 공고에서 확인한 트랙명. 모르면 unknown",
     )
     parser.add_argument(
         "--mode",
@@ -279,7 +311,7 @@ def main() -> int:
     parser.add_argument(
         "--force",
         action="store_true",
-        help="도구가 관리하는 빈 템플릿만 덮어쓰기",
+        help="호환성 옵션. 사용자 수정 파일은 덮어쓰지 않고 보호 상태로 보고",
     )
     args = parser.parse_args()
 
@@ -293,11 +325,17 @@ def main() -> int:
 
     written: list[str] = []
     skipped: list[str] = []
+    protected: list[str] = []
     for relative, template in TEMPLATES.items():
         target = project / relative
-        content = template.replace("{track}", args.track).replace("{mode}", args.mode)
+        content = render_template(template, args.track, args.mode)
         result = safe_write(target, content, args.force)
-        (written if result == "WRITE" else skipped).append(relative)
+        if result == "WRITE":
+            written.append(relative)
+        elif result == "PROTECTED_MODIFIED":
+            protected.append(relative)
+        else:
+            skipped.append(relative)
 
     print(f"PROJECT: {project}")
     print(f"CREATED_OR_UPDATED: {len(written)}")
@@ -306,6 +344,9 @@ def main() -> int:
     print(f"PRESERVED_EXISTING: {len(skipped)}")
     for item in skipped:
         print(f"  = {item}")
+    print(f"PROTECTED_MODIFIED: {len(protected)}")
+    for item in protected:
+        print(f"  ! {item}")
     return 0
 
 

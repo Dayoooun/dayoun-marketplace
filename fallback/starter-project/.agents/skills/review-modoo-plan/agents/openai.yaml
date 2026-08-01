@@ -1,4 +1,4 @@
 interface:
   display_name: "사업계획 고도화 검토"
   short_description: "사실·출처·평가기준·승인·선택 HWPX 결과를 점검합니다"
-  default_prompt: "Use $review-modoo-plan to review my startup-plan content and, when applicable, the HWPX output."
+  default_prompt: "$review-modoo-plan으로 검토 범위를 먼저 선언하고 사업계획 내용과 선택 HWPX 결과를 점검해 주세요."

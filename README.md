@@ -19,6 +19,8 @@ codex plugin add modoo-startup-plan@dayoun
 $complete-modoo-plan 제출본을 보존하고 평가 공백 하나부터 안내해줘.
 ```
 
+자료가 거의 없으면 Codex가 폴더를 만들기 전에 고객과 사용상황을 묻는 질문 하나부터 시작합니다.
+
 Codex를 설치하지 못한 참가자는 [`fallback/starter-project`](fallback/starter-project) 폴더를 내려받아 열면 로컬 스킬 6개와 빈 작업표를 바로 사용할 수 있습니다.
 
 ## 두 시간에 만드는 네 가지
@@ -27,6 +29,8 @@ Codex를 설치하지 못한 참가자는 [`fallback/starter-project`](fallback/
 2. 주장 `C001`의 공식 출처 또는 기존 고객 근거, 기준일, 한계, 다음 검증
 3. 제출 당시 생각과 새 근거를 비교한 유지·수정·보류 변화기록
 4. 다음 공식 마감까지의 담당·기한·완료 증거와 1분 IR 핵심 메시지
+
+회사 내부 입력은 `F001` 계열, 이번에 외부·고객 근거로 검증할 핵심 주장은 `C001`로 분리합니다. 네 결과물은 같은 C001을 사용합니다.
 
 GPT, Gemini, Claude 등 다른 생성형 AI를 쓰는 참가자도 [`course/06-participant-quick-start.md`](course/06-participant-quick-start.md)의 같은 질문과 출력 형식으로 공통 경로를 완주할 수 있습니다.
 
@@ -55,7 +59,7 @@ GPT, Gemini, Claude 등 다른 생성형 AI를 쓰는 참가자도 [`course/06-p
 99. 원본백업
 ```
 
-`setup-startup-plan-project` 스킬이 위 폴더와 필요한 작업표를 자동으로 만듭니다. 기존 파일은 덮어쓰지 않습니다.
+`setup-startup-plan-project` 스킬이 프로그램프로필과 위 폴더·작업표를 자동으로 만듭니다. `--force`를 사용해도 사용자 수정 파일은 덮어쓰지 않습니다.
 
 ## HWPX 선택 트랙 전 확인
 
@@ -96,7 +100,7 @@ codex plugin add modoo-startup-plan@dayoun
 
 ## 버전
 
-현재 공개 버전은 `0.2.0`입니다. 8월 14일 제출본을 보존하고, 8월 19일 수업을 선정 이후 검증·활동·멘토링·IR 준비에 맞췄습니다.
+현재 공개 버전은 `0.3.0`입니다. 특정 기관·날짜를 공통 스킬에서 분리하고, 여러 창업지원사업에서도 공식 프로그램프로필을 기준으로 같은 흐름을 사용할 수 있습니다.
 
 ## 기여와 문의
 
