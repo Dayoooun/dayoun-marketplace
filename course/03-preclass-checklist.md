@@ -32,13 +32,13 @@ codex --version
 codex login status
 python --version
 codex plugin marketplace add Dayoooun/dayoun-marketplace --ref main
-codex plugin add modoo-startup-plan@dayoun
+codex plugin add business-plan-writer@dayoun
 ```
 
 Codex를 새로 시작한 뒤 다음처럼 준비 상태만 확인합니다.
 
 ```text
-$complete-modoo-plan 준비 상태만 점검해줘. 아직 파일은 만들거나 수정하지 마.
+$complete-business-plan 준비 상태만 점검해줘. 아직 파일은 만들거나 수정하지 마.
 ```
 
 ## 내 실습 경로

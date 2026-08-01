@@ -1,0 +1,4 @@
+interface:
+  display_name: "사업계획서 검토"
+  short_description: "누락·논리·근거·숫자·표현을 범위별로 점검합니다"
+  default_prompt: "$review-business-plan으로 검토 범위를 먼저 선언하고, BLOCK부터 쉬운 말로 설명한 뒤 수정 우선순위를 정해 주세요."

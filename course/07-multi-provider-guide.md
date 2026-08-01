@@ -1,6 +1,6 @@
 # Codex·Claude Code·Antigravity 공통 사용 안내
 
-이 자료는 같은 여섯 개 스킬 원본을 Codex, Claude Code, Antigravity에서 사용하도록 구성했습니다. 목표와 결과물은 같지만 설치 방법은 서로 다릅니다.
+이 자료는 같은 여섯 개 범용 사업계획서 스킬 원본을 Codex, Claude Code, Antigravity에서 사용하도록 구성했습니다. 목표와 결과물은 같지만 설치 방법은 서로 다릅니다. 기본 스킬은 특정 지원사업에 묶이지 않으며, 수업에서는 제공된 공고와 평가표를 선택 자료로 넣어 사용합니다.
 
 ## 먼저 구분하기
 
@@ -19,8 +19,8 @@
 
 - Codex와 Antigravity는 `.agents/skills`를 읽습니다.
 - Claude Code는 `.claude/skills`를 읽습니다.
-- 두 폴더는 `plugins/modoo-startup-plan/skills`에서 자동 생성된 동일한 복사본입니다.
-- 수강생은 자연어로 “`complete-modoo-plan` 스킬을 사용해 DEMO 모드로 시작해줘”라고 요청합니다.
+- 두 폴더는 `plugins/business-plan-writer/skills`에서 자동 생성된 동일한 복사본입니다.
+- 수강생은 자연어로 “`complete-business-plan` 스킬을 사용해 DEMO 모드로 시작해줘”라고 요청합니다.
 
 ## 제품별 설치
 
@@ -28,7 +28,7 @@
 
 ```powershell
 codex plugin marketplace add Dayoooun/dayoun-marketplace --ref main
-codex plugin add modoo-startup-plan@dayoun
+codex plugin add business-plan-writer@dayoun
 ```
 
 ### Claude Code
@@ -37,7 +37,7 @@ Claude Code 안에서 실행합니다.
 
 ```text
 /plugin marketplace add Dayoooun/dayoun-marketplace
-/plugin install modoo-startup-plan@dayoun
+/plugin install business-plan-writer@dayoun
 ```
 
 설치 뒤 `/reload-plugins`를 실행하거나 Claude Code를 다시 시작합니다.
@@ -46,14 +46,14 @@ Claude Code 안에서 실행합니다.
 
 수업에서는 스타터 프로젝트를 여는 방법을 권장합니다. Antigravity는 워크스페이스의 `.agents/skills/<skill-name>/SKILL.md`를 읽습니다.
 
-플러그인 단위로 관리하려는 강사·운영자는 `plugins/modoo-startup-plan` 폴더를 워크스페이스의 `.agents/plugins/modoo-startup-plan`에 복사할 수 있습니다. 이 폴더의 루트 `plugin.json`과 `skills/`를 함께 유지합니다.
+플러그인 단위로 관리하려는 강사·운영자는 `plugins/business-plan-writer` 폴더를 워크스페이스의 `.agents/plugins/business-plan-writer`에 복사할 수 있습니다. 이 폴더의 루트 `plugin.json`과 `skills/`를 함께 유지합니다.
 
 ## 모든 에이전트에서 같은 완료 계약
 
 어떤 에이전트 도구를 사용해도 기본 완료 결과는 다음 네 가지입니다.
 
 1. `공백진단표`: 평가기준과 현재 내용 사이의 가장 중요한 공백 한 개
-2. `검증활동기록`: 주장 C001, 근거, 말할 수 없는 범위, 다음 검증
+2. `조사기록`: 확인할 내용, 근거, 말할 수 없는 범위, 다음 확인
 3. `멘토링변화기록`: 유지·수정·보류 결정과 이유
 4. `실행카드`: 담당·기한·완료 증거·다음 행동과 1분 설명
 
@@ -63,7 +63,7 @@ HWPX는 수정 허용, 실제 양식, 복사본 검증이 모두 확인된 경�
 
 ## 호환성 원칙
 
-- 여섯 스킬의 원본은 `plugins/modoo-startup-plan/skills` 한 곳만 수정합니다.
+- 여섯 스킬의 원본은 `plugins/business-plan-writer/skills` 한 곳만 수정합니다.
 - 제품별 매니페스트는 설치 위치만 연결하고 스킬 내용을 복제하지 않습니다.
 - 스타터의 `.agents/skills`와 `.claude/skills`는 동기화 검사로 원본과 바이트 단위 일치를 확인합니다.
 - 특정 제품의 호출 기호에 의존하지 않고 스킬 이름과 목표를 자연어로 요청합니다.

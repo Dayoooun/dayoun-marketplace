@@ -1,16 +1,16 @@
 {
   "name": "dayoun",
-  "description": "Open educational skills for evidence-first startup planning.",
+  "description": "Open skills for evidence-based business planning.",
   "owner": {
     "name": "Dayoun",
     "url": "https://github.com/Dayoooun"
   },
   "plugins": [
     {
-      "name": "modoo-startup-plan",
-      "source": "./plugins/modoo-startup-plan",
-      "description": "Evidence-first startup-plan workflow with optional HWPX support.",
-      "version": "0.4.0"
+      "name": "business-plan-writer",
+      "source": "./plugins/business-plan-writer",
+      "description": "Plan, research, draft, review, and optionally fill HWPX business-plan templates.",
+      "version": "0.5.0"
     }
   ]
 }

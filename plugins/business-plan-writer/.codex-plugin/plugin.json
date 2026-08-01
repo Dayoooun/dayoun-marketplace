@@ -1,0 +1,26 @@
+{
+  "name": "business-plan-writer",
+  "version": "0.5.0",
+  "description": "Evidence-based workflow for planning, researching, drafting, and reviewing business plans with optional HWPX support.",
+  "author": {
+    "name": "Dayoun",
+    "url": "https://github.com/Dayoooun"
+  },
+  "license": "MIT",
+  "keywords": ["business-plan", "startup", "strategy", "research", "hwpx"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "AI 사업계획서 작성 도우미",
+    "shortDescription": "자료 정리부터 조사·작성·검토까지 한 흐름으로 돕습니다",
+    "longDescription": "지원사업 신청서, 투자·IR 자료, 사내 사업계획, 대출·제안 문서 등 목적에 맞춰 자료를 정리하고 근거를 조사하며 초안을 작성·검토합니다. 공식 공고나 평가표가 있으면 그 기준을 우선하고, 없으면 일반 사업계획 기준을 사용합니다. HWPX 작성은 원본 보존과 사용자 승인 후 선택적으로 진행합니다.",
+    "developerName": "Dayoun",
+    "category": "Business",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "사업계획서의 목적과 현재 자료 상태를 먼저 확인해 주세요.",
+      "부족한 내용을 찾고 필요한 조사를 진행한 뒤 근거가 표시된 초안을 만들어 주세요.",
+      "사실과 계획을 구분해 검토하고 다음 행동까지 정리해 주세요."
+    ],
+    "brandColor": "#5B5BD6"
+  }
+}

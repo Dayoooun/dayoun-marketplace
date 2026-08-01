@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "plugins" / "modoo-startup-plan" / "skills"
+SOURCE = ROOT / "plugins" / "business-plan-writer" / "skills"
 TARGETS = {
     "agents": ROOT / "fallback" / "starter-project" / ".agents" / "skills",
     "claude": ROOT / "fallback" / "starter-project" / ".claude" / "skills",

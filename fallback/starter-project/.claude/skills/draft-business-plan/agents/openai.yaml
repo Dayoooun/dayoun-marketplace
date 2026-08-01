@@ -1,0 +1,4 @@
+interface:
+  display_name: "사업계획서 초안 작성"
+  short_description: "목적과 근거에 맞춰 장·절별 초안을 만듭니다"
+  default_prompt: "$draft-business-plan으로 공식 요구사항과 확인된 사업 정보를 우선해 초안을 작성하고, 근거가 없는 부분은 확인필요로 남겨 주세요."

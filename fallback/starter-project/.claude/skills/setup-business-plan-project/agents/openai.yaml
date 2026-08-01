@@ -1,0 +1,4 @@
+interface:
+  display_name: "사업계획서 작업 폴더 준비"
+  short_description: "원본부터 최종본까지 안전하게 정리합니다"
+  default_prompt: "$setup-business-plan-project로 사용 목적과 최소 정보를 확인한 뒤 사업계획서 작업 폴더를 만들어 주세요."

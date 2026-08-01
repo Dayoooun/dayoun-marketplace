@@ -1,0 +1,4 @@
+interface:
+  display_name: "사업계획서 처음부터 끝까지"
+  short_description: "목적 확인부터 조사·작성·검토·다음 행동까지 안내합니다"
+  default_prompt: "$complete-business-plan으로 사업계획서의 목적과 현재 자료를 확인하고, 가장 필요한 단계부터 쉬운 말로 진행해 주세요."

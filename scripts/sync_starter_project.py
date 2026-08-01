@@ -12,9 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 GENERATOR = (
     ROOT
     / "plugins"
-    / "modoo-startup-plan"
+    / "business-plan-writer"
     / "skills"
-    / "setup-startup-plan-project"
+    / "setup-business-plan-project"
     / "scripts"
     / "create_project.py"
 )
@@ -38,7 +38,7 @@ def main() -> int:
     templates, render_template = load_templates()
     different: list[str] = []
     for relative, template in templates.items():
-        expected = render_template(template, "unknown", "DEMO")
+        expected = render_template(template, "교육", "unknown", "DEMO")
         target = TARGET / relative
         current = target.read_text(encoding="utf-8-sig") if target.is_file() else None
         if current != expected:
