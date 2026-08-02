@@ -14,7 +14,8 @@
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
-      "category": "Business"
+      "category": "Business",
+      "version": "0.7.0"
     }
   ]
 }

@@ -61,7 +61,7 @@ Antigravity와 일반 채팅형 AI를 포함한 차이는 [멀티 프로바이�
 
 일반 채팅형 GPT, Gemini, Claude 등을 쓰는 참가자도 [`course/06-participant-quick-start.md`](course/06-participant-quick-start.md)의 같은 질문과 출력 형식으로 공통 경로를 완주할 수 있습니다. 다만 파일 생성·추적·HWPX 자동화는 에이전트 도구와 같은 기능이라고 안내하지 않습니다.
 
-## 제공하는 6개 스킬
+## 제공하는 7개 스킬
 
 | 스킬 | 하는 일 |
 | --- | --- |
@@ -71,6 +71,7 @@ Antigravity와 일반 채팅형 AI를 포함한 차이는 [멀티 프로바이�
 | `draft-business-plan` | 목적·요구사항과 확인된 근거로 선택 항목 초안 작성 |
 | `fill-hwpx-template` | 조건부 HWPX 중괄호 치환 또는 수동 매핑 |
 | `review-business-plan` | 콘텐츠와 선택 HWPX 산출물을 분리해 검토 |
+| `ppt-editorial` | 발표용 16:9 슬라이드 덱 제작 (도메인 프리셋 9종·구도 10종·PDF/PPTX) |
 
 ## 수업에서 사용하는 기본 폴더
 
