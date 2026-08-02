@@ -10,6 +10,9 @@
   - `Deck` API: cover → slide/photos → generate → build(PDF·PPTX)
   - 자체 게이트 3종(deck_qc / harness_smoke / doc_consistency, 모두 self-test 포함)
   - 씬만 이미지 생성 모델이 그리고 텍스트·배치·타이포는 코드가 렌더 — 글자 깨짐 없음
+  - `ppt-image-first` 하네스 통합 — 앞단 자료 정리(deck_brief/content_report/
+    style_card/slide_blueprint)를 두 모드 공통 단계로 흡수하고, 생성은
+    모드 A(씬 덱) / 모드 B(이미지 퍼스트) 중 선택하도록 일원화
 
 ## 0.6.0 · 2026-08-02
 

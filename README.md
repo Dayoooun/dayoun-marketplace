@@ -71,7 +71,7 @@ Antigravity와 일반 채팅형 AI를 포함한 차이는 [멀티 프로바이�
 | `draft-business-plan` | 목적·요구사항과 확인된 근거로 선택 항목 초안 작성 |
 | `fill-hwpx-template` | 조건부 HWPX 중괄호 치환 또는 수동 매핑 |
 | `review-business-plan` | 콘텐츠와 선택 HWPX 산출물을 분리해 검토 |
-| `ppt-editorial` | 발표용 16:9 슬라이드 덱 제작 (도메인 프리셋 9종·구도 10종·PDF/PPTX) |
+| `ppt-editorial` | 발표 덱 제작 — 자료 정리 후 씬 덱(텍스트는 코드 렌더) 또는 이미지 퍼스트 중 선택 |
 
 ## 수업에서 사용하는 기본 폴더
 
