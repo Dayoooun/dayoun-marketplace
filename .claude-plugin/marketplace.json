@@ -10,7 +10,7 @@
       "name": "business-plan-writer",
       "source": "./plugins/business-plan-writer",
       "description": "Plan, research, draft, review, and optionally fill HWPX business-plan templates.",
-      "version": "0.5.0"
+      "version": "0.6.0"
     }
   ]
 }

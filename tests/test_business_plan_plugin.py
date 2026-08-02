@@ -15,7 +15,7 @@ PLUGIN = ROOT / "plugins" / "business-plan-writer"
 SKILLS = PLUGIN / "skills"
 STARTER_SKILLS = ROOT / "fallback" / "starter-project" / ".agents" / "skills"
 CLAUDE_STARTER_SKILLS = ROOT / "fallback" / "starter-project" / ".claude" / "skills"
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 
 
 def run_python(script: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -149,6 +149,43 @@ class BusinessPlanPluginTests(unittest.TestCase):
         self.assertIn("확인이 필요한 내용", content)
         self.assertNotIn("F001", content)
         self.assertNotIn("C001", content)
+
+    def test_writing_style_and_formatting_are_shared_by_draft_and_review(self) -> None:
+        draft = (SKILLS / "draft-business-plan" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        review = (SKILLS / "review-business-plan" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        rubric = (
+            SKILLS
+            / "review-business-plan"
+            / "references"
+            / "review-rubric.md"
+        ).read_text(encoding="utf-8")
+        guide_path = (
+            SKILLS
+            / "draft-business-plan"
+            / "references"
+            / "writing-style.md"
+        )
+
+        self.assertTrue(guide_path.is_file())
+        guide = guide_path.read_text(encoding="utf-8")
+        self.assertIn("references/writing-style.md", draft)
+        self.assertIn("references/writing-style.md", review)
+        for requirement in (
+            "문체",
+            "한 문단에 하나의 핵심",
+            "들여쓰기",
+            "번호 체계",
+            "표",
+            "공식 양식",
+        ):
+            self.assertIn(requirement, guide)
+        self.assertIn("| 서식 |", rubric)
+        self.assertIn("들여쓰기", rubric)
+        self.assertIn("번호 체계", rubric)
 
     def test_script_skills_explain_windows_and_mac_linux_launchers(self) -> None:
         for skill_name in ("setup-business-plan-project", "fill-hwpx-template"):
