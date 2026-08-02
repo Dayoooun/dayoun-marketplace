@@ -9,8 +9,8 @@
     {
       "name": "business-plan-writer",
       "source": "./plugins/business-plan-writer",
-      "description": "Plan, research, draft, review, optionally fill HWPX business-plan templates, and build presentation decks.",
-      "version": "0.7.0"
+      "description": "Analyze official requirements, research evidence, draft and review the plan, fill approved HWPX, and build presentation decks.",
+      "version": "0.7.1"
     }
   ]
 }

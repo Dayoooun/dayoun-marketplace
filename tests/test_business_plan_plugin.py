@@ -15,7 +15,7 @@ PLUGIN = ROOT / "plugins" / "business-plan-writer"
 SKILLS = PLUGIN / "skills"
 STARTER_SKILLS = ROOT / "fallback" / "starter-project" / ".agents" / "skills"
 CLAUDE_STARTER_SKILLS = ROOT / "fallback" / "starter-project" / ".claude" / "skills"
-VERSION = "0.7.0"
+VERSION = "0.7.1"
 
 
 def run_python(script: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -65,6 +65,7 @@ class BusinessPlanPluginTests(unittest.TestCase):
         self.assertEqual(claude["name"], codex["name"])
         self.assertEqual(claude["version"], VERSION)
         self.assertEqual(antigravity["name"], codex["name"])
+        self.assertEqual(antigravity["version"], VERSION)
 
     def test_both_marketplaces_point_to_the_generic_plugin(self) -> None:
         agents = json.loads(
@@ -229,16 +230,63 @@ class BusinessPlanPluginTests(unittest.TestCase):
         }
         self.assertEqual(actual_paths, expected_paths)
 
-    def test_beginner_intake_happens_before_project_generation(self) -> None:
+    def test_official_inputs_and_beginner_intake_precede_project_generation(self) -> None:
         content = (SKILLS / "complete-business-plan" / "SKILL.md").read_text(
             encoding="utf-8"
         )
-        intake_at = content.index("먼저 하나만 묻기")
+        official_at = content.index("먼저 공식 입력을 잠근다")
+        intake_at = content.index("핵심 정보가 비어 있으면 하나만 묻기")
         setup_at = content.index("`setup-business-plan-project`")
+        self.assertLess(official_at, intake_at)
         self.assertLess(intake_at, setup_at)
         self.assertIn("질문 하나만", content)
         self.assertIn("답을 기다린다", content)
 
+    def test_end_to_end_pipeline_and_skill_handoffs_are_documented(self) -> None:
+        complete = (SKILLS / "complete-business-plan" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        workflow = (
+            SKILLS
+            / "complete-business-plan"
+            / "references"
+            / "workflow.md"
+        ).read_text(encoding="utf-8")
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+        stages = [
+            "공고문·평가지표·작성지침·사업계획서 양식 분석",
+            "회사·사업 현황·아이디어 분석",
+            "부족한 근거와 확인 질문 도출",
+            "시장·고객·경쟁·가격·규제 조사",
+            "사업전략·실행계획·수익구조 설계",
+            "평가지표와 양식에 맞춰 텍스트 초안 작성",
+            "검토·수정·사용자 승인",
+            "승인된 내용만 HWPX 양식에 반영",
+            "HWPX 구조검사·한글 화면검사",
+            "발표 PPT·대본·예상 Q&A 제작",
+        ]
+        positions = [complete.index(stage) for stage in stages]
+        self.assertEqual(positions, sorted(positions))
+        for stage in stages:
+            self.assertIn(stage, readme)
+        self.assertIn("단계 게이트와 되돌아가기", workflow)
+
+        for skill_name in (
+            "setup-business-plan-project",
+            "research-business-evidence",
+            "draft-business-plan",
+            "review-business-plan",
+            "fill-hwpx-template",
+            "ppt-editorial",
+        ):
+            content = (SKILLS / skill_name / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("파이프라인 위치", content, skill_name)
+
+        ppt = (SKILLS / "ppt-editorial" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("HWPX 파일을 슬라이드로 직접 변환하지 않는다", ppt)
+        self.assertIn("대본", ppt)
+        self.assertIn("예상 Q&A", ppt)
     def test_project_profile_is_generic_and_uses_plain_labels(self) -> None:
         script = SKILLS / "setup-business-plan-project" / "scripts" / "create_project.py"
         with tempfile.TemporaryDirectory() as temp_dir:

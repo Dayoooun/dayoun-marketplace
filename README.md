@@ -1,25 +1,12 @@
 # dayoun marketplace
 
-## 이론편 PPT
-
-[편집 가능한 12장 PPTX 내려받기](./modoo-startup-plan-theory.pptx)
-
-![전체 슬라이드 미리보기](./modoo-startup-plan-theory-preview.png)
-
-좋은 사업계획서의 기준부터 기존 방식과 에이전트 방식의 차이, 사람과 AI의 역할, 알고 있는 정보와 확인할 내용의 구분, 작은 범위 원칙, 네 가지 결과물과 검토 상태까지 이론 흐름만 담았습니다. 설치·프롬프트·폴더 구성·HWPX 조작은 제외했습니다.
-
-- [콘텐츠 잠금과 스토리보드](./theory-deck-storyboard.md)
-- [Codex 이미지 생성 기반 PPTX 생성 원본](./source/build-theory-deck-imagegen.mjs)
-
----
-
-비개발자도 지원사업, 투자·IR, 사내 검토 등 여러 목적의 사업계획서를 자료 정리부터 조사·작성·검토까지 진행할 수 있게 만든 공개 플러그인입니다.
+비개발자도 지원사업, 투자·IR, 사내 검토 등 여러 목적의 사업계획서를 공고·양식 분석부터 조사·설계·작성·검토·HWPX 제출본·발표 PPT까지 진행할 수 있게 만든 공개 플러그인입니다.
 
 기본 스킬은 특정 기관이나 사업에 묶이지 않습니다. 부산대 수업에서는 현재 공식 공고와 평가표를 선택 설정으로 넣어 사용합니다. HWPX 반영은 원본 보존, 사용자 승인, 양식 검증이 확인된 경우에만 선택합니다. 누구나 무료로 설치하고 수정할 수 있도록 MIT 라이선스로 공개합니다.
 
 ## 가장 쉬운 시작
 
-수업에서는 [`fallback/starter-project`](fallback/starter-project)를 내려받아 작업 폴더로 여는 방법을 권장합니다. 같은 여섯 스킬을 Codex·Claude Code·Antigravity가 각자의 워크스페이스 경로에서 읽습니다.
+수업에서는 [`fallback/starter-project`](fallback/starter-project)를 내려받아 작업 폴더로 여는 방법을 권장합니다. 같은 일곱 스킬을 Codex·Claude Code·Antigravity가 각자의 워크스페이스 경로에서 읽습니다.
 
 - Codex·Antigravity: `.agents/skills`
 - Claude Code: `.claude/skills`
@@ -27,10 +14,11 @@
 스킬을 읽을 수 있는 에이전트에서 다음처럼 자연어로 요청합니다.
 
 ```text
-complete-business-plan 스킬을 사용해 원본을 보존하고 가장 중요한 보완점 하나부터 안내해줘.
+complete-business-plan 스킬을 사용해 공고문·평가지표·작성지침·양식을 먼저 분석하고,
+회사·사업정보와 부족한 근거를 확인한 뒤 승인된 HWPX와 발표 PPT까지 10단계로 진행해줘.
 ```
 
-자료가 거의 없으면 파일을 만들기 전에 고객과 사용상황을 묻는 질문 하나부터 시작합니다.
+공식 자료와 기존 사업정보를 확인한 뒤에도 고객·사용상황·문제가 비어 있을 때만 질문 하나를 합니다.
 
 ### Codex 마켓플레이스 설치
 
@@ -48,6 +36,26 @@ Claude Code 안에서 다음 명령을 실행합니다.
 /plugin install business-plan-writer@dayoun
 ```
 
+### 업데이트와 자동 업데이트
+
+자동 업데이트는 GitHub에 공개된 새 버전만 가져옵니다. 로컬에서만 수정한 내용은 커밋·푸시되기 전까지 설치된 플러그인에 반영되지 않습니다.
+
+Codex에서 마켓플레이스 스냅샷을 새로 받고 설치 버전을 확인합니다.
+
+```powershell
+codex plugin marketplace upgrade dayoun
+codex plugin list
+```
+
+Claude Code에서 마켓플레이스와 플러그인을 갱신한 뒤 다시 시작합니다.
+
+```powershell
+claude plugin marketplace update dayoun
+claude plugin update business-plan-writer@dayoun
+```
+
+자동 업데이트를 켜도 원리는 같습니다. 공개된 버전을 감지하면 갱신하고, 네트워크 오류나 버전 미공개 상태에서는 기존 설치본을 계속 사용합니다.
+
 Antigravity와 일반 채팅형 AI를 포함한 차이는 [멀티 프로바이더 안내](course/07-multi-provider-guide.md)에서 확인할 수 있습니다. 설치 방법은 서로 다르지만 네 가지 기본 결과물은 같습니다.
 
 ## 두 시간에 만드는 네 가지
@@ -61,11 +69,40 @@ Antigravity와 일반 채팅형 AI를 포함한 차이는 [멀티 프로바이�
 
 일반 채팅형 GPT, Gemini, Claude 등을 쓰는 참가자도 [`course/06-participant-quick-start.md`](course/06-participant-quick-start.md)의 같은 질문과 출력 형식으로 공통 경로를 완주할 수 있습니다. 다만 파일 생성·추적·HWPX 자동화는 에이전트 도구와 같은 기능이라고 안내하지 않습니다.
 
+## 공고에서 발표까지 이어지는 10단계
+
+```text
+1. 공고문·평가지표·작성지침·사업계획서 양식 분석
+2. 회사·사업 현황·아이디어 분석
+3. 부족한 근거와 확인 질문 도출
+4. 시장·고객·경쟁·가격·규제 조사
+5. 사업전략·실행계획·수익구조 설계
+6. 평가지표와 양식에 맞춰 텍스트 초안 작성
+7. 검토·수정·사용자 승인
+8. 승인된 내용만 HWPX 양식에 반영
+9. HWPX 구조검사·한글 화면검사
+10. 발표 PPT·대본·예상 Q&A 제작
+```
+
+| 구간 | 담당 스킬 | 다음 단계로 넘어가는 조건 |
+|---|---|---|
+| 전체 순서·공고 분석 | `complete-business-plan` | 자격·지원·일정·제출·평가·작성 제한이 원문 위치와 연결됨 |
+| 원본·사업정보 정리 | `setup-business-plan-project` | 사실·미확인·가정·계획과 누락 자료가 구분됨 |
+| 근거 조사 | `research-business-evidence` | 질문별 출처·기준일·단위·한계와 유지·수정·보류 판정이 있음 |
+| 전략·텍스트 초안 | `draft-business-plan` | 공식 요구사항이 초안 장·절과 근거 위치에 연결됨 |
+| 검토·승인 | `review-business-plan` | BLOCK이 없고 최종 문안과 공개 범위를 사용자가 승인함 |
+| HWPX 반영·검사 | `fill-hwpx-template` + `review-business-plan` | 승인값만 반영되고 구조검사와 한글 화면검사가 통과함 |
+| 발표자료 | `ppt-editorial` | 승인 원문과 수치가 일치하고 PDF/PPTX·대본·Q&A를 육안 검수함 |
+
+조사 결과가 아이디어의 핵심 가정을 부정하면 앞 단계로 돌아가 사업정보와 전략을 고칩니다.
+HWPX 안에서 초안을 쓰지 않으며, HWPX 페이지를 PPT로 그대로 변환하지도 않습니다.
+승인된 텍스트를 발표 목적과 시간에 맞춰 압축·재구성해 PPTX를 만듭니다.
+
 ## 제공하는 7개 스킬
 
 | 스킬 | 하는 일 |
 | --- | --- |
-| `complete-business-plan` | 목적·보완점·근거·초안·검토·다음 행동의 전체 순서 안내 |
+| `complete-business-plan` | 공고·양식 분석부터 조사·설계·초안·승인·HWPX·발표자료까지 10단계 연결 |
 | `setup-business-plan-project` | 원본을 보존하는 범용 폴더와 기본 작업표 생성 |
 | `research-business-evidence` | 확인할 내용 하나를 공식 출처 또는 기존 고객 근거로 조사 |
 | `draft-business-plan` | 목적·요구사항과 확인된 근거로 선택 항목 초안 작성 |
@@ -207,7 +244,7 @@ codex plugin add business-plan-writer@dayoun
 
 ## 버전
 
-현재 공개 버전은 `0.7.0`입니다. 범용 사업계획서 스킬 원본을 Codex·Claude Code·Antigravity에서 사용하며, 일반 채팅형 AI에는 같은 사고 순서와 출력 형식의 프롬프트 경로를 제공합니다.
+현재 공개 버전은 `0.7.1`입니다. 범용 사업계획서 스킬 원본을 Codex·Claude Code·Antigravity에서 사용하며, 일반 채팅형 AI에는 같은 사고 순서와 출력 형식의 프롬프트 경로를 제공합니다.
 
 ## 기여와 문의
 
