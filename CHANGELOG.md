@@ -1,5 +1,16 @@
 # 변경 기록
 
+## 0.7.0 · 2026-08-02
+
+### 추가
+
+- `ppt-editorial` 스킬 — 발표용 16:9 슬라이드 덱 제작
+  - 도메인 프리셋 9종(it/food/manufacturing/education/welfare/culture/public/medical/retail)
+  - 구도 10종(본문 L/S/W/C/A/F/T + 실무 COVER/AGENDA/CLOSING)
+  - `Deck` API: cover → slide/photos → generate → build(PDF·PPTX)
+  - 자체 게이트 3종(deck_qc / harness_smoke / doc_consistency, 모두 self-test 포함)
+  - 씬만 이미지 생성 모델이 그리고 텍스트·배치·타이포는 코드가 렌더 — 글자 깨짐 없음
+
 ## 0.6.0 · 2026-08-02
 
 - 공식 양식을 우선하는 범용 문체·문단·번호·들여쓰기·표 서식 기준 추가

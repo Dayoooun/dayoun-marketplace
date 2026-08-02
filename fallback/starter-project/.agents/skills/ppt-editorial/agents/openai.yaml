@@ -1,0 +1,4 @@
+interface:
+  display_name: "발표 덱 제작"
+  short_description: "씬 일러스트는 이미지 모델이 그리고 텍스트·배치는 코드가 렌더해 16:9 덱을 만듭니다"
+  default_prompt: "$ppt-editorial로 이 자료를 16:9 발표 덱으로 만들어 주세요. 도메인과 발신주체를 먼저 확인하고, 구도가 연속으로 겹치지 않게 배치해 주세요."

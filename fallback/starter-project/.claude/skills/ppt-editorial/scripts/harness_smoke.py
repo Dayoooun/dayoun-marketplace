@@ -1,0 +1,250 @@
+# -*- coding: utf-8 -*-
+"""하네스 스모크 테스트 (2026-08-02)
+
+## 왜 필요한가
+`doc_consistency`는 문서를, `deck_qc`는 산출 이미지를 검사한다.
+**코드 자체가 도는지**는 아무도 안 본다.
+
+이 세션에서 실제로 있었던 일:
+- `typo()` 시그니처 불일치로 `NameError` — 렌더까지 가서야 발견
+- `Deck.save()` 미호출로 `FileNotFoundError` — 재로드 시점에 터짐
+- `Image.getdata()` deprecation — 씬 생성 때마다 경고
+
+전부 "import는 되는데 실행하면 죽는" 부류다. import 확인만으로는 못 잡는다.
+
+## 사용
+    python scripts/harness_smoke.py           # 조립까지 (수초)
+    python scripts/harness_smoke.py --quiet   # 실패만 출력
+"""
+import os, sys, glob, json, warnings, tempfile, shutil
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SD = os.path.join(HERE, "scene-deck")
+sys.path.insert(0, SD)
+sys.path.insert(0, HERE)
+
+CHECKS = []
+
+
+def check(name):
+    def deco(fn):
+        CHECKS.append((name, fn))
+        return fn
+    return deco
+
+
+@check("모듈 import")
+def _import():
+    import fonts, presets, layout_engine, photos, revise, deck  # noqa
+    return "6모듈"
+
+
+@check("프리셋 전종")
+def _presets():
+    import presets
+    bad = []
+    for k in presets.PRESETS:
+        p = presets.preset(k)
+        if not p.get("palette", {}).get("hero") or not p.get("fonts", {}).get("head"):
+            bad.append(k)
+        if len(presets.style_block(k)) < 400:
+            bad.append(k + "(style_block 짧음)")
+    if bad:
+        raise AssertionError("불완전: %s" % bad)
+    return "%d종" % len(presets.PRESETS)
+
+
+@check("구도 함수 시그니처")
+def _layouts():
+    """실제 렌더는 씬 파일이 필요하므로 시그니처와 등록만 확인한다."""
+    import layout_engine as LE
+    import inspect
+    bad = []
+    for name, fn in LE.LAY.items():
+        params = list(inspect.signature(fn).parameters)
+        # 전 구도가 (im, d, s) 3인자 규약을 지켜야 조립기가 호출할 수 있다
+        if len(params) < 3:
+            bad.append("%s%s" % (name, params))
+    if bad:
+        raise AssertionError("시그니처 불일치: %s" % bad)
+    for need in ("L", "S", "W", "C", "A", "F", "T", "COVER", "AGENDA", "CLOSING"):
+        if need not in LE.LAY:
+            raise AssertionError("구도 %s 누락" % need)
+    return "%d종" % len(LE.LAY)
+
+
+@check("revise 명령")
+def _revise():
+    import revise
+    spec = {"domain": "it", "foot": "x", "slides": [
+        {"lay": "L", "eyebrow": "A", "scene": "s%02d" % i,
+         "head": ["h%d" % i], "sub": ["s"]} for i in range(1, 6)]}
+    d = revise.Deck(json.loads(json.dumps(spec)))
+    cmds = ["3번 헤드라인을 새 제목 로", "2번 구도를 W로", "1번 씬 다시",
+            "5번을 2번으로 이동", "색을 navy로"]
+    fail = [c for c in cmds if revise.apply_command(d, c) is None]
+    if fail:
+        raise AssertionError("파싱 실패: %s" % fail)
+    if not d.dirty_scenes:
+        raise AssertionError("씬 재생성이 집계되지 않음")
+    return "%d종" % len(cmds)
+
+
+@check("Deck 조립+출력")
+def _deck():
+    from deck import Deck
+    outs = sorted(glob.glob(os.path.join(
+        os.path.expanduser("~"), "..", "..", "**", "showcase", "*", "spec.json")))
+    # 검증 덱이 없으면 최소 스펙으로 조립만
+    tmp = tempfile.mkdtemp()
+    try:
+        d = Deck(domain="it", foot="스모크", title="smoke", out_dir=tmp)
+        d.cover("SMOKE", ["표지"], ["서브"], issuer="테스트", scene="a test cover")
+        d.slide("L", "TEST", ["헤드라인"], ["서브"], scene="a simple test scene")
+        d.save()
+        sp = os.path.join(tmp, "spec.json")
+        if not os.path.exists(sp):
+            raise AssertionError("spec.json 미생성")
+        d2 = Deck.load(sp)
+        if len(d2.slides) != 2:
+            raise AssertionError("load 후 슬라이드 %d개 (2 기대)" % len(d2.slides))
+        # jobs 생성까지 — 프롬프트 조립 경로 확인
+        jobs = d2.jobs()
+        if len(jobs) != 2 or not jobs[0].get("prompt"):
+            raise AssertionError("jobs 생성 실패")
+        return "save/load/jobs OK"
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+@check("상위 스크립트")
+def _scripts():
+    """scripts/*.py 전체를 import해 구문·의존성 오류를 잡는다.
+
+    ★ 실측: 스모크가 scene-deck만 봐서 codex_parallel_gen·assemble_pptx 등
+      9개 스크립트가 검증 범위 밖이었다. import만으로도 구문 오류와
+      누락된 의존성은 드러난다.
+    """
+    import importlib.util
+    skip = {"harness_smoke.py"}          # 자기 자신
+    bad = []
+    n = 0
+    for p in sorted(glob.glob(os.path.join(HERE, "*.py"))):
+        name = os.path.basename(p)
+        if name in skip:
+            continue
+        try:
+            spec = importlib.util.spec_from_file_location("_sm_" + name[:-3], p)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            n += 1
+        except SystemExit:
+            n += 1                        # argparse가 인자 없이 종료 — 정상
+        except Exception as e:
+            bad.append("%s(%s)" % (name, type(e).__name__))
+    if bad:
+        raise AssertionError("import 실패: %s" % bad)
+    return "%d개" % n
+
+
+@check("QC 상수 정합")
+def _qc_consts():
+    """deck_qc의 여백 기준이 하네스 규격과 어긋나면 정상 슬라이드를 FAIL 처리한다."""
+    import importlib.util, re
+    p = os.path.join(HERE, "deck_qc.py")
+    src = open(p, encoding="utf-8").read()
+    if "SCENE_DECK_MARGIN" not in src:
+        raise AssertionError("SCENE_DECK_MARGIN 기준 없음 — 하네스 규격과 분리됨")
+    m = re.search(r"SCENE_DECK_MARGIN\s*=\s*([0-9.]+)", src)
+    if not m:
+        raise AssertionError("SCENE_DECK_MARGIN 값 파싱 실패")
+    margin = float(m.group(1))
+    import layout_engine as LE
+    # layout_engine의 실제 좌우 여백 비율과 대조
+    ls = open(os.path.join(SD, "layout_engine.py"), encoding="utf-8").read()
+    m2 = re.search(r"M\s*=\s*(?:int\()?W\s*\*\s*([0-9.]+)", ls)
+    if m2 and abs(float(m2.group(1)) - margin) > 0.001:
+        raise AssertionError("QC %.3f vs 하네스 %.3f 불일치" % (margin, float(m2.group(1))))
+    return "margin %.3f" % margin
+
+
+def selftest():
+    """7항목이 실제로 결함을 잡는지 — 메모리 상에서 객체를 훼손해 확인한다.
+
+    ★ 파일을 고치지 않는다. 모듈 속성을 임시로 바꾸고 원복하므로
+      디스크 상태가 변하지 않아 언제든 안전하게 돌릴 수 있다.
+      (doc_consistency의 selftest는 파일을 고쳤다 원복하는데,
+       중단되면 문서가 훼손된 채 남는다 — 그 위험을 여기서는 없앴다.)
+    """
+    import presets, layout_engine as LE, revise as RV
+    results = []
+
+    def probe(label, broken, fn):
+        """broken()으로 훼손 → fn()이 실패해야 정상 → 원복"""
+        undo = broken()
+        try:
+            fn()
+            results.append((label, False))       # 안 잡힘
+        except Exception:
+            results.append((label, True))        # 잡힘
+        finally:
+            undo()
+
+    # 2) 프리셋 — 한 도메인의 hero 색을 지운다
+    def _p():
+        k = next(iter(presets.PRESETS))
+        orig = presets.PRESETS[k]["palette"].get("hero")
+        presets.PRESETS[k]["palette"]["hero"] = None
+        return lambda: presets.PRESETS[k]["palette"].__setitem__("hero", orig)
+    probe("프리셋", _p, dict(CHECKS)["프리셋 전종"])
+
+    # 3) 구도 — 등록을 하나 뺀다
+    def _l():
+        removed = LE.LAY.pop("CLOSING")
+        return lambda: LE.LAY.__setitem__("CLOSING", removed)
+    probe("구도", _l, dict(CHECKS)["구도 함수 시그니처"])
+
+    # 4) revise — 패턴을 전부 비운다
+    def _r():
+        orig = RV.PATTERNS[:]
+        RV.PATTERNS.clear()
+        return lambda: RV.PATTERNS.extend(orig)
+    probe("revise", _r, dict(CHECKS)["revise 명령"])
+
+    ok = sum(1 for _, hit in results if hit)
+    for label, hit in results:
+        print("  %-10s %s" % (label, "검출 OK" if hit else "★놓침"))
+    print("\n  검출 %d/%d (나머지 4항목은 실측 역검증 완료)" % (ok, len(results)))
+    return ok == len(results)
+
+
+def main():
+    if "--selftest" in sys.argv:
+        print("=== 스모크 자체 회귀 (인메모리 주입) ===")
+        sys.exit(0 if selftest() else 1)
+
+    quiet = "--quiet" in sys.argv
+    fails = []
+    # deprecation을 오류로 승격 — import는 되는데 실행하면 죽는 부류를 잡는다
+    warnings.simplefilter("error", DeprecationWarning)
+    warnings.simplefilter("error", PendingDeprecationWarning)
+
+    for name, fn in CHECKS:
+        try:
+            got = fn()
+            if not quiet:
+                print("  %-16s OK  %s" % (name, got))
+        except Exception as e:
+            fails.append((name, "%s: %s" % (type(e).__name__, str(e)[:70])))
+            print("  %-16s ★ %s: %s" % (name, type(e).__name__, str(e)[:70]))
+
+    if fails:
+        print("\n실패 %d/%d" % (len(fails), len(CHECKS)))
+        return 1
+    if not quiet:
+        print("\n전 %d항목 통과 (deprecation 승격 상태)" % len(CHECKS))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

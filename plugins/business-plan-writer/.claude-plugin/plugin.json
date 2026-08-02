@@ -1,11 +1,17 @@
 {
   "name": "business-plan-writer",
-  "version": "0.6.0",
-  "description": "Evidence-based workflow for planning, researching, drafting, and reviewing business plans with optional HWPX support.",
+  "version": "0.7.0",
+  "description": "Evidence-based workflow for planning, researching, drafting, and reviewing business plans with optional HWPX support, and build presentation decks.",
   "author": {
     "name": "Dayoun",
     "url": "https://github.com/Dayoooun"
   },
   "license": "MIT",
-  "keywords": ["business-plan", "startup", "strategy", "research", "hwpx"]
+  "keywords": [
+    "business-plan",
+    "startup",
+    "strategy",
+    "research",
+    "hwpx"
+  ]
 }

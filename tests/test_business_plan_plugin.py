@@ -15,7 +15,7 @@ PLUGIN = ROOT / "plugins" / "business-plan-writer"
 SKILLS = PLUGIN / "skills"
 STARTER_SKILLS = ROOT / "fallback" / "starter-project" / ".agents" / "skills"
 CLAUDE_STARTER_SKILLS = ROOT / "fallback" / "starter-project" / ".claude" / "skills"
-VERSION = "0.6.0"
+VERSION = "0.7.0"
 
 
 def run_python(script: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -83,7 +83,7 @@ class BusinessPlanPluginTests(unittest.TestCase):
         self.assertEqual(claude["plugins"][0]["name"], "business-plan-writer")
         self.assertEqual(claude["plugins"][0]["version"], VERSION)
 
-    def test_expected_six_skills_have_metadata(self) -> None:
+    def test_expected_skills_have_metadata(self) -> None:
         expected = {
             "complete-business-plan",
             "draft-business-plan",
@@ -91,6 +91,7 @@ class BusinessPlanPluginTests(unittest.TestCase):
             "research-business-evidence",
             "review-business-plan",
             "setup-business-plan-project",
+            "ppt-editorial",
         }
         skill_dirs = sorted(path.parent for path in SKILLS.glob("*/SKILL.md"))
         self.assertEqual({path.name for path in skill_dirs}, expected)
