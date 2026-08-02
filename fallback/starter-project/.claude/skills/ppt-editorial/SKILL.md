@@ -25,6 +25,61 @@ description: "발표 덱 제작 통합 하네스. 자료를 deck_brief·content_
 
 레퍼런스(사용자가 원하는 룩을 보여주는 완성 덱 이미지)를 기준으로, **어떤 분야든** 잡지·갤러리 수준의 16:9 슬라이드를 codex(GPT Image)로 생성한다. 슬라이드의 모든 텍스트·아이콘·도식·사진을 이미지 안에 렌더하고, 로고·페이지번호 같은 고정 크롬만 PIL로 후합성한다.
 
+## ★★★ 0. 실행 전제조건 (없으면 먼저 설치한다)
+
+**에이전트 지시**: 이 스킬을 처음 쓰기 전에 아래를 점검하고, 빠진 것이 있으면
+사용자에게 되묻지 말고 **바로 설치한 뒤** 작업을 이어간다. 설치가 실패할 때만 보고한다.
+
+### 한 줄 점검
+
+```bash
+python -c "import PIL,cv2,fitz,numpy,pptx,shutil,sys;print('codex:',shutil.which('codex'),'| py:',sys.version.split()[0])"
+```
+
+`codex: None`이거나 `ModuleNotFoundError`가 나면 해당 항목을 설치한다.
+
+### 파이썬 패키지
+
+```bash
+pip install pillow opencv-python pymupdf numpy python-pptx
+```
+
+| import | 설치명 | 쓰는 곳 | 없으면 |
+| --- | --- | --- | --- |
+| `PIL` | `pillow` | 씬 합성·QC·폰트 측정 | 전 기능 정지 |
+| `fitz` | `pymupdf` | PDF 생성·페이지 측정 | PDF 산출 불가 |
+| `numpy` | `numpy` | 여백 검사·레이아웃 계산 | QC·레이아웃 정지 |
+| `pptx` | `python-pptx` | 편집 가능 PPTX 출력 | PPTX만 불가 (PDF는 됨) |
+| `cv2` | `opencv-python` | `photos.py` 사진 자동 크롭 | 사진 슬라이드만 불가 |
+
+파이썬은 **3.10 이상**을 쓴다.
+
+### codex CLI — 씬 생성 전용
+
+```bash
+npm i -g @openai/codex
+codex login
+codex --version
+```
+
+**Claude Code에서 실행하더라도 이 CLI는 따로 설치해야 한다.**
+씬(배경 이미지) 생성은 codex를 통해 GPT-Image를 호출하기 때문이다.
+`scripts/codex_parallel_gen.py`의 `require_codex()`가 시작 시 검사하고,
+없으면 위 설치 명령을 출력하며 중단한다 — 원인 불명의 `FileNotFoundError`는 나지 않는다.
+
+### codex 없이 되는 것
+
+씬을 뺀 나머지는 전부 동작한다. 이미지 생성이 불가능한 환경이면
+`scene=` 인자를 비우고 진행한다. 레이아웃·타이포·표·차트·PDF·PPTX는
+모두 코드가 처리하므로 **글자 중심 덱은 codex 없이 완성된다.**
+
+### 선택 사항
+
+| 대상 | 용도 | 없을 때 |
+| --- | --- | --- |
+| 한글 폰트(Pretendard·G마켓산스 등) | 지정 서체 렌더 | `fonts.py`가 시스템 폰트로 자동 폴백 |
+| Chrome/Chromium | 일부 합성 경로 | 기본 경로는 Pillow만 쓰므로 불필요 |
+
 ## ★★★ 1. 먼저 자료를 정리한다 (두 모드 공통)
 
 바로 생성하지 마라. 무엇을 넣을지 정하지 않은 채 그리면 재생성만 반복한다.

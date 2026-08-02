@@ -20,6 +20,31 @@ import sys, os, json, shutil, subprocess, argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 CODEX = shutil.which("codex") or "codex"
+
+
+def require_codex() -> str:
+    """씬 생성 전제조건 검사.
+
+    이미지 생성은 codex CLI를 통해 GPT-Image를 호출한다.
+    Claude Code / Antigravity 어디서 이 스킬을 실행하든 이 CLI는 있어야 한다.
+    없을 때 FileNotFoundError만 던지면 원인을 알 수 없으므로 여기서 끊는다.
+    """
+    found = shutil.which("codex")
+    if found:
+        return found
+    raise SystemExit(
+        "\n[전제조건 없음] codex CLI를 찾을 수 없습니다.\n"
+        "\n"
+        "  이 스킬의 씬(배경 이미지) 생성은 codex CLI로 GPT-Image를 호출합니다.\n"
+        "  Claude Code에서 실행하더라도 이 CLI는 별도로 설치해야 합니다.\n"
+        "\n"
+        "  설치:  npm i -g @openai/codex\n"
+        "  로그인: codex login\n"
+        "  확인:  codex --version\n"
+        "\n"
+        "  씬 없이 텍스트만으로 덱을 만들려면 scene= 인자를 비우고\n"
+        "  Deck.build()를 바로 호출하세요. 레이아웃·PDF·PPTX는 codex 없이 동작합니다.\n"
+    )
 BASE_FLAGS = ["exec", "-s", "workspace-write", "--skip-git-repo-check"]
 USER_CODEX_HOME = os.path.join(os.path.expanduser("~"), ".codex")
 
@@ -203,6 +228,7 @@ def verify(jobs, base_dir, dup_check=False):
 
 
 def run_round(jobs, base_dir, cap, retry, effort, model, timeout=590):
+    require_codex()  # ★ 전제조건 — 없으면 설치 안내 후 중단
     results = []
     with ThreadPoolExecutor(max_workers=cap) as ex:
         futs = {ex.submit(_run_one, j, base_dir, retry, i, effort, model, timeout): j.get("label", i)
