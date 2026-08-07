@@ -15,7 +15,7 @@ PLUGIN = ROOT / "plugins" / "business-plan-writer"
 SKILLS = PLUGIN / "skills"
 STARTER_SKILLS = ROOT / "fallback" / "starter-project" / ".agents" / "skills"
 CLAUDE_STARTER_SKILLS = ROOT / "fallback" / "starter-project" / ".claude" / "skills"
-VERSION = "0.7.1"
+VERSION = "0.8.0"
 
 
 def run_python(script: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -287,6 +287,45 @@ class BusinessPlanPluginTests(unittest.TestCase):
         self.assertIn("HWPX 파일을 슬라이드로 직접 변환하지 않는다", ppt)
         self.assertIn("대본", ppt)
         self.assertIn("예상 Q&A", ppt)
+    def test_ppt_harness_interview_macos_and_regressions(self) -> None:
+        ppt = SKILLS / "ppt-editorial"
+        skill = (ppt / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("요구사항 확인 게이트", skill)
+        self.assertIn("Windows와 macOS", skill)
+        self.assertIn("PowerPoint 내부 텍스트 편집", skill)
+
+        for relative in (
+            "scripts/intake.py",
+            "scripts/platform_support.py",
+            "scripts/test_harness.py",
+            "scripts/scene-deck/info_layouts.py",
+        ):
+            self.assertTrue((ppt / relative).is_file(), relative)
+
+        brief = (ppt / "templates" / "deck_brief.md").read_text(encoding="utf-8")
+        self.assertIn("```json", brief)
+        self.assertIn('"requirements_confirmed": false', brief)
+
+        for relative in (
+            "scripts/scene-deck/fonts.py",
+            "scripts/chrome.py",
+            "scripts/index_chrome.py",
+            "scripts/screenshot_frame.py",
+        ):
+            source = (ppt / relative).read_text(encoding="utf-8")
+            self.assertNotIn("C:\\\\Windows\\\\Fonts", source, relative)
+            self.assertNotIn("C:/Windows/Fonts", source, relative)
+
+        unit = run_python(ppt / "scripts" / "test_harness.py")
+        self.assertEqual(unit.returncode, 0, unit.stdout + unit.stderr)
+        smoke = run_python(ppt / "scripts" / "harness_smoke.py", "--quiet")
+        self.assertEqual(smoke.returncode, 0, smoke.stdout + smoke.stderr)
+
+        workflow = (ROOT / ".github" / "workflows" / "validate.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("windows-latest", workflow)
+        self.assertIn("macos-latest", workflow)
     def test_project_profile_is_generic_and_uses_plain_labels(self) -> None:
         script = SKILLS / "setup-business-plan-project" / "scripts" / "create_project.py"
         with tempfile.TemporaryDirectory() as temp_dir:

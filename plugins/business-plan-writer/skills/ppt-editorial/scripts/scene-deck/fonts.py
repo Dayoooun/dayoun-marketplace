@@ -7,19 +7,22 @@
 3. 맑은 고딕은 **사용 금지** — 시스템 기본 폰트 티가 나고 웨이트가 2종뿐이라 위계가 뭉갠다.
 """
 import os
+import sys
 
-FONT_DIRS = [r"C:\Windows\Fonts",
-             os.path.expanduser(r"~\AppData\Local\Microsoft\Windows\Fonts")]
-FONT_DIR = FONT_DIRS[0]   # 하위호환
+HERE = os.path.dirname(os.path.abspath(__file__))
+SCRIPTS = os.path.dirname(HERE)
+if SCRIPTS not in sys.path:
+    sys.path.insert(0, SCRIPTS)
+
+from platform_support import default_font, find_font, font_dirs
+
+FONT_DIRS = font_dirs()
+FONT_DIR = FONT_DIRS[0] if FONT_DIRS else ""   # 하위호환
 
 
 def _find(fn):
-    """파일명 → 실제 경로 (시스템/사용자 폰트 폴더 모두 탐색)"""
-    for d in FONT_DIRS:
-        p = os.path.join(d, fn)
-        if os.path.exists(p):
-            return p
-    return None
+    """파일명 → 실제 경로 (Windows/macOS/Linux 폰트 폴더 탐색)"""
+    return find_font(fn)
 PHI = 1.618  # 황금비
 
 # ══════════════════════════════════════════════════════════
@@ -210,7 +213,7 @@ def _path(family, weight):
         p = _find(fn)
         if p:
             return p
-    return os.path.join(FONT_DIR, "malgunbd.ttf")
+    return default_font(bold=weight in {"Bold", "SemiBold", "ExtraBold", "Black"})
 
 
 def font(role, family="pretendard", size=None, weight=None):

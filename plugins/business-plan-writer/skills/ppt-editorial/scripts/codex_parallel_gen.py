@@ -7,7 +7,7 @@ ima2 서버·OAuth 로그인 없이, 이미 인증된 codex(GPT Image)로 여러
   1) 세션당 base_dir 하위 ASCII 격리 폴더 — %TEMP% 금지(codex Windows 샌드박스 split-root 거부)
   2) ★★ 잡별 CODEX_HOME 격리 — codex 세션이 ~/.codex 공유 상태(cap_sid 등)로 서로 내용을 섞는
      "고병렬 오염" 방지. auth.json+config.toml만 격리홈에 복사 → 고병렬에서도 안전
-  3) codex 경로 shutil.which로 .cmd 셰임 해석
+  3) codex 경로를 Windows 셰임과 macOS Homebrew 대표 경로에서 자동 탐색
   4) 검증: 파일<100KB=PIL폴백/깨짐 WARN + ★중복 헤드라인 해시=내용오염 검출
   5) ★재귀 개선 루프(--loop N): 실패/오염 잡만 재생성, 전부 통과할 때까지 반복
   6) 고품질: --effort(reasoning) / --model / 프롬프트 고해상도 지시
@@ -18,8 +18,13 @@ ima2 서버·OAuth 로그인 없이, 이미 인증된 codex(GPT Image)로 여러
 """
 import sys, os, json, shutil, subprocess, argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from platform_support import (
+    process_group_kwargs,
+    resolve_executable,
+    terminate_process_tree,
+)
 
-CODEX = shutil.which("codex") or "codex"
+CODEX = resolve_executable("codex") or "codex"
 
 
 def require_codex() -> str:
@@ -29,7 +34,7 @@ def require_codex() -> str:
     Claude Code / Antigravity 어디서 이 스킬을 실행하든 이 CLI는 있어야 한다.
     없을 때 FileNotFoundError만 던지면 원인을 알 수 없으므로 여기서 끊는다.
     """
-    found = shutil.which("codex")
+    found = resolve_executable("codex")
     if found:
         return found
     raise SystemExit(
@@ -99,9 +104,12 @@ def _run_one(job, base_dir, retry, idx=0, effort=None, model=None, timeout=590):
             #    codex는 생성 후 후처리/요약에 수백 초 매달림 — 블로킹 대기는 순수 낭비 (검증: ppt-image-first bubu_genAB)
             import glob as _glob
             import time as _time
-            proc = subprocess.Popen(cmd, cwd=work, stdin=subprocess.PIPE,
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                    text=True, encoding="utf-8", errors="replace", env=env)
+            proc = subprocess.Popen(
+                cmd, cwd=work, stdin=subprocess.PIPE,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                text=True, encoding="utf-8", errors="replace", env=env,
+                **process_group_kwargs(),
+            )
             try:
                 proc.stdin.write(full_prompt)
                 proc.stdin.close()
@@ -141,9 +149,8 @@ def _run_one(job, base_dir, retry, idx=0, effort=None, model=None, timeout=590):
                 # 고정 3초는 잡당 평균 1.5초를 그냥 버린다.
                 _elapsed = _time.time() - (deadline - timeout)
                 _time.sleep(0.6 if _elapsed < 90 else (1.5 if _elapsed < 240 else 3))
-            # codex 트리 강제 종료 (매달림 제거) — 이미 죽었으면 무해
-            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                           capture_output=True)
+            # codex 트리 강제 종료 (매달림 제거) — Windows/macOS 공통
+            terminate_process_tree(proc)
             if produced is None:
                 produced = os.path.join(work, result_name)
             if not os.path.exists(produced):

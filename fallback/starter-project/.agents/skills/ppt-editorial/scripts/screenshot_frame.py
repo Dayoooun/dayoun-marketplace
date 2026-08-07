@@ -12,15 +12,16 @@ spec.json = [{num, tab, eyebrow, title, images:[png...], caption, layout:"one"|"
 """
 import os, sys, json
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from platform_support import default_font, find_font
 
 FW, FH = 1920, 1080
-FD = "C:/Windows/Fonts/"
 
 def _font(w, s):
-    p = {"xb": "Pretendard-ExtraBold.otf", "b": "Pretendard-Bold.otf",
-         "bl": "Pretendard-Black.otf", "l": "Pretendard-Light.otf"}.get(w, "Pretendard-Bold.otf")
-    try: return ImageFont.truetype(FD + p, s)
-    except Exception: return ImageFont.truetype(FD + ("malgunbd.ttf" if w in ("b","xb","bl") else "malgun.ttf"), s)
+    name = {"xb": "Pretendard-ExtraBold.otf", "b": "Pretendard-Bold.otf",
+            "bl": "Pretendard-Black.otf", "l": "Pretendard-Light.otf"}.get(
+                w, "Pretendard-Bold.otf")
+    bold = w in ("b", "xb", "bl")
+    return ImageFont.truetype(find_font(name) or default_font(bold=bold), s)
 
 def _rounded(img, rad):
     m = Image.new("L", img.size, 0); ImageDraw.Draw(m).rounded_rectangle([0,0,img.size[0],img.size[1]], rad, fill=255)

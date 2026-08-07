@@ -19,9 +19,10 @@
 """
 from PIL import Image, ImageDraw, ImageFont
 import os
+from platform_support import default_font
 
-FONT_KR = r"C:\Windows\Fonts\malgun.ttf"
-FONT_KR_BOLD = r"C:\Windows\Fonts\malgunbd.ttf"
+FONT_KR = default_font()
+FONT_KR_BOLD = default_font(bold=True)
 
 
 class IndexChrome:

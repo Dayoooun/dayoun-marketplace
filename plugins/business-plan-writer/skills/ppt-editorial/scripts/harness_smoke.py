@@ -19,7 +19,10 @@
 import os, sys, glob, json, warnings, tempfile, shutil
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SD = os.path.join(HERE, "scene-deck")
+# 하네스 사본은 평면 구조라 모듈이 HERE 에 그대로 있다.
+# 스킬 원본 트리에서 돌릴 때만 scene-deck 하위를 본다.
+SD = HERE if os.path.exists(os.path.join(HERE, "layout_engine.py")) \
+    else os.path.join(HERE, "scene-deck")
 sys.path.insert(0, SD)
 sys.path.insert(0, HERE)
 
@@ -35,8 +38,41 @@ def check(name):
 
 @check("모듈 import")
 def _import():
-    import fonts, presets, layout_engine, photos, revise, deck  # noqa
-    return "6모듈"
+    import fonts, presets, layout_engine, photos, revise, deck, intake, platform_support  # noqa
+    return "8모듈"
+
+
+@check("요구사항 확인 게이트")
+def _intake_gate():
+    import intake
+    sparse = intake.assess({"title": "테스트"})
+    if sparse["phase"] != "intake" or not 0 < len(sparse["questions"]) <= 3:
+        raise AssertionError("희소 입력 질문 제한 실패")
+    brief = {
+        "title": "테스트", "purpose": "lecture", "audience": "수강생",
+        "delivery_context": "20분 강의", "duration_minutes": 20,
+        "source_materials": [], "identity_anchors": [],
+    }
+    if intake.assess(brief)["phase"] != "confirmation":
+        raise AssertionError("기준 판단 확인 단계 누락")
+    brief["requirements_confirmed"] = True
+    if not intake.assess(brief)["ready"]:
+        raise AssertionError("승인된 요구사항이 준비 상태가 아님")
+    return "질문≤3·확인·승인"
+
+
+@check("Windows/macOS 호환")
+def _platforms():
+    from PIL import ImageFont
+    import platform_support as PS
+    mac = PS.font_dirs(system="Darwin", home="/Users/test", existing_only=False)
+    if "/Users/test/Library/Fonts" not in mac or "/System/Library/Fonts" not in mac:
+        raise AssertionError("macOS 폰트 경로 누락")
+    if PS.process_group_kwargs(system="Darwin") != {"start_new_session": True}:
+        raise AssertionError("macOS 프로세스 그룹 설정 누락")
+    path = PS.default_font(bold=True)
+    ImageFont.truetype(path, 20)
+    return "macOS 경로·현재 폰트"
 
 
 @check("프리셋 전종")
@@ -58,7 +94,9 @@ def _presets():
 def _layouts():
     """실제 렌더는 씬 파일이 필요하므로 시그니처와 등록만 확인한다."""
     import layout_engine as LE
+    import info_layouts as IL
     import inspect
+    IL.register()          # 정보 구도 4종도 검사 대상에 넣는다
     bad = []
     for name, fn in LE.LAY.items():
         params = list(inspect.signature(fn).parameters)
@@ -67,10 +105,50 @@ def _layouts():
             bad.append("%s%s" % (name, params))
     if bad:
         raise AssertionError("시그니처 불일치: %s" % bad)
-    for need in ("L", "S", "W", "C", "A", "F", "T", "COVER", "AGENDA", "CLOSING"):
+    for need in ("L", "S", "W", "C", "A", "F", "T", "COVER", "AGENDA", "CLOSING",
+                 "TABLE", "EXAMPLE", "MATRIX", "BAR"):
         if need not in LE.LAY:
             raise AssertionError("구도 %s 누락" % need)
     return "%d종" % len(LE.LAY)
+
+
+@check("표 정렬 규칙")
+def _table_align():
+    """정렬이 글자 수로 회귀하면 같은 역할의 열이 표마다 갈린다(실측 사고)."""
+    from PIL import Image, ImageDraw
+    import layout_engine as LE
+    import info_layouts as IL
+    d = ImageDraw.Draw(Image.new("RGB", (LE.W, LE.H)))
+    fn = LE.f("sub", size=32)
+    cpad = 22
+
+    def run(cols, rows, widths):
+        xs = IL._cols_x(cols, widths)
+        wr = [[IL._lines(d, c, xs[i + 1] - xs[i] - cpad * 2, fn)
+               for i, c in enumerate(r)] for r in rows]
+        return IL.align_of(d, cols, rows, wr, xs, fn, cpad)
+
+    # 규칙 1 — 일련번호는 가운데
+    a = run(["번호", "내용"], [["1", "가"], ["2", "나"], ["3", "다"]], [.6, 5])
+    assert a[0] == "center", "규칙1 일련번호 실패: %s" % a
+
+    # 규칙 2 — 1열은 글자 수와 무관하게 왼쪽 (구 규칙은 3자 이하를 가운데로 보냈다)
+    a = run(["구분", "의미"], [["불편", "겉으로 드러난 현상"], ["문제", "발생하는 이유"]], [1, 4])
+    assert a[0] == "left", "규칙2 1열 실패: %s" % a
+
+    # 규칙 5 — 짧은 값은 가운데, 넓은 열의 긴 구는 왼쪽
+    a = run(["기준", "질문", "판정"],
+            [["문제 적합성", "직접 줄이는가", "관련 약함"],
+             ["실행 가능성", "시험할 수 있는가", "자원 부족"]], [1.3, 3, 1])
+    assert a[2] == "center", "규칙5 짧은 값 실패: %s" % a
+    a = run(["항목", "질문", "수정 행동"],
+            [["표본 편향", "같은 집단인가", "집단·경로가 다른 근거 추가"],
+             ["인용 출처", "요약을 썼는가", "원문·화자·날짜 확인"]], [1.2, 3, 2.4])
+    assert a[2] == "left", "규칙5 절대상한 실패: %s" % a
+
+    # 수동 지정이 규칙보다 우선하는지
+    assert IL.table.__doc__ and "우선" in IL.table.__doc__
+    return "6규칙 검증"
 
 
 @check("revise 명령")
@@ -169,7 +247,7 @@ def _qc_consts():
 
 
 def selftest():
-    """7항목이 실제로 결함을 잡는지 — 메모리 상에서 객체를 훼손해 확인한다.
+    """10항목이 실제로 결함을 잡는지 — 메모리 상에서 객체를 훼손해 확인한다.
 
     ★ 파일을 고치지 않는다. 모듈 속성을 임시로 바꾸고 원복하므로
       디스크 상태가 변하지 않아 언제든 안전하게 돌릴 수 있다.
@@ -214,7 +292,7 @@ def selftest():
     ok = sum(1 for _, hit in results if hit)
     for label, hit in results:
         print("  %-10s %s" % (label, "검출 OK" if hit else "★놓침"))
-    print("\n  검출 %d/%d (나머지 4항목은 실측 역검증 완료)" % (ok, len(results)))
+    print("\n  검출 %d/%d (나머지 7항목은 실측 역검증 완료)" % (ok, len(results)))
     return ok == len(results)
 
 

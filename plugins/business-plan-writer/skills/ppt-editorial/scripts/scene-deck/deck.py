@@ -31,12 +31,17 @@ d.build()             # 조립 + PDF
 import os, sys, json, subprocess, glob
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
+SCRIPTS = os.path.dirname(HERE)
+if not os.path.exists(os.path.join(SCRIPTS, "codex_parallel_gen.py")):
+    SCRIPTS = HERE  # git 추적용 평면 harness 사본
+for path in (HERE, SCRIPTS):
+    if path not in sys.path:
+        sys.path.insert(0, path)
 
 from presets import preset, style_block          # noqa: E402
 import layout_engine as LE                        # noqa: E402
 
-GEN = os.path.join(os.path.dirname(HERE), "codex_parallel_gen.py")
+GEN = os.path.join(SCRIPTS, "codex_parallel_gen.py")
 
 SAFE = ("\n★★ SAFE ZONES — OVERRIDES EVERYTHING:\n"
         "1) TOP 15% COMPLETELY EMPTY.  2) BOTTOM 15% COMPLETELY EMPTY.\n"
@@ -52,7 +57,7 @@ DEFAULT_RATIO = "4:3 landscape"
 
 
 class Deck:
-    def __init__(self, domain="it", foot="", title="", out_dir=None):
+    def __init__(self, domain="it", foot="", title="", out_dir=None, brief=None):
         self.domain = domain
         self.preset = preset(domain)
         self.foot = foot
@@ -60,6 +65,10 @@ class Deck:
         self.dir = os.path.abspath(out_dir or "deck_out")
         self.slides = []
         self._photo_refs = {}
+        self.brief = None
+        if brief is not None:
+            from intake import require_confirmed
+            self.brief = require_confirmed(brief)
         os.makedirs(self.dir, exist_ok=True)
 
     # ══════ 슬라이드 추가 ══════
@@ -131,6 +140,35 @@ class Deck:
         self.save()
         return self
 
+    # ══════ 정보 구도 — 씬 없이 텍스트만 렌더 ══════
+    # 읽는 사람이 혼자 판단해야 하는 덱(교육·매뉴얼·심사)에서 쓴다.
+    # 씬을 만들지 않으므로 생성 비용 0, 텍스트만 고치면 즉시 반영된다.
+    # 정렬 규칙과 상세 인자는 info_layouts.py docstring 참조.
+
+    def table(self, eyebrow, head, sub, columns, rows, **kw):
+        """표. widths=[열 비율], align=[열별 정렬], source=출처."""
+        import info_layouts as IL
+        IL.register()
+        return IL.table(self, eyebrow, head, sub, columns, rows, **kw)
+
+    def example(self, eyebrow, head, sub, blocks, **kw):
+        """대비. blocks=[(캡션, 본문, 해설), ...] — 첫 블록이 붉은 캡션."""
+        import info_layouts as IL
+        IL.register()
+        return IL.example(self, eyebrow, head, sub, blocks, **kw)
+
+    def matrix(self, eyebrow, head, sub, quadrants, x_label, y_label, **kw):
+        """2×2. quadrants 는 좌상·우상·좌하·우하 순."""
+        import info_layouts as IL
+        IL.register()
+        return IL.matrix(self, eyebrow, head, sub, quadrants, x_label, y_label, **kw)
+
+    def bar(self, eyebrow, head, sub, bars, **kw):
+        """가로 막대. bars=[(라벨, 값), ...]. 실측/예시를 source 에 밝힌다."""
+        import info_layouts as IL
+        IL.register()
+        return IL.bar(self, eyebrow, head, sub, bars, **kw)
+
     # ══════ 씬 생성 ══════
     def jobs(self, only_missing=True):
         """씬 생성 잡 목록. 이미 있는 씬은 건너뛴다."""
@@ -190,6 +228,10 @@ class Deck:
         LE.SCN = os.path.join(self.dir, "scenes")
         LE.BLUE, LE.INK, LE.GREY, LE.LINE = p["hero"], p["ink"], p["grey"], p["line"]
         LE.FOOT = self.foot
+        # 정보 구도가 스펙에 있으면 LAY 에 얹는다 — revise/재로드 경로에서도 안전하게
+        if any(s["lay"] in ("TABLE", "EXAMPLE", "MATRIX", "BAR") for s in self.slides):
+            import info_layouts as IL
+            IL.register()
 
     def build(self, pdf=True, pptx=False):
         """조립 + PDF. 씬이 없으면 텍스트만 렌더된다."""
@@ -268,15 +310,36 @@ class Deck:
     def save(self):
         spec = {"domain": self.domain, "foot": self.foot, "title": self.title,
                 "family": self.preset["fonts"]["head"], "slides": self.slides}
+        if self.brief is not None:
+            spec["brief"] = self.brief
         p = os.path.join(self.dir, "spec.json")
-        json.dump(spec, open(p, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+        with open(p, "w", encoding="utf-8") as handle:
+            json.dump(spec, handle, ensure_ascii=False, indent=1)
         return p
 
     @classmethod
+    def from_brief(cls, brief, domain="it", foot="", out_dir=None):
+        """확인된 요구사항 브리프로 덱을 시작한다.
+
+        dict, JSON 경로, 또는 JSON 펜스를 가진 deck_brief.md를 받는다.
+        누락 정보가 있거나 사용자 확인 전이면 ``IntakeBlocked``가 다음 질문과
+        함께 발생해 조기 생성을 막는다.
+        """
+        from intake import load_brief, require_confirmed
+        if isinstance(brief, (str, os.PathLike)):
+            brief = load_brief(brief)
+        normalized = require_confirmed(brief)
+        title = normalized.get("title") or normalized.get("deck_id") or "deck"
+        return cls(domain=domain, foot=foot, title=title, out_dir=out_dir,
+                   brief=normalized)
+
+    @classmethod
     def load(cls, spec_path):
-        spec = json.load(open(spec_path, encoding="utf-8"))
+        with open(spec_path, encoding="utf-8") as handle:
+            spec = json.load(handle)
         d = cls(domain=spec.get("domain", "it"), foot=spec.get("foot", ""),
-                title=spec.get("title", ""), out_dir=os.path.dirname(spec_path))
+                title=spec.get("title", ""), out_dir=os.path.dirname(spec_path),
+                brief=spec.get("brief"))
         d.slides = spec["slides"]
         return d
 
@@ -291,6 +354,18 @@ class Deck:
         print("=== %s (%s) ===" % (self.title or "덱", self.preset["key"]))
         for i, s in enumerate(self.slides, 1):
             ex = [k for k in ("num", "chips", "items") if s.get(k)]
+            if s.get("rows"):
+                ex.append("%d열×%d행" % (len(s["columns"]), len(s["rows"])))
+            for k, tag in (("blocks", "대비"), ("bars", "막대")):
+                if s.get(k):
+                    ex.append("%s%d" % (tag, len(s[k])))
+            if s.get("quadrants"):
+                ex.append("2×2")
+            # 씬이 필요한 구도인데 씬이 없을 때만 경고 — 정보 구도는 원래 씬이 없다
+            if (not s.get("scene_body")
+                    and s["lay"] not in ("COVER", "CLOSING", "AGENDA",
+                                         "TABLE", "EXAMPLE", "MATRIX", "BAR")):
+                ex.append("씬없음")
             print("  %02d [%s] %-30s %s" % (i, s["lay"], s["head"][0][:30],
                                             "+".join(ex) or ""))
 

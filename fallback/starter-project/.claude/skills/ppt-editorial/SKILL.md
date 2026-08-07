@@ -1,6 +1,6 @@
 ---
 name: ppt-editorial
-description: "발표 덱 제작 통합 하네스. 자료를 deck_brief·content_report·style_card·slide_blueprint로 정리한 뒤 두 모드 중 하나로 생성한다 — (A) 씬 덱: 배경 일러스트만 모델이 그리고 텍스트는 코드가 렌더해 한글이 안 깨지고 수정이 초 단위, 편집 가능한 PPTX 산출. (B) 이미지 퍼스트: 슬라이드를 한 장 이미지로 통째 생성, 비주얼 자유도 최대. 제안서·결과보고·IR·강의자료·리디자인에 쓴다."
+description: "발표 덱 제작 통합 하네스. 요구사항을 확인한 뒤 deck_brief·content_report·style_card·slide_blueprint로 정리하고 두 모드 중 하나로 생성한다 — (A) 씬 덱: 배경 일러스트만 모델이 그리고 텍스트는 코드가 렌더해 한글이 정확하며 원본 spec 수정이 빠른 이미지형 PPTX/PDF 산출. (B) 이미지 퍼스트: 슬라이드를 한 장 이미지로 통째 생성, 비주얼 자유도 최대. 제안서·결과보고·IR·강의자료·리디자인에 쓴다. Windows와 macOS 지원."
 ---
 
 # 슬라이드 덱 하네스 — 씬 덱 방식
@@ -11,7 +11,7 @@ description: "발표 덱 제작 통합 하네스. 자료를 deck_brief·content_
 HWPX 구조·화면검사 기록을 입력으로 받는다. 발표 청중·발표시간·평가항목을 함께 확인한다.
 
 이 스킬은 HWPX 파일을 슬라이드로 직접 변환하지 않는다. 승인된 내용을
-`deck_brief → content_report → slide_blueprint`로 압축·재구성한 뒤 PPTX를 만든다.
+요구사항 확인 뒤 `deck_brief → content_report → slide_blueprint`로 압축·재구성한다.
 PPT의 수치·고유명사·주장은 승인된 사업계획서와 다시 대조한다.
 
 **완료 조건**: PDF/PPTX 렌더 육안검사, 수치 원문 대조, 발표시간에 맞춘 대본,
@@ -25,19 +25,18 @@ PPT의 수치·고유명사·주장은 승인된 사업계획서와 다시 대�
 > | 모델이 그리는 것 | 배경 씬·일러스트**만** | 슬라이드 **한 장 전체** |
 > | 텍스트 | **코드가 렌더** — 한글 정확, 폰트 고정 | 이미지 안에 그려짐 |
 > | 문구 수정 | 조립만 다시 — **수초** | 해당 장 재생성 |
-> | 산출 | PDF + **편집 가능한 PPTX** | 이미지형 PPTX |
+> | 산출 | PDF + 이미지형 PPTX + 재조립 가능한 `spec.json` | 이미지형 PPTX |
 > | 적합 | 제안서·결과보고·IR·강의 (텍스트가 계약·수치) | 콘셉트 제안·비주얼 우선 |
+> | PowerPoint 내부 텍스트 편집 | 불가 — 문구는 `spec.json`에서 고쳐 재조립 | 불가 — 해당 장 재생성 |
 >
 > **판단 기준 한 줄**: 글자가 틀리면 안 되거나 나중에 고칠 일이 있으면 **A**,
 > 그림이 전부이고 텍스트는 장식이면 **B**.
 >
 > 두 모드 모두 같은 이미지 생성 엔진을 쓴다. 차이는 **모델에게 무엇을 그리게 하느냐**다.
 
-> 스킬명 `ppt-editorial`은 초기 이름이지만 현재는 **씬 덱과 이미지 퍼스트 두 모드**를 모두 제공한다.
+> ⚠️ 스킬명 `ppt-editorial`은 초기 이름이 남은 것이다. 현재는 씬 덱과 이미지 퍼스트 두 모드를 모두 제공한다.
 
-레퍼런스(사용자가 원하는 룩을 보여주는 완성 덱 이미지)를 기준으로 16:9 슬라이드를 만든다.
-씬 덱은 모델이 배경 씬만 생성하고 텍스트·배치·타이포는 코드가 렌더한다.
-이미지 퍼스트는 한 장 전체를 이미지로 생성하고 고정 크롬은 조립 단계에서 후합성한다.
+레퍼런스(사용자가 원하는 룩을 보여주는 완성 덱 이미지)를 기준으로, **어떤 분야든** 잡지·갤러리 수준의 16:9 슬라이드를 codex(GPT Image)로 생성한다. 슬라이드의 모든 텍스트·아이콘·도식·사진을 이미지 안에 렌더하고, 로고·페이지번호 같은 고정 크롬만 PIL로 후합성한다.
 
 ## ★★★ 0. 실행 전제조건 (없으면 먼저 설치한다)
 
@@ -68,6 +67,30 @@ pip install pillow opencv-python pymupdf numpy python-pptx
 
 파이썬은 **3.10 이상**을 쓴다.
 
+### Windows와 macOS
+
+하네스 코드는 두 운영체제를 같은 경로로 지원한다. Windows에서는 위 명령의
+`python`·`pip`를 쓰고, macOS에서는 다음처럼 실행한다.
+
+```bash
+# Python 또는 Node가 없을 때만
+brew install python node
+
+python3 -m pip install pillow opencv-python pymupdf numpy python-pptx
+npm i -g @openai/codex
+codex login
+python3 scripts/harness_smoke.py
+```
+
+`platform_support.py`가 Windows의 사용자 폰트 폴더와 macOS의
+`~/Library/Fonts`, `/Library/Fonts`, `/System/Library/Fonts`를 함께 탐색한다.
+Pretendard가 없으면 Noto Sans KR 또는 Apple SD Gothic Neo로 폴백한다.
+별도 폰트를 써야 하면 `PPT_EDITORIAL_FONT`에 파일 경로를 지정한다.
+
+macOS에서 GUI 앱을 통해 실행해 Homebrew 경로가 `PATH`에서 빠져도
+`/opt/homebrew/bin`과 `/usr/local/bin`의 `codex`를 다시 찾는다.
+생성 종료도 Windows의 `taskkill` 또는 macOS의 POSIX 프로세스 그룹으로 자동 분기한다.
+
 ### codex CLI — 씬 생성 전용
 
 ```bash
@@ -94,14 +117,48 @@ codex --version
 | 한글 폰트(Pretendard·G마켓산스 등) | 지정 서체 렌더 | `fonts.py`가 시스템 폰트로 자동 폴백 |
 | Chrome/Chromium | 일부 합성 경로 | 기본 경로는 Pillow만 쓰므로 불필요 |
 
-## ★★★ 1. 먼저 자료를 정리한다 (두 모드 공통)
+## ★★★ 0-1. 요구사항 확인 게이트 (두 모드 공통)
+
+바로 생성하지 않는다. 이미 사용자가 말한 내용은 다시 묻지 않고, 다음 핵심 정보에서
+비어 있는 것만 **한 라운드 최대 3개**씩 확인한다.
+
+1. PPT의 목적과 사용자가 얻어야 할 결과
+2. 청중과 청중이 내려야 할 판단
+3. 발표·제출·강의 등 전달 상황
+4. 발표 시간 또는 장수
+5. 사용할 원고·보고서·사진·표·기존 PPT
+6. 반드시 유지할 회사명·제품명·로고·기관명
+
+첫 질문에서 색상·무드까지 길게 묻지 않는다. 핵심 정보가 모이면 에이전트가 먼저
+`목적 / 청중 / 권장 모드 / 권장 장수 / 서사축 / 식별 기준 / 부족한 정보`를 짧게
+판단해 보여 준다. 사용자가 고치거나 승인하기 전에는 생성으로 넘어가지 않는다.
+
+```bash
+python scripts/intake.py deck_brief.md
+# 누락이 없고 사용자가 위 판단을 승인한 뒤
+python scripts/intake.py deck_brief.md --confirm
+```
+
+`Deck.from_brief()`는 이 확인 상태를 코드에서도 강제한다.
+
+```python
+from deck import Deck
+d = Deck.from_brief("deck_brief.md", domain="it", out_dir="deck_out")
+```
+
+`requirements_confirmed`가 없거나 필수 정보가 비어 있으면 `IntakeBlocked`와 함께
+다음 질문이 반환된다. 승인 뒤 요구사항을 수정하면 승인은 자동 무효화하고 다시 확인한다.
+콘텐츠 근거를 정리한 다음에만 밝기·전문/스타일리시 노선·프리뷰 개수를 짧게 맞춘다.
+상세 인터뷰 순서는 `references/image-first-workflow.md`의 Stage 1~1.5를 따른다.
+
+## ★★★ 1. 확인된 요구사항과 자료를 정리한다 (두 모드 공통)
 
 바로 생성하지 마라. 무엇을 넣을지 정하지 않은 채 그리면 재생성만 반복한다.
 `templates/`의 서식을 채워 근거를 고정한 뒤 생성으로 넘어간다.
 
 | 산출물 | 서식 | 채우는 것 |
 |---|---|---|
-| `deck_brief.md` | `templates/deck_brief.md` | 목적·청중·전달상황·장수·출력형식·필수 포함 내용 |
+| `deck_brief.md` | `templates/deck_brief.md` | 목적·청중·전달상황·장수·출력형식·사용자 확인 상태 |
 | `content_report.md` | `templates/content_report.md` | 주장별 근거 상태 — `user_provided` / `source_supported` / `inferred` / `needs_confirmation` |
 | `style_card.md` | `templates/style_card.md` | 레퍼런스에서 뽑은 팔레트·서체·리듬·금지요소 |
 | `slide_blueprint.md` | `templates/slide_blueprint.md` | 장별 역할·핵심 메시지·필수 문구·에셋 바인딩 |
@@ -208,16 +265,19 @@ d.build(pdf=True, pptx=True) # 조립 + PDF/PPTX
 `domain` 한 줄로 팔레트·폰트·씬모티프·톤이 잡히고, 씬 비율·SAFE ZONE·PIL금지 지시·
 재생성 방지가 자동이다. `build()` 시 `spec.json`이 저장돼 수정에 재사용된다.
 
-#### 자산 (`scripts/scene-deck/`)
+#### 핵심 자산
 
 | 파일 | 역할 |
 |---|---|
-| **`deck.py`** | 진입점. `cover/agenda/slide/photos/closing → generate → build` |
-| `presets.py` | 도메인 9종 — it/food/manufacturing/education/welfare/culture/public/medical/retail |
-| `layout_engine.py` | 구도 10종 + 강조요소 + 오버플로우 방어 |
-| `fonts.py` | 폰트 풀 11종 + 황금비 스케일 |
-| `revise.py` | 수정 인터페이스 (자연어 + API, 재생성 자동 판별) |
-| `photos.py` | 실사진 4모드 (hero/compare/sequence/grid) |
+| **`scripts/intake.py`** | 필수 정보 질문·기준 판단·사용자 확인 게이트 |
+| **`scripts/platform_support.py`** | Windows/macOS 폰트·CLI·프로세스 공통 처리 |
+| **`scripts/scene-deck/deck.py`** | 진입점. `from_brief → cover/agenda/slide/photos/closing → generate → build` |
+| `scripts/scene-deck/presets.py` | 도메인 9종 — it/food/manufacturing/education/welfare/culture/public/medical/retail |
+| `scripts/scene-deck/layout_engine.py` | 씬 구도 10종 + 강조요소 + 오버플로우 방어 |
+| `scripts/scene-deck/info_layouts.py` | 표·대비·2×2·막대 정보 레이아웃 네 가지 |
+| `scripts/scene-deck/fonts.py` | 폰트 풀 11종 + 황금비 스케일 + 운영체제 폴백 |
+| `scripts/scene-deck/revise.py` | 수정 인터페이스 (자연어 + API, 재생성 자동 판별) |
+| `scripts/scene-deck/photos.py` | 실사진 4모드 (hero/compare/sequence/grid) |
 
 #### 핵심 규칙
 
@@ -231,7 +291,7 @@ d.build(pdf=True, pptx=True) # 조립 + PDF/PPTX
  **파란 풀블리드 밴드 금지**(촌스러움, 실측 반려). 표지는 크롬 없음.
 - 헤드라인 **115px**(2560 캔버스). 씬 생성은 **`--effort high` 필수**.
 - 필수 게이트: `python scripts/deck_qc.py <out폴더> --cover 01`
-- 코드를 고쳤으면: `python scripts/harness_smoke.py` — 7항목 수초 검증(deprecation 승격)
+- 코드를 고쳤으면: `python scripts/harness_smoke.py`와 `python -m unittest scripts/test_harness.py -v`
 - 디스크: 씬 생성 시 `.cxwork` 격리 홈이 덱당 300~700MB 생긴다. 시작·종료 시 자동 정리(`--keep-work`로 보존). 상세는 scene-deck README §20
 
 > ⚠️ **아이콘 ≠ 씬.** 아이콘(80px 타일)을 키워 큰 영역에 쓰면 "커진 아이콘"으로 보여 싸구려가 된다.
@@ -290,7 +350,7 @@ d.build(pdf=True, pptx=True) # 조립 + PDF/PPTX
 3) Put ALL content strictly between 15% and 85% of slide height, and fill that middle area well.
 4) Ignore every earlier sentence that told you to draw a breadcrumb, numbered title or bottom band.
 ```
-2. **크롬 모듈이 상·하단을 균일 합성** — 덱별 `chrome_*.py`에 `SPEC = {sid: (번호, 제목, 하단요약)}`을 두고 고정 비율 좌표로 그린다. 참고 구현: `C:\Users\rlaek\.pdftool\seoho\chrome_b.py` (상단=브레드크럼+세로바+번호+제목 / 하단=밴드 y0.865 고정+요약 중앙정렬+쪽번호).
+2. **크롬 모듈이 상·하단을 균일 합성** — 덱별 `chrome_*.py`에 `SPEC = {sid: (번호, 제목, 하단요약)}`을 두고 고정 비율 좌표로 그린다(상단=브레드크럼+세로바+번호+제목 / 하단=밴드 y0.865 고정+요약 중앙정렬+쪽번호).
 3. **제목까지 코드로 그리는 게 맞다.** 콘텐츠처럼 보이지만 위치·크기가 장마다 같아야 하므로 크롬이다. 한글은 맑은고딕 Bold(`malgunbd.ttf`)로 충분히 깨끗하게 렌더된다.
 4. **검증은 픽셀 실측으로**: 밴드 상단 y·라벨 y0를 전 장 뽑아 편차 0인지 확인. 육안 판정 금지.
 
@@ -301,7 +361,7 @@ def normalize(im, SAFE_TOP=0.163, SAFE_BOT=0.845):
  # ② 안전 영역 높이에 맞춰 비율 유지 축소 (s = tgt_h / content_h, 최대 1.0)
  # ③ 배경색 캔버스에 중앙 정렬로 재배치
 ```
-콘텐츠가 10~15% 작아지지만 **전 장 크롬 위치가 픽셀 단위로 일치**하는 값어치가 훨씬 크다. 파이프라인 순서: **생성 → normalize → 크롬 합성 → 사진 합성(fit_empty) → 2K/PPTX**. 크롬을 사진보다 먼저 얹어야 `fit_empty`가 크롬을 콘텐츠로 인식해 자동으로 피한다. 참고 구현 `C:\Users\rlaek\.pdftool\seoho\build_b.py`.
+콘텐츠가 10~15% 작아지지만 **전 장 크롬 위치가 픽셀 단위로 일치**하는 값어치가 훨씬 크다. 파이프라인 순서: **생성 → normalize → 크롬 합성 → 사진 합성(fit_empty) → 2K/PPTX**. 크롬을 사진보다 먼저 얹어야 `fit_empty`가 크롬을 콘텐츠로 인식해 자동으로 피한다.
 
 **부수 효과**: 모델이 상·하단을 안 그리니 중앙 콘텐츠에 집중해 본문 밀도가 올라간다. 그리고 문구 오타·수치 오류를 코드에서 즉시 고칠 수 있다(재생성 불필요).
 
@@ -391,7 +451,7 @@ def fit_empty(slide, px0, py0, px1, py1, pad=10, max_shrink=0.42):
  content = np.abs(a - bg) > 14
  # 슬롯의 각 변이 콘텐츠에 닿는 동안 안쪽으로 밀어넣는다 (max_shrink까지)
 ```
-어두운 배경(네이비 표지 등)에 사진을 얹을 때는 **하드 엣지가 "붙여넣은 판"처럼 보인다** → `cover_blend()`: ①사진 전체에 배경색 20% 블렌드(색온도 정합) ②좌측 40% 페더 그라데이션 ③같은 곡선의 알파 dissolve. 참고 구현 `C:\Users\rlaek\.pdftool\seoho\composite_b.py`.
+어두운 배경(네이비 표지 등)에 사진을 얹을 때는 **하드 엣지가 "붙여넣은 판"처럼 보인다** → `cover_blend()`: ①사진 전체에 배경색 20% 블렌드(색온도 정합) ②좌측 40% 페더 그라데이션 ③같은 곡선의 알파 dissolve.
 
 하단 밴드가 있는 레이아웃은 **밴드 상단을 자동 감지해 사진 하단을 클램프**하되, ⚠️밴드 안 흰 글씨 때문에 중앙 열은 오검출된다 → **우측 끝(x 0.90~0.98)에서 스캔**.
 

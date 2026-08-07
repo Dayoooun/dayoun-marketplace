@@ -47,13 +47,28 @@ TEXT LABELS rendered in the image (bold Korean gothic, ink colour, small):
 ```
 
 
+## 2-1. 요구사항 인터뷰와 확인 게이트
+
+새 덱은 `scripts/intake.py`로 목적·청중·전달상황·시간/장수·자료·식별 기준을
+먼저 확인한다. 이미 답한 내용은 다시 묻지 않고 한 라운드 최대 3개만 묻는다.
+핵심 정보가 모이면 권장 모드·장수·서사축을 먼저 보여 주고 사용자 확인을 받는다.
+
+```bash
+python scripts/intake.py deck_brief.md
+python scripts/intake.py deck_brief.md --confirm   # 사용자가 기준 판단을 승인한 뒤
+```
+
+`Deck.from_brief()`는 `requirements_confirmed=true`가 아니면 `IntakeBlocked`를
+발생시킨다. 수정된 요구사항은 이전 승인을 무효화하므로 다시 확인해야 한다.
+
 ## 3. 실행 순서
 
 **`deck.py`를 쓴다.** 아래는 그 내부 동작이며, 직접 호출할 일은 없다.
 
 ```python
 from deck import Deck
-d = Deck(domain="식음료", foot="OO식품", title="사업소개")
+d = Deck.from_brief("deck_brief.md", domain="식음료",
+                    foot="OO식품", out_dir="deck_out")
 d.cover(...); d.agenda([...]); d.slide("L", ...); d.closing(...)
 d.generate()                   # 씬 생성 (없는 것만)
 d.build(pdf=True, pptx=True)   # 조립 + 출력
@@ -99,7 +114,7 @@ d.build(pdf=True, pptx=True)   # 조립 + 출력
 
 ```python
 import sys, os
-sys.path.insert(0, os.path.join(SKILL_DIR, "scripts", "scene-deck"))
+sys.path.insert(0, os.path.expanduser("~/.claude/skills/ppt-editorial/scripts/scene-deck"))
 from fonts import font, metrics, draw_tracked, recommend
 
 f = font("headline", family="pretendard")     # Pretendard Bold 115
@@ -108,6 +123,19 @@ draw_tracked(d, (x, y), "헤드라인", f, INK, m["tracking_px"])
 ```
 
 ### 폰트 풀 (11종 가용, `python fonts.py`로 점검)
+
+Windows는 시스템·사용자 폰트 폴더를, macOS는 `~/Library/Fonts`,
+`/Library/Fonts`, `/System/Library/Fonts`를 자동 탐색한다.
+Pretendard가 없으면 Noto Sans KR 또는 Apple SD Gothic Neo로 폴백한다.
+
+macOS 실행은 `python` 대신 `python3`를 사용한다.
+
+```bash
+python3 -m pip install pillow opencv-python pymupdf numpy python-pptx
+npm i -g @openai/codex
+codex login
+python3 scripts/harness_smoke.py
+```
 
 | 계열 | 키 | 언제 |
 |---|---|---|
@@ -283,10 +311,11 @@ job = {"refs": ready, "prompt": prompt}    # ★ refs로 codex에 전달
 
 ```python
 import sys, os
-sys.path.insert(0, os.path.join(SKILL_DIR, "scripts", "scene-deck"))
+sys.path.insert(0, os.path.expanduser("~/.claude/skills/ppt-editorial/scripts/scene-deck"))
 from deck import Deck
 
-d = Deck(domain="교육", foot="OO아카데미", title="교육사업_소개")
+d = Deck.from_brief("deck_brief.md", domain="교육",
+                    foot="OO아카데미", out_dir="deck_out")
 
 d.slide("L", "THE PROBLEM", ["배우고 나면", "잊어버립니다"],
         ["일회성 특강은 현장에 남지 않는다"],
@@ -409,6 +438,76 @@ d.closing(["함께 만드는 무결점 라인"], issuer="(주)OO정밀",
 QC 실행 시 표지는 `--cover 01`로 여백 검사에서 제외한다.
 
 
+## 16-2. 정보 구도 — 표·대비·2×2·막대 (2026-08-07)
+
+씬 덱은 발표 중 집중에는 유리하지만 **자료만 다시 볼 때 내용이 남지 않는다.**
+실측한 교육 덱에서 씬 중심 16장만으로는 개념 정의·비교·판정 기준을
+전달하지 못해 학습자가 혼자 복습할 수 없었다. 표·예시·기준을 넣어 22장으로 바꿨다.
+
+교육·매뉴얼·심사자료처럼 **읽는 사람이 혼자 판단해야 하는 덱**에서 쓴다.
+
+```python
+import info_layouts as IL
+IL.register()                      # LAY 등록 — build() 전에 한 번
+
+d.table("CONCEPT 01", ["불편과 문제는", "다르다"], ["섞어 쓰면 해결책이 좁아진다"],
+        ["구분", "의미", "사례"],
+        [["불편", "겉으로 드러난 현상", "엘리베이터가 느리다"],
+         ["문제", "불편이 생기는 이유", "기다리는 시간이 지루하다"]],
+        widths=[1, 2.3, 2.7], source="서비스디자인 문제 재정의 원리")
+d.example(...)   d.matrix(...)   d.bar(...)
+```
+
+`Deck` 메서드로 부르면 `register()`가 자동 호출된다. 모듈 함수(`IL.table(d, ...)`)도 같다.
+
+| 구도 | 용도 | 권장 한도 |
+|---|---|---|
+| `TABLE` | 개념 비교·기준·체크리스트 | 5열 × 6행 |
+| `EXAMPLE` | 잘못된 예 / 개선 예 대비 | 2블록 |
+| `MATRIX` | 두 축으로 판정 | 2×2 고정 |
+| `BAR` | 수치 비교 | 6개 |
+
+### 씬을 만들지 않는다
+
+`s["scene"] = None`이라 `jobs()`가 건너뛴다. **생성 비용 0이고 텍스트만 고치면 즉시 반영된다.**
+`summary()`는 이 구도에 `씬없음` 대신 `3열×5행`·`대비2`·`막대4`를 표시한다.
+
+### 표 정렬 규칙
+
+열 단위로 위에서부터 판정해 **처음 걸리는 것**을 적용한다.
+
+| # | 조건 | 정렬 |
+|---|---|---|
+| 1 | 모든 셀이 숫자·숫자범위 (`1`, `6–8`) | 가운데 |
+| 2 | 1열 (행 라벨) | 왼쪽 |
+| 3 | 두 줄 이상 되는 셀이 있음 | 왼쪽 |
+| 4 | 셀 폭 편차 > 폰트 × 3.5 | 왼쪽 |
+| 5 | 셀 폭 ≤ 폰트×8 **이면서** 열 내부폭 × 0.55 | 가운데 |
+| 6 | 그 외 | 왼쪽 |
+
+세로는 예외 없이 항상 중앙. 헤더 행은 본문 열 정렬을 따른다.
+`align=["left","center",...]`로 열별 수동 지정 가능 — 규칙보다 우선한다.
+
+**글자 수가 아니라 `textlength()` 실측 폭으로 판정한다.**
+초판은 `len() <= 8` 기준이라 같은 역할의 1열이 2~8자 차이로 갈렸다.
+`구분`(불편/문제/해결책)은 가운데, `경로`(교차 인터뷰/원문 발언 채집)는 왼쪽 —
+12개 표가 제각각이었다. 실측 폭으로 바꾸니 38열 중 5열만 가운데가 됐다.
+
+규칙 5의 절대 상한(`폰트×8`)이 없으면 **넓은 열의 긴 구(句)가 비율 조건을 통과한다.**
+(실측: 15자짜리 `수정 행동` 열이 열 폭 36%라 가운데로 갔다)
+
+### 고정 y 좌표 금지
+
+본문 시작점은 반드시 `_body_top()`으로 받는다.
+
+```python
+ytop = _body_top(d, s, gap=56, floor=.40)   # 헤더가 실제 끝난 위치 + 여백
+```
+
+고정값을 쓰면 **헤드라인이 2줄일 때 서브텍스트와 본문이 겹친다.**
+(실측: `BAR`가 `y = int(H*.38)` 고정이라 막대 라벨이 서브텍스트를 뚫고 나왔다)
+
+
 ## 17. 출력 포맷 · 실패 가시화 (2026-08-01)
 
 ### PPTX 출력
@@ -423,6 +522,9 @@ d.pptx()                          # PPTX만
 고객이 "PPT 파일로 달라"고 할 때 필요하다. 16:9(13.333×7.5in) 고정.
 
 `python-pptx`가 없으면 안내만 출력하고 넘어간다(빌드는 중단되지 않는다).
+
+PPTX는 슬라이드 전면에 PNG를 넣는 이미지형 파일이다. PowerPoint 안에서
+텍스트를 직접 편집하는 형식이 필요하면 요구사항 인터뷰에서 별도 제작 경로로 분기한다.
 
 ### 실패를 조용히 넘기지 않는다
 
@@ -468,30 +570,8 @@ Deck.load("deck_out/spec.json").generate().build()   # 바뀐 씬만 재생성
 검증: 텍스트 세로 범위 0.292~0.703, 중심 0.498.
 
 
-## 19. 공개 저장소 동기화
 
-스킬 원본을 `Dayoooun/ppt-editorial`(public)에 반영할 때 **`cp`를 직접 쓰지 마라.**
-
-```bash
-cd ~/.pdftool/ppt_repo
-python scripts/sync_from_skill.py --dry   # 무엇이 바뀌는지
-python scripts/sync_from_skill.py         # 복사 + 익명화 + 검사
-git add -A && git commit && git push
-```
-
-`sync_from_skill.py`가 하는 일:
-1. 12개 파일쌍을 md5 비교해 **변경분만** 복사
-2. **복사 직후 익명화**(`anonymize_check --fix`) — 이 순서가 핵심
-3. `anonymize_check` + `doc_consistency` 검사 실행
-
-⚠️ 복사와 익명화를 따로 하면 **반드시 잊는다.** 실측으로 같은 사고가 2번 났다.
-두 번째는 `doc_consistency.py`를 푸시하던 중 README를 복사하자마자 익명화가
-풀려 고객 실명이 들어갔고, pre-push 훅이 막았다.
-
-`.git/hooks/pre-push`가 두 검사를 순차 실행하므로 잊어도 푸시는 차단된다.
-
-
-## 20. 디스크 — `.cxwork` 격리 홈
+## 19. 디스크 — `.cxwork` 격리 홈
 
 `codex_parallel_gen.py`는 잡마다 `.cxwork/<잡ID>_<시도>/`에 격리 홈을 만든다.
 `CODEX_HOME`을 여기로 잡아 잡끼리 상태가 섞이지 않게 하는 장치다.

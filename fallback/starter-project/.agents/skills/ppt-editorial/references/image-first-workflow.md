@@ -11,6 +11,13 @@ Collect only the essentials:
 - what materials already exist
 - whether there are concrete identity anchors such as school, company, laboratory, research group, course, product line, or brand entity that should ground the deck
 
+Interview rules:
+- do not repeat information the user already supplied
+- ask only missing essentials, at most 3 questions in one round
+- record explicit `없음` as an answer for materials or identity anchors; do not silently assume it
+- run `scripts/intake.py` or the same `assess()` logic after each answer round
+- do not ask brightness or a long style questionnaire during this first intake
+
 When giving example choices in the first intake round, use broad common examples.
 Recommended examples:
 - purpose: 발표 / 로드쇼 / 발표심사 / 제품 소개 / 교육 / 회고 / 방안 제안
@@ -29,8 +36,11 @@ Then output a short baseline judgment:
 - usable identity anchors
 - missing critical information
 
-### Confirmation point 1 — 요구사항 확인
-Stop and let the user confirm or correct the baseline judgment.
+### Confirmation point 1 — 요구사항 확인 게이트
+Show the baseline judgment first. Stop and let the user confirm or correct it.
+`requirements_confirmed=true` is the gate; any later requirement correction invalidates it.
+For scene-deck code paths, start with `Deck.from_brief()` so an unconfirmed brief raises
+`IntakeBlocked` instead of generating slides.
 
 ---
 

@@ -1,7 +1,7 @@
 # 검증 기록
 
-- 검증일: 2026-08-02
-- 대상 버전: 0.7.1
+- 검증일: 2026-08-07
+- 대상 버전: 0.8.0
 - 공개 플러그인: `business-plan-writer`
 
 ## 범용성
@@ -18,9 +18,9 @@
 - Codex 매니페스트·스킬 자동 검사: 통과
 - 일곱 개 스킬 공식 검증기: 모두 통과
 - Codex·Claude Code·Antigravity용 매니페스트 이름과 버전 일치
-- 원본 스킬과 스타터의 `.agents/skills`, `.claude/skills`: 51개 파일씩 바이트 단위 일치
+- 원본 스킬과 스타터의 `.agents/skills`, `.claude/skills`: 55개 파일씩 바이트 단위 일치
 - 프로젝트 생성기와 스타터 프로젝트: 25개 템플릿 일치
-- 공개 마켓플레이스 자동 테스트: 17개 통과
+- 공개 마켓플레이스 자동 테스트: 18개 통과
 
 ## 안전과 일관성
 
@@ -39,7 +39,7 @@
 
 - 공개 원본: `https://github.com/Dayoooun/dayoun-marketplace`
 - 웹 과정: `/courses/practice/12-modoo-startup-plan`
-- 공개 ZIP: `/files/dayoun-marketplace-v0.7.1.zip`
+- 공개 ZIP: `/files/dayoun-marketplace-v0.8.0.zip`
 - 참가자 빠른 시작: `course/06-participant-quick-start.md`
 - 멀티 프로바이더 안내: `course/07-multi-provider-guide.md`
 - 설치 없는 스타터: `fallback/starter-project`

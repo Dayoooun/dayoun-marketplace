@@ -3,8 +3,7 @@
 
 ## 왜 필요한가
 한 세션에서 문서 모순을 **6건** 수작업으로 찾았다. 전부 같은 원인이다 —
-같은 사실을 CLAUDE.md / SKILL.md / README.md 세 곳에 적어두고
-코드를 고칠 때 한두 곳만 갱신했다.
+같은 사실을 여러 공개 문서에 적어두고 코드를 고칠 때 일부만 갱신했다.
 
 발견된 모순:
 1. README §2·§4가 격리된 `scene_prompts.py`를 쓰라고 안내
@@ -26,23 +25,16 @@
 import os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+FLAT_HARNESS = os.path.exists(os.path.join(HERE, "layout_engine.py"))
 SKILL_DIR = os.path.dirname(HERE)
-SD = os.path.join(HERE, "scene-deck")
+SD = HERE if FLAT_HARNESS else os.path.join(HERE, "scene-deck")
 sys.path.insert(0, SD)
 
 DOCS = {
-    "CLAUDE.md": os.path.expanduser("~/.claude/CLAUDE.md"),
-    "SKILL.md":  os.path.join(SKILL_DIR, "SKILL.md"),
     "README.md": os.path.join(SD, "README.md"),
-    # 공개 저장소 루트 README — 외부에서 저장소를 처음 접하는 경로다.
-    # 검사 범위에서 빠져 있어 씬 덱 구조가 전혀 반영 안 된 채 방치됐다(실측).
-    "repo/README.md": os.path.expanduser("~/.pdftool/ppt_repo/README.md"),
-    # 인수인계 메모리 — git 추적은 안 되지만 다음 세션이 읽는 문서다.
-    # '스모크 5항목'이라 적어둔 뒤 7항목이 되어 뒤처진 적이 있다(실측).
-    "memory": os.path.expanduser(
-        "~/.claude/projects/D--rlaek-doc-cursor-26new-/memory/"
-        "project_씬덱하네스_프로덕션화_2026-08-01.md"),
 }
+if not FLAT_HARNESS:
+    DOCS["SKILL.md"] = os.path.join(SKILL_DIR, "SKILL.md")
 
 # 문서에 남아 있으면 안 되는 구버전 패턴
 STALE = [

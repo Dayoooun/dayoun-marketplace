@@ -14,8 +14,9 @@ config 값은 덱마다 다르니 생성자 인자로 주입. 서체는 로컬 �
 """
 import os
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from platform_support import default_font
 
-DEFAULT_SERIF = r"C:\Windows\Fonts\NotoSerifKR-VF.ttf"
+DEFAULT_SERIF = default_font(serif=True)
 
 
 class Chrome:

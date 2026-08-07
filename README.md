@@ -244,7 +244,7 @@ codex plugin add business-plan-writer@dayoun
 
 ## 버전
 
-현재 공개 버전은 `0.7.1`입니다. 범용 사업계획서 스킬 원본을 Codex·Claude Code·Antigravity에서 사용하며, 일반 채팅형 AI에는 같은 사고 순서와 출력 형식의 프롬프트 경로를 제공합니다.
+현재 공개 버전은 `0.8.0`입니다. 범용 사업계획서 스킬 원본을 Codex·Claude Code·Antigravity에서 사용하며, 일반 채팅형 AI에는 같은 사고 순서와 출력 형식의 프롬프트 경로를 제공합니다.
 
 ## 기여와 문의
 
