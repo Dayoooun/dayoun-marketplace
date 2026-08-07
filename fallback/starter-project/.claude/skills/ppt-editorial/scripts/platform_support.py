@@ -108,22 +108,22 @@ def default_font(bold: bool = False, serif: bool = False) -> str:
         preferred = [
             "NotoSerifKR-VF.ttf", "NotoSerifCJK-Regular.ttc",
             "RIDIBatang.otf", "AppleMyungjo.ttf", "NanumMyeongjo.ttf",
-            "batang.ttc", "Times New Roman.ttf", "DejaVuSerif.ttf",
-            "LiberationSerif-Regular.ttf",
+            "batang.ttc", "times.ttf", "Times New Roman.ttf",
+            "DejaVuSerif.ttf", "LiberationSerif-Regular.ttf",
         ]
     elif bold:
         preferred = [
             "Pretendard-Bold.otf", "NotoSansKR-Bold.ttf",
             "NotoSansCJK-Bold.ttc", "AppleSDGothicNeo.ttc",
-            "malgunbd.ttf", "Arial Unicode.ttf", "Arial Bold.ttf",
-            "DejaVuSans-Bold.ttf",
+            "malgunbd.ttf", "segoeuib.ttf", "arialbd.ttf",
+            "Arial Unicode.ttf", "Arial Bold.ttf", "DejaVuSans-Bold.ttf",
         ]
     else:
         preferred = [
             "Pretendard-Regular.otf", "NotoSansKR-Regular.ttf",
             "NotoSansCJK-Regular.ttc", "AppleSDGothicNeo.ttc",
-            "AppleGothic.ttf", "malgun.ttf", "Arial Unicode.ttf",
-            "Arial.ttf", "DejaVuSans.ttf",
+            "AppleGothic.ttf", "malgun.ttf", "segoeui.ttf", "arial.ttf",
+            "Arial Unicode.ttf", "Arial.ttf", "DejaVuSans.ttf",
         ]
     found = find_font(preferred)
     if found:
