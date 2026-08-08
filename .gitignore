@@ -7,3 +7,5 @@ Thumbs.db
 !.env.example
 .codex/
 work/
+.gjc/
+dist/

@@ -1,0 +1,36 @@
+{
+  "_note": "(가상) 교육용 예시이며 실제 기업·고객 정보가 아닙니다.",
+  "style": "clean",
+  "title": "(가상) 매장 안내물 제작 견적",
+  "supplier": {
+    "company": "(가상) 다온문서연구소",
+    "representative": "(가상) 윤새봄",
+    "business_number": "[사업자등록번호 입력]",
+    "address": "(가상) 해솔로 1",
+    "phone": "[연락처 입력]",
+    "logo_path": "",
+    "seal_path": ""
+  },
+  "customer": {
+    "company": "(가상) 한결상점",
+    "contact": "[담당자 입력]"
+  },
+  "vat_mode": "exclusive",
+  "items": [
+    {
+      "name": "(가상) 매장 안내 카드",
+      "spec": "A5",
+      "qty": 10,
+      "unit_price": 15000
+    },
+    {
+      "name": "(가상) 메뉴 설명지",
+      "spec": "-",
+      "qty": 5,
+      "unit_price": 20000
+    }
+  ],
+  "notes": [
+    "(가상) 시안 확인 후 제작합니다."
+  ]
+}

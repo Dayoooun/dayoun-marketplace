@@ -6,7 +6,7 @@
 
 ## 가장 쉬운 시작
 
-수업에서는 [`fallback/starter-project`](fallback/starter-project)를 내려받아 작업 폴더로 여는 방법을 권장합니다. 같은 일곱 스킬을 Codex·Claude Code·Antigravity가 각자의 워크스페이스 경로에서 읽습니다.
+수업에서는 [`fallback/starter-project`](fallback/starter-project)를 내려받아 작업 폴더로 여는 방법을 권장합니다. 일곱 핵심 스킬과 한 개의 선택 스킬을 Codex·Claude Code·Antigravity가 각자의 워크스페이스 경로에서 읽습니다.
 
 - Codex·Antigravity: `.agents/skills`
 - Claude Code: `.claude/skills`
@@ -98,7 +98,7 @@ Antigravity와 일반 채팅형 AI를 포함한 차이는 [멀티 프로바이�
 HWPX 안에서 초안을 쓰지 않으며, HWPX 페이지를 PPT로 그대로 변환하지도 않습니다.
 승인된 텍스트를 발표 목적과 시간에 맞춰 압축·재구성해 PPTX를 만듭니다.
 
-## 제공하는 7개 스킬
+## 제공하는 7개 핵심 스킬 + 1개 선택 스킬
 
 | 스킬 | 하는 일 |
 | --- | --- |
@@ -109,6 +109,19 @@ HWPX 안에서 초안을 쓰지 않으며, HWPX 페이지를 PPT로 그대로 �
 | `fill-hwpx-template` | 조건부 HWPX 중괄호 치환 또는 수동 매핑 |
 | `review-business-plan` | 콘텐츠와 선택 HWPX 산출물을 분리해 검토 |
 | `ppt-editorial` | 발표 덱 제작 — 자료 정리 후 씬 덱(텍스트는 코드 렌더) 또는 이미지 퍼스트 중 선택 |
+
+### 사업계획서 10단계와 별개로 쓰는 선택 스킬
+
+| 스킬 | 하는 일 |
+| --- | --- |
+| `create-business-documents` | 승인된 사실로 견적서·프로필·이력서·공문·안내문을 A4 HTML로 생성하고 사용자가 브라우저에서 PDF로 저장 |
+
+이 선택 스킬은 스타터 워크스페이스에 함께 설치되지만 위 10단계의 담당 스킬이나 강의 단계가 아닙니다. 다음처럼 문서 유형과 가진 정보를 주면 모르는 값은 placeholder로 남깁니다.
+
+```text
+create-business-documents 스킬로 이 품목표를 부가세 별도 견적서 HTML로 만들어줘.
+공급자 정보 중 비어 있는 값은 만들지 말고 표시만 남겨줘.
+```
 
 ## 발표 덱 만들기 (`ppt-editorial`)
 
@@ -244,7 +257,7 @@ codex plugin add business-plan-writer@dayoun
 
 ## 버전
 
-현재 공개 버전은 `0.8.0`입니다. 범용 사업계획서 스킬 원본을 Codex·Claude Code·Antigravity에서 사용하며, 일반 채팅형 AI에는 같은 사고 순서와 출력 형식의 프롬프트 경로를 제공합니다.
+현재 공개 버전은 `0.9.0`입니다. 범용 사업계획서 스킬 원본과 선택형 실무 문서 스킬을 Codex·Claude Code·Antigravity에서 사용하며, 일반 채팅형 AI에는 같은 사고 순서와 출력 형식의 프롬프트 경로를 제공합니다.
 
 ## 기여와 문의
 

@@ -1,0 +1,64 @@
+name: Publish marketplace release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    permissions:
+      contents: read
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+      - name: Install PPT harness test dependencies
+        run: python -m pip install pillow opencv-python pymupdf numpy python-pptx
+      - name: Check generated starter skills
+        run: python scripts/sync_starter_skills.py
+      - name: Check generated starter project
+        run: python scripts/sync_starter_project.py
+      - name: Run complete regression suite
+        run: python -m unittest discover -s tests -v
+
+  release:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+      - name: Verify tag matches plugin version
+        shell: bash
+        run: |
+          version=$(python -c 'import json; print(json.load(open("plugins/business-plan-writer/plugin.json"))["version"])')
+          test "v${version}" = "${GITHUB_REF_NAME}"
+      - name: Build deterministic release archive
+        run: python scripts/build_release_zip.py --output-dir dist
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: marketplace-release-${{ github.ref_name }}
+          path: dist/*.zip
+          if-no-files-found: error
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          name: dayoun-marketplace ${{ github.ref_name }}
+          generate_release_notes: true
+          files: dist/*.zip
