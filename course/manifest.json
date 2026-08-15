@@ -5,7 +5,7 @@
     "02-curriculum-draft.md": "sha256:4101bd19a93dcbadb3a36243b6e6862b3a8504b2c052729278017a28c39619e5",
     "03-preclass-checklist.md": "sha256:4efa4c847b19c3890667b65d4eb50c87d56a1e93b80a7c0bcc048ede7b00e52f",
     "04-instructor-guide.md": "sha256:0ab6729b8a88de4ea520af3b22bdee3d6860f5286e24251819332b825f1149a1",
-    "06-participant-quick-start.md": "sha256:2302a292cf0ccc712bb1c655f354700827d2ec0c9930facd1f22ca763f1602fd",
+    "06-participant-quick-start.md": "sha256:aae019dbb5bb4d08091988ec9d5fbbd1cc745b8f3a1d2c667cd08afa744d7d89",
     "07-multi-provider-guide.md": "sha256:f7234d99c36cb411bae5e1fa7d67e881b2bbbf91163cfb2ae38adf48247fccbc",
     "VALIDATION.md": "sha256:8c5f5171212a2e47859940fe023a0a9c605bb273978469c2659d87e531dec00e",
     "_contracts/policies/release-gates.json": "sha256:13fe9306f354a5b4ebec30d8ccedf0604b12edd5d5bc6e144194db8c9c9c38d7",
@@ -53,13 +53,12 @@
     "completed-project/07. 최종본/다음공식마감실행카드.md": "sha256:8e838c25ed78e33f79567be94bd759ee49241c3d2245cf65b4820ce9eb6c719a",
     "completed-project/07. 최종본/최종확인.md": "sha256:a8af4a55c20d57d2f80a48ce23bc0ea342d3c29ba68f3a14eb93c48bab8ad190",
     "completed-project/README.md": "sha256:0c3a2fdf75812fd4ab468527348213d2f40819c02afc7dd7a501219b40bd89e1",
-    "offline-evidence-pack/00-beginner-idea-draft.md": "sha256:6182c47911e76a259592512bc0754d5a1ffd5d3d5a5abf827d1e5ce58c63f812",
     "offline-evidence-pack/01-official-program-criteria.md": "sha256:ddeac69a1de09fd429cfb66cd821dd57717e9a88591e87f8a9258805bfd949ce",
     "offline-evidence-pack/02-fictional-company-brief.md": "sha256:5aca27173246789f8a59f00d3bf136df61deab4a316564b930bee3071d627455",
     "offline-evidence-pack/03-fictional-customer-notes.md": "sha256:4ad4a71affc32541594a43a8ef55ca62e92580a3e73c6bd299b4a1744652c21c",
     "offline-evidence-pack/04-claim-plan.csv": "sha256:7bf8ca87bccc89235009fd6decbd3e77775d7d5adff2778578b8d71d6ca2364d",
     "offline-evidence-pack/05-fictional-alternatives.csv": "sha256:09942017b60c195857205f798fa3c0c28cbfe23daa966dc993bff8a477cd8fa5",
-    "offline-evidence-pack/README.md": "sha256:4ff58eacdddef7a20b7d97b5eb74f36940bd73b5e703a2afdc3d8deb1d6f43a3",
+    "offline-evidence-pack/README.md": "sha256:afa4c344bb43dc1ef4242a6ae73aba73930a20d3acea981b1561e936f226a0a4",
     "starter-project/.agents/skills/complete-business-plan/SKILL.md": "sha256:3c26526f1b047ab02fa5cb8f76883d23fd78acc3726ff100e3bf822f8636b0f7",
     "starter-project/.agents/skills/complete-business-plan/agents/openai.yaml": "sha256:a4abfb31ec0ebc077f927c5abc108c9aecdc4e187fb9448b6d60b11c85cf5eac",
     "starter-project/.agents/skills/complete-business-plan/references/workflow.md": "sha256:3348f6af6b1ecff5ed9da9cf1d6df6d4a5ba862020a5f4610016a5b381861b15",
@@ -220,7 +219,7 @@
     "starter-project/07. 최종본/release-manifest.md": "sha256:6c197fb49807efe1d9250564b0a2489a078da1d26215a978490bf58f90fcddb8",
     "starter-project/07. 최종본/다음행동.md": "sha256:59e9a6384e2989997a89867e0187e099f73782f06a5cb3d00354797cea695fcd",
     "starter-project/07. 최종본/최종확인.md": "sha256:7f734823ce659dab2303c013fcd9c1ce891528ee0d8003edbf7f9391d79a894c",
-    "starter-project/README.md": "sha256:663792502e2c49c47e709f554a940ef5bfeb7735c79d36dbc2b60142b13bb049"
+    "starter-project/README.md": "sha256:f3a0a52b118c7b53e41a632396da2426febb160524ecfcd35f57202fd24b11a3"
   },
   "schemaVersion": "1.0.0",
   "version": "0.1.0"
