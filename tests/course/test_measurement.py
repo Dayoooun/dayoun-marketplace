@@ -180,5 +180,42 @@ class MeasurementTests(unittest.TestCase):
         self.assertIn("critical-defect:C1", result["blockers"])
 
 
+class StarterExampleTests(unittest.TestCase):
+    def test_beginner_idea_draft_is_generated_and_fail_closed(self) -> None:
+        source = (
+            ROOT
+            / "course-src"
+            / "offline-evidence-pack"
+            / "00-beginner-idea-draft.md"
+        )
+        generated = (
+            ROOT
+            / "course"
+            / "offline-evidence-pack"
+            / "00-beginner-idea-draft.md"
+        )
+        self.assertEqual(source.read_bytes(), generated.read_bytes())
+        content = source.read_text(encoding="utf-8")
+        for required in (
+            "교육용 가상 사례",
+            "아이디어만 있는 초보자의 첫 메모",
+            "| 가정 |",
+            "| 확인 필요 |",
+            "| 아이디어 |",
+            "| 계획 |",
+            "확인된 내용 없음",
+            "지금 말할 수 없는 것",
+            "가장 먼저 확인할 질문",
+            "AI에게 줄 첫 요청",
+            "내 아이디어로 바꾸는 빈 양식",
+        ):
+            self.assertIn(required, content)
+        self.assertIn("확인되지 않은 고객 수, 시장규모, 성과, 가격을 만들지 마", content)
+
+    def test_beginner_idea_draft_links_to_staged_evidence(self) -> None:
+        evidence_root = ROOT / "course-src" / "offline-evidence-pack"
+        self.assertTrue((evidence_root / "02-fictional-company-brief.md").is_file())
+        self.assertTrue((evidence_root / "03-fictional-customer-notes.md").is_file())
+
 if __name__ == "__main__":
     unittest.main()

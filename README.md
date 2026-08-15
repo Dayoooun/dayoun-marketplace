@@ -357,6 +357,7 @@ codex plugin add business-plan-writer@dayoun
 - [참가자 한 장 빠른 시작](course/06-participant-quick-start.md)
 - [Codex·Claude Code·Antigravity 공통 사용 안내](course/07-multi-provider-guide.md)
 - [설치 없는 스타터 프로젝트](course/starter-project)
+- [초보자 사업아이템 초안 · 모두랩](course/offline-evidence-pack/00-beginner-idea-draft.md)
 - [완성 예시](course/completed-project)
 - [인터넷 장애용 오프라인 근거팩](course/offline-evidence-pack)
 
