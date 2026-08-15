@@ -4,12 +4,149 @@
 
 기본 스킬은 특정 기관이나 사업에 묶이지 않습니다. 부산대 수업에서는 현재 공식 공고와 평가표를 선택 설정으로 넣어 사용합니다. HWPX 반영은 원본 보존, 사용자 승인, 양식 검증이 확인된 경우에만 선택합니다. 누구나 무료로 설치하고 수정할 수 있도록 MIT 라이선스로 공개합니다.
 
-## 가장 쉬운 시작
+## 1분 설치
 
-수업에서는 릴리스의 [`course/starter-project`](course/starter-project)를 작업 폴더로 여는 방법을 권장합니다. `course-src`와 일곱 핵심 스킬에서 자동 생성되며, Codex·Claude Code·Antigravity가 각자의 워크스페이스 경로에서 읽습니다. `business-documents`는 별도 설치하는 독립 플러그인이라 기본 강의 배포판에 들어가지 않습니다.
+설치할 프로그램에 맞는 한 줄을 고르면 됩니다.
 
-- Codex·Antigravity: `.agents/skills`
-- Claude Code: `.claude/skills`
+| 사용하는 AI | 설치 방식 | 설치 후 보이는 버전 |
+|---|---|---|
+| Codex CLI | 터미널에서 marketplace 추가 | `business-plan-writer 0.10.0`, `business-documents 0.1.0` |
+| Claude Code | Claude Code의 `/plugin` 명령 | `business-plan-writer 0.10.0`, `business-documents 0.1.0` |
+| Antigravity | `course/starter-project` 폴더를 작업공간으로 열기 | `.agents/skills`의 일곱 사업계획서 스킬 |
+| 일반 채팅형 AI | 자동 설치 없음 | [참가자 빠른 시작](course/06-participant-quick-start.md)의 질문·출력 형식만 사용 |
+
+### AI에게 설치를 맡기기 — 가장 쉬운 방법
+
+현재 사용 중인 코딩 AI에게 아래 문장을 그대로 붙여넣습니다.
+
+```text
+https://github.com/Dayoooun/dayoun-marketplace 의 AGENTS.md를 읽고,
+내 컴퓨터에 설치된 Codex CLI 또는 Claude Code를 감지해줘.
+business-plan-writer와 business-documents를 공식 marketplace 명령으로 설치하고,
+설치된 버전이 각각 0.10.0과 0.1.0인지 확인해줘.
+기존 설정과 다른 플러그인은 삭제하거나 덮어쓰지 말고,
+실패하면 추측하지 말고 실패한 명령과 해결 방법을 알려줘.
+```
+
+AI가 읽을 상세 설치 계약은 [`AGENTS.md`](AGENTS.md)에 있습니다. Claude Code는 [`CLAUDE.md`](CLAUDE.md)에서 같은 문서로 연결됩니다.
+
+### Codex CLI — 복사해서 실행
+
+PowerShell, Windows Terminal, macOS Terminal 중 하나를 열고 실행합니다.
+
+```powershell
+codex plugin marketplace add Dayoooun/dayoun-marketplace --ref main
+codex plugin add business-plan-writer@dayoun
+codex plugin add business-documents@dayoun
+codex plugin list
+```
+
+마지막 명령에서 아래 두 항목이 `installed, enabled`이면 끝입니다.
+
+```text
+business-plan-writer@dayoun  0.10.0
+business-documents@dayoun    0.1.0
+```
+
+`business-documents`가 필요 없다면 세 번째 줄만 생략할 수 있습니다.
+
+### Claude Code — 네 줄로 설치
+
+Claude Code를 연 뒤 대화 입력창에 한 줄씩 실행합니다.
+
+```text
+/plugin marketplace add Dayoooun/dayoun-marketplace
+/plugin install business-plan-writer@dayoun
+/plugin install business-documents@dayoun
+/plugin list
+```
+
+목록에서 두 플러그인이 `enabled`이고 버전이 `0.10.0`, `0.1.0`이면 설치가 끝난 것입니다. 새 스킬이 바로 보이지 않으면 Claude Code를 한 번 다시 시작합니다.
+
+터미널 명령을 선호하면 같은 작업을 다음처럼 실행할 수 있습니다.
+
+```powershell
+claude plugin marketplace add Dayoooun/dayoun-marketplace
+claude plugin install business-plan-writer@dayoun
+claude plugin install business-documents@dayoun
+claude plugin list
+```
+
+### Antigravity — 설치 없는 수업용 시작
+
+Antigravity에는 위 marketplace 명령을 사용하지 않습니다.
+
+1. GitHub 저장소를 ZIP으로 내려받거나 아래 명령으로 복제합니다.
+2. 저장소 전체가 아니라 `course/starter-project` 폴더를 Antigravity 작업공간으로 엽니다.
+3. Antigravity가 `.agents/skills`를 읽으면 설치가 끝납니다.
+
+```powershell
+git clone --depth 1 https://github.com/Dayoooun/dayoun-marketplace.git
+cd dayoun-marketplace
+```
+
+작업공간 루트에 아래 경로가 보여야 합니다.
+
+```text
+course/starter-project/.agents/skills
+```
+
+### 설치 확인용 첫 요청
+
+설치한 AI에게 아래 요청을 보냅니다. 실제 회사 정보 없이도 스킬 인식 여부를 확인할 수 있습니다.
+
+```text
+complete-business-plan 스킬을 사용해줘.
+아직 실제 사업계획서는 작성하지 말고,
+QUICK 범위에서 필요한 입력자료와 진행 단계만 설명해줘.
+확인되지 않은 회사 정보나 실적은 만들지 마.
+```
+
+문서 플러그인도 설치했다면 다음 요청으로 확인합니다.
+
+```text
+create-business-documents 스킬을 사용해줘.
+견적서를 만들기 전에 필요한 공급자 정보와 품목 열만 알려줘.
+비어 있는 값은 추측하지 마.
+```
+
+## 업데이트
+
+### Codex
+
+```powershell
+codex plugin marketplace upgrade dayoun
+codex plugin list
+```
+
+### Claude Code
+
+```powershell
+claude plugin marketplace update dayoun
+claude plugin update business-plan-writer@dayoun
+claude plugin update business-documents@dayoun
+claude plugin list
+```
+
+업데이트 후 Claude Code를 다시 시작합니다. 자동 업데이트를 지원하는 호스트도 GitHub에 공개된 marketplace 버전을 기준으로 동작합니다. 로컬에서만 수정한 파일은 GitHub에 커밋·푸시되기 전까지 다른 사용자에게 배포되지 않습니다.
+
+## 설치가 안 될 때
+
+| 증상 | 확인할 것 | 해결 |
+|---|---|---|
+| `codex` 또는 `claude` 명령을 찾지 못함 | 해당 CLI가 설치되어 있는지 확인 | CLI를 먼저 설치하고 새 터미널에서 다시 실행 |
+| marketplace가 이미 있다고 나옴 | 기존 `dayoun` 등록이 있음 | 새로 추가하지 말고 marketplace update/upgrade 실행 |
+| 예전 버전이 계속 보임 | marketplace 캐시가 갱신되지 않음 | update/upgrade 후 프로그램 재시작 |
+| Claude에서 스킬이 안 보임 | 플러그인이 disabled 상태인지 확인 | `/plugin list` 확인 후 install/update, 재시작 |
+| Antigravity에서 스킬이 안 보임 | 연 폴더가 `starter-project`인지 확인 | `.agents/skills`가 바로 아래 보이도록 작업공간을 다시 열기 |
+| PPT 생성에서 Python 패키지 오류 | 선택 PPT 기능의 추가 의존성 미설치 | 저장소에서 `python -m pip install -r requirements.txt` 실행 |
+| 네트워크 없이 수업해야 함 | marketplace 접근 불가 | `course/starter-project`와 `course/offline-evidence-pack` 사용 |
+
+설치기가 다른 플러그인, 사용자 설정, 작업 파일을 자동으로 삭제해서는 안 됩니다. 인증이나 네트워크 문제는 기존 설치본을 유지한 채 BLOCK으로 보고해야 합니다.
+
+## 가장 쉬운 사용 시작
+
+수업에서는 [`course/starter-project`](course/starter-project)를 작업 폴더로 여는 방법을 권장합니다. `course-src`와 일곱 핵심 스킬에서 자동 생성되며, Codex·Claude Code·Antigravity가 각자의 워크스페이스 경로에서 읽습니다. `business-documents`는 별도 설치하는 독립 플러그인이라 기본 강의 배포판에 들어가지 않습니다.
 
 스킬을 읽을 수 있는 에이전트에서 다음처럼 자연어로 요청합니다.
 
@@ -18,45 +155,7 @@ complete-business-plan 스킬을 사용해 공고문·평가지표·작성지침
 회사·사업정보와 부족한 근거를 확인한 뒤 승인된 HWPX와 발표 PPT까지 10단계로 진행해줘.
 ```
 
-공식 자료와 기존 사업정보를 확인한 뒤에도 고객·사용상황·문제가 비어 있을 때만 질문 하나를 합니다.
-
-### Codex 마켓플레이스 설치
-
-```powershell
-codex plugin marketplace add Dayoooun/dayoun-marketplace --ref main
-codex plugin add business-plan-writer@dayoun
-```
-
-### Claude Code 마켓플레이스 설치
-
-Claude Code 안에서 다음 명령을 실행합니다.
-
-```text
-/plugin marketplace add Dayoooun/dayoun-marketplace
-/plugin install business-plan-writer@dayoun
-```
-
-### 업데이트와 자동 업데이트
-
-자동 업데이트는 GitHub에 공개된 새 버전만 가져옵니다. 로컬에서만 수정한 내용은 커밋·푸시되기 전까지 설치된 플러그인에 반영되지 않습니다.
-
-Codex에서 마켓플레이스 스냅샷을 새로 받고 설치 버전을 확인합니다.
-
-```powershell
-codex plugin marketplace upgrade dayoun
-codex plugin list
-```
-
-Claude Code에서 마켓플레이스와 플러그인을 갱신한 뒤 다시 시작합니다.
-
-```powershell
-claude plugin marketplace update dayoun
-claude plugin update business-plan-writer@dayoun
-```
-
-자동 업데이트를 켜도 원리는 같습니다. 공개된 버전을 감지하면 갱신하고, 네트워크 오류나 버전 미공개 상태에서는 기존 설치본을 계속 사용합니다.
-
-Antigravity와 일반 채팅형 AI를 포함한 차이는 [멀티 프로바이더 안내](course/07-multi-provider-guide.md)에서 확인할 수 있습니다. 설치 방법은 서로 다르지만 네 가지 기본 결과물은 같습니다.
+공식 자료와 기존 사업정보를 확인한 뒤에도 고객·사용상황·문제가 비어 있을 때만 질문 하나를 합니다. Antigravity와 일반 채팅형 AI를 포함한 차이는 [멀티 프로바이더 안내](course/07-multi-provider-guide.md)에서 확인할 수 있습니다.
 
 ## 두 시간에 만드는 네 가지
 
@@ -238,7 +337,7 @@ codex CLI는 **Claude Code에서 써도 따로 설치해야 합니다.** 배경 
 - 일반 양식에 중괄호가 0개이면 자동치환을 중단하고 `template-field-map.csv`로 수동 매핑합니다.
 - 콘텐츠 검토와 사용자 승인이 끝난 값만 HWPX에 반영합니다.
 - 자동 검사는 문서 구조와 미치환 항목을 확인합니다. 실제 페이지 배치와 글자 넘침은 한컴오피스에서 마지막으로 확인합니다.
-- 데모 파일은 실습용이며 실제 제출 양식이 아닙니다. 출처는 [`PROVENANCE.md`](../../../plugins/business-plan-writer/assets/demo/PROVENANCE.md)에 기록했습니다.
+- 데모 파일은 실습용이며 실제 제출 양식이 아닙니다. 출처는 [`PROVENANCE.md`](plugins/business-plan-writer/assets/demo/PROVENANCE.md)에 기록했습니다.
 
 ## 직접 내려받아 설치
 
@@ -270,7 +369,7 @@ codex plugin add business-plan-writer@dayoun
 
 ## 버전
 
-현재 공개된 `business-plan-writer`는 `0.9.0`, 새 독립 `business-documents`는 `0.1.0` 개발선입니다. `1.0`은 10개 fixture × 3개 실제 프로바이더, 선택 문서의 자동·외부 화면검수, N≥10 강의 검증, 10명 외부 베타, 중대 결함 0건을 모두 만족하기 전에는 태그하지 않습니다.
+현재 `main` marketplace의 공개 RC는 `business-plan-writer 0.10.0`, `business-documents 0.1.0`입니다. Codex와 Claude Code의 원격 설치를 실제 검증했습니다. stable `1.0`은 10개 fixture × 3개 실제 프로바이더, 선택 문서의 자동·외부 화면검수, N≥10 강의 검증, 10명 외부 베타, 중대 결함 0건을 모두 만족하기 전에는 태그하지 않습니다.
 
 ## 기여와 문의
 
