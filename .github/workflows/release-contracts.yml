@@ -1,0 +1,46 @@
+name: Promote contracts
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: Exact contracts version to qualify and tag
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.11" }
+      - run: python -m pip install -r requirements.txt
+      - run: python scripts/validate_contracts.py contracts
+      - shell: bash
+        env: { VERSION: "${{ inputs.version }}" }
+        run: |
+          python scripts/build_release_artifacts.py --target contracts --closure release/manifests/contracts.json --version "$VERSION" --output-dir dist/contracts-a
+          python scripts/build_release_artifacts.py --target contracts --closure release/manifests/contracts.json --version "$VERSION" --output-dir dist/contracts-b
+      - run: python scripts/compare_release_builds.py dist/contracts-a dist/contracts-b --target contracts --compare-archive-sha --compare-member-manifests
+      - run: python scripts/smoke_public_artifacts.py dist/contracts-a --target contracts --clean-home --hide-repository-root
+      - run: python scripts/release_dry_run.py --target contracts --closure release/manifests/contracts.json --artifacts dist/contracts-a --no-publish --assert-no-tag --strict-evidence --audit-access-log
+      - run: python scripts/rollback_rehearsal.py --target contracts --last-verified release/last-verified/contracts.json --candidate dist/contracts-a --clean-home --install-smoke-remove
+      - uses: actions/upload-artifact@v4
+        with: { name: contracts-release, path: dist/contracts-a }
+  release:
+    needs: qualify
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: contracts-release, path: dist }
+      - shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: gh release create "contracts/v$VERSION" dist/* --target "$GITHUB_SHA" --title "contracts v$VERSION"

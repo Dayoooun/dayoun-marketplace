@@ -16,14 +16,22 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
-      - name: Install PPT harness test dependencies
-        run: python -m pip install pillow opencv-python pymupdf numpy python-pptx
-      - name: Check generated starter skills
-        run: python scripts/sync_starter_skills.py
-      - name: Check generated starter project
-        run: python scripts/sync_starter_project.py
-      - name: Run plugin tests
+      - name: Install validation dependencies
+        run: python -m pip install -r requirements.txt pillow opencv-python pymupdf numpy python-pptx
+      - name: Validate authored contracts
+        run: python scripts/validate_contracts.py contracts
+      - name: Check generated course kit
+        run: python scripts/generate_course.py --check
+      - name: Check internal course exclusions
+        run: python scripts/check_generated.py --forbid-internal
+      - name: Validate release fixture matrix
+        run: python scripts/validate_release_fixtures.py --require-ppt-modes scene-deck,image-first --require-ocr-association R04-I,R07-I --require-original-oracle-negatives --strict
+      - name: Run unit and integration tests
         run: python -m unittest discover -s tests -v
+      - name: Build non-release health artifacts
+        run: python scripts/build_release_artifacts.py --all --health-only --output-dir dist/health

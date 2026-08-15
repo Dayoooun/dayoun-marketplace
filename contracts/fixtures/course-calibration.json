@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0.0",
+  "goldenArtifacts": [
+    {"artifactId": "G1", "rubric": {"gapDiagnosis": 2, "evidenceRecord": 2, "changeRecord": 2, "actionCard": 2}},
+    {"artifactId": "G2", "rubric": {"gapDiagnosis": 2, "evidenceRecord": 2, "changeRecord": 2, "actionCard": 2}},
+    {"artifactId": "G3", "rubric": {"gapDiagnosis": 2, "evidenceRecord": 2, "changeRecord": 2, "actionCard": 2}},
+    {"artifactId": "G4", "rubric": {"gapDiagnosis": 2, "evidenceRecord": 2, "changeRecord": 2, "actionCard": 2}},
+    {"artifactId": "G5", "rubric": {"gapDiagnosis": 2, "evidenceRecord": 2, "changeRecord": 2, "actionCard": 2}},
+    {"artifactId": "G6", "rubric": {"gapDiagnosis": 2, "evidenceRecord": 2, "changeRecord": 2, "actionCard": 2}},
+    {"artifactId": "G7", "rubric": {"gapDiagnosis": 2, "evidenceRecord": 2, "changeRecord": 2, "actionCard": 2}},
+    {"artifactId": "G8", "rubric": {"gapDiagnosis": 2, "evidenceRecord": 2, "changeRecord": 2, "actionCard": 2}}
+  ],
+  "safetyCases": [
+    {"caseId": "S1", "expected": "S1"},
+    {"caseId": "S2", "expected": "S2"},
+    {"caseId": "S3", "expected": "S3"},
+    {"caseId": "S4", "expected": "S4"},
+    {"caseId": "S5", "expected": "S1"},
+    {"caseId": "S6", "expected": "S2"},
+    {"caseId": "S7", "expected": "S3"},
+    {"caseId": "S8", "expected": "S4"}
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "business-documents",
+  "version": "0.1.0",
+  "description": "Generate evidence-safe HTML quotations, profiles, resumes, official notices, and printable business documents from approved JSON inputs.",
+  "author": {
+    "name": "Dayoun",
+    "url": "https://github.com/Dayoooun"
+  },
+  "license": "MIT",
+  "keywords": [
+    "business-documents",
+    "quotation",
+    "profile",
+    "official-notice",
+    "html"
+  ]
+}

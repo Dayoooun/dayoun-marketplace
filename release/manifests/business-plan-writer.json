@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0.0",
+  "target": "business-plan-writer",
+  "tagNamespace": "business-plan-writer/v",
+  "required": ["contracts", "business-plan-writer", "course-kit"],
+  "forbiddenReads": ["business-documents"],
+  "sourceRoots": ["plugins/business-plan-writer", "contracts", "LICENSE", "requirements.txt"],
+  "forbiddenSourceRoots": ["plugins/business-documents", "course", "course-src", "tests"],
+  "artifactPattern": "dayoun-business-plan-writer-{version}.zip",
+  "oneDotZeroRequiresCourseKit": true
+}

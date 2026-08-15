@@ -1,0 +1,16 @@
+{
+  "purpose": "교육",
+  "reader": "",
+  "decision": "",
+  "document_name": "",
+  "deadline": "",
+  "official_program": {
+    "name": "",
+    "track": "unknown"
+  },
+  "requirements_source": "",
+  "requirements_status": "unknown",
+  "required_sections": [],
+  "template_received": false,
+  "notes": "확인한 정보만 입력하고 모르면 빈 값 또는 unknown으로 유지"
+}

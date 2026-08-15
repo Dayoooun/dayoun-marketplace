@@ -1,0 +1,5 @@
+field_id,official_prompt,page_or_location,length_limit,placeholder,insertion_mode,status
+FF001,문제정의,교육용 데모 본문,제한 없음,{문제정의},ANNOTATED_TEMPLATE,VERIFIED
+FF002,시장근거,교육용 데모 본문,제한 없음,{시장근거},ANNOTATED_TEMPLATE,VERIFIED
+FF003,회사명,교육용 데모 본문,제한 없음,{회사명},ANNOTATED_TEMPLATE,VERIFIED
+FF004,실행계획,교육용 데모 본문,제한 없음,{30일실행계획},ANNOTATED_TEMPLATE,VERIFIED

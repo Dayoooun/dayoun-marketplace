@@ -1,0 +1,3 @@
+criterion_id,form_field_id,official_prompt,source_page,required_or_optional,length_limit,claim_ids,draft_file,placeholder,approval_status,hwpx_status
+PNU-AUTH,FF001,문제 발견 배경과 문제의식,공식 평가지표,required,교육용 제한 없음,C001,05. 작성초안/핵심초안.md,{문제정의},APPROVED,REPLACED
+PNU-CONCRETE,FF001,목표고객과 해결방식의 구체성,공식 평가지표,required,교육용 제한 없음,C001,05. 작성초안/핵심초안.md,{문제정의},APPROVED,REPLACED

@@ -1,0 +1,47 @@
+name: Promote business-documents
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: Exact plugin version to qualify and tag
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.11" }
+      - run: python -m pip install -r requirements.txt pillow
+      - run: python scripts/validate_contracts.py contracts
+      - run: python -m unittest discover -s tests/business_documents -v
+      - shell: bash
+        env: { VERSION: "${{ inputs.version }}" }
+        run: |
+          python scripts/build_release_artifacts.py --target business-documents --closure release/manifests/business-documents.json --version "$VERSION" --output-dir dist/documents-a
+          python scripts/build_release_artifacts.py --target business-documents --closure release/manifests/business-documents.json --version "$VERSION" --output-dir dist/documents-b
+      - run: python scripts/compare_release_builds.py dist/documents-a dist/documents-b --target business-documents --compare-archive-sha --compare-member-manifests
+      - run: python scripts/smoke_public_artifacts.py dist/documents-a --target business-documents --clean-home --hide-repository-root
+      - run: python scripts/release_dry_run.py --target business-documents --closure release/manifests/business-documents.json --artifacts dist/documents-a --evidence release/evidence/business-documents --no-publish --assert-no-tag --strict-evidence --audit-access-log
+      - run: python scripts/rollback_rehearsal.py --target business-documents --last-verified release/last-verified/business-documents.json --candidate dist/documents-a --clean-home --install-smoke-remove
+      - uses: actions/upload-artifact@v4
+        with: { name: business-documents-release, path: dist/documents-a }
+  release:
+    needs: qualify
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: business-documents-release, path: dist }
+      - shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: gh release create "business-documents/v$VERSION" dist/* --target "$GITHUB_SHA" --title "business-documents v$VERSION"

@@ -1,4 +1,0 @@
-interface:
-  display_name: "실무 문서 만들기"
-  short_description: "사실 기반 견적서·프로필·공문을 A4 HTML로 만듭니다"
-  default_prompt: "$create-business-documents로 필요한 문서 유형과 입력값을 확인하고, 모르는 값은 placeholder로 남긴 A4 HTML을 만들어 주세요."

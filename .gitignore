@@ -8,4 +8,9 @@ Thumbs.db
 .codex/
 work/
 .gjc/
+.omc/
+.omx/
 dist/
+release/evidence/**/raw/
+release/evidence/**/participants/
+release/evidence/**/*-identifiable.json

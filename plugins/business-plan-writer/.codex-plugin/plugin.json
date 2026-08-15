@@ -1,7 +1,7 @@
 {
   "name": "business-plan-writer",
-  "version": "0.9.0",
-  "description": "Evidence-based end-to-end workflow from official notice and template analysis through research, drafting, approved HWPX, and presentation decks.",
+  "version": "0.10.0",
+  "description": "Evidence-based planning with QUICK, SECTION, and FULL scopes plus independently selected HWPX and scene-deck or image-first PPT outputs.",
   "author": {
     "name": "Dayoun",
     "url": "https://github.com/Dayoooun"
@@ -17,8 +17,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "AI 사업계획서 작성 도우미",
-    "shortDescription": "공고 분석부터 HWPX·발표 덱까지 10단계로 연결합니다",
-    "longDescription": "공식 공고·평가지표·작성지침·양식을 먼저 분석하고 회사·사업·아이디어 진단, 근거 질문, 시장조사, 전략 설계, 텍스트 초안, 검토·승인, HWPX 반영·검사, 발표 PPT·대본·Q&A까지 순서대로 연결합니다. 공식 원문을 최우선으로 사용하고, 승인 전 HWPX 반영과 단순 HWPX→PPT 변환을 금지합니다.",
+    "shortDescription": "승인된 계획에 선택 HWPX·dual-mode PPT를 독립 연결합니다",
+    "longDescription": "공식 공고·평가지표·작성지침·양식을 먼저 분석하고 QUICK·SECTION·FULL 범위에서 회사·사업·아이디어 진단, 근거 질문, 시장조사, 전략 설계, 텍스트 초안과 검토·승인을 연결합니다. 승인 뒤 HWPX와 PPT를 각각 선택하며 PPT는 scene-deck 또는 image-first로 만들고 세 독립 검증자와 외부 화면검사를 모두 요구합니다.",
     "developerName": "Dayoun",
     "category": "Business",
     "capabilities": [
@@ -28,7 +28,7 @@
     "defaultPrompt": [
       "공고문·평가지표·작성지침·사업계획서 양식을 먼저 분석해 주세요.",
       "회사·사업정보에서 부족한 근거를 질문으로 만들고 필요한 조사와 전략 설계를 진행해 주세요.",
-      "텍스트 초안을 검토·승인한 뒤 HWPX 반영·검사와 발표 PPT·대본·Q&A까지 연결해 주세요."
+      "텍스트 초안을 승인한 뒤 필요한 HWPX와 PPT를 각각 선택하고 모든 자동·화면검사를 통과해 주세요."
     ],
     "brandColor": "#5B5BD6"
   }

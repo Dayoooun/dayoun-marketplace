@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.0.0",
+  "target": "contracts",
+  "status": "BOOTSTRAP_NO_PREVIOUS_RELEASE",
+  "archiveRoot": "",
+  "requiredPaths": ["schemas/canonical.schema.json", "manifest.json", "LICENSE"],
+  "forbiddenPaths": ["plugins"]
+}

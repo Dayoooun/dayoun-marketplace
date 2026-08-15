@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "UNLOCKED",
+  "platform": {
+    "name": "Windows 11 x64",
+    "exactBuild": null,
+    "path": null,
+    "digest": null,
+    "verified": false
+  },
+  "applications": {
+    "hancomHangeul": {"name": "Hancom Office 2024 Hangeul", "exactBuild": null, "path": null, "digest": null, "verified": false},
+    "powerPoint": {"name": "Microsoft PowerPoint 2024 x64", "exactBuild": null, "path": null, "digest": null, "verified": false},
+    "edge": {"name": "Microsoft Edge Stable", "exactBuild": null, "path": null, "digest": null, "verified": false}
+  },
+  "fonts": [
+    {"name": "Pretendard", "path": null, "digest": null, "verified": false}
+  ],
+  "rasterizer": {"name": null, "exactBuild": null, "path": null, "digest": null, "verified": false},
+  "ocr": {
+    "executable": {"name": null, "exactBuild": null, "path": null, "digest": null, "verified": false},
+    "model": {"name": null, "exactBuild": null, "path": null, "digest": null, "verified": false},
+    "languagePack": {"name": null, "exactBuild": null, "path": null, "digest": null, "verified": false}
+  },
+  "normalizer": {"version": "dayoun-visible-text-v1", "digest": null, "verified": false},
+  "mapper": {"version": "dayoun-region-map-v1", "digest": null, "verified": false},
+  "manifestBuilder": {"version": "dayoun-visible-manifest-v1", "digest": null, "verified": false},
+  "sourceDigests": {
+    "build_visible_text_manifest.py": null,
+    "map_ocr_regions.py": null,
+    "validate_visible_text.py": null
+  }
+}

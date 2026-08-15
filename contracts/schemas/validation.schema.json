@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dayoun.dev/contracts/validation.schema.json",
+  "title": "Strict validation-cycle evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "cycleId",
+    "approvalRevision",
+    "approvalEnvelopeDigest",
+    "attempt",
+    "approvalStatus",
+    "validators",
+    "outputs",
+    "aggregateStatus",
+    "recordedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "cycleId": { "type": "string", "minLength": 1 },
+    "approvalRevision": { "type": "integer", "minimum": 1 },
+    "approvalEnvelopeDigest": { "$ref": "#/$defs/digest" },
+    "attempt": { "enum": [1, 2] },
+    "approvalStatus": { "enum": ["CURRENT", "STALE"] },
+    "validators": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fact", "structure", "contract"],
+      "properties": {
+        "fact": { "$ref": "#/$defs/verdict" },
+        "structure": { "$ref": "#/$defs/verdict" },
+        "contract": { "$ref": "#/$defs/verdict" }
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hwpx", "ppt"],
+      "properties": {
+        "hwpx": { "$ref": "#/$defs/outputVerdict" },
+        "ppt": { "$ref": "#/$defs/outputVerdict" }
+      }
+    },
+    "aggregateStatus": {
+      "enum": ["PASS", "BLOCK", "STALE_APPROVAL", "REJECTED", "IN_PROGRESS"]
+    },
+    "recordedAt": { "type": "string", "format": "date-time" },
+    "blockers": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "validatorId", "validatorVersion", "evidenceRefs"],
+      "properties": {
+        "status": { "enum": ["PASS", "BLOCK", "NOT_REVIEWED"] },
+        "validatorId": { "type": "string", "minLength": 1 },
+        "validatorVersion": { "type": "string", "minLength": 1 },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "artifactDigest": { "$ref": "#/$defs/digest" },
+        "reason": { "type": "string" }
+      }
+    },
+    "outputVerdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requested", "automationStatus", "visualStatus"],
+      "properties": {
+        "requested": { "type": "boolean" },
+        "automationStatus": {
+          "enum": ["PASS", "BLOCK", "NOT_REQUESTED", "NOT_REVIEWED"]
+        },
+        "visualStatus": {
+          "enum": ["PASS", "BLOCK", "NOT_REQUESTED", "NOT_REVIEWED"]
+        },
+        "artifactDigest": { "$ref": "#/$defs/digest" },
+        "evidenceRefs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "requested": { "const": false } } },
+          "then": {
+            "properties": {
+              "automationStatus": { "const": "NOT_REQUESTED" },
+              "visualStatus": { "const": "NOT_REQUESTED" }
+            }
+          },
+          "else": {
+            "required": ["artifactDigest", "evidenceRefs"]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "business-documents",
+  "version": "0.1.0",
+  "description": "Generate evidence-safe HTML quotations, profiles, resumes, official notices, and printable business documents from approved JSON inputs.",
+  "author": {
+    "name": "Dayoun",
+    "url": "https://github.com/Dayoooun"
+  },
+  "license": "MIT",
+  "keywords": [
+    "business-documents",
+    "quotation",
+    "profile",
+    "official-notice",
+    "html"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "AI 실무 문서 작성 도우미",
+    "shortDescription": "승인된 JSON으로 견적서·프로필·공문을 안전하게 만듭니다",
+    "longDescription": "검증된 JSON 입력을 바탕으로 외부 URL과 미승인 개인정보를 배제한 인쇄용 HTML 견적서, 프로필·이력서, 공문·안내문을 생성합니다. 브라우저 PDF 출력은 별도 화면검수 단계로 유지합니다.",
+    "developerName": "Dayoun",
+    "category": "Business",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "승인된 JSON으로 인쇄 가능한 실무 문서를 생성해 주세요.",
+      "계산값·개인정보·placeholder·외부 URL을 검증해 주세요."
+    ],
+    "brandColor": "#3D6B5A"
+  }
+}

@@ -1,0 +1,5 @@
+file_id,file_name,document_type,version_or_date,owner,sharing_level,masked,read_status,notes
+I001,02-fictional-company-brief.md,가상 회사자료,2026-08-01,Dayoun,공개 교육용,yes,READ,실제 사실 아님
+I002,03-fictional-customer-notes.md,가상 고객메모,2026-08-01,Dayoun,공개 교육용,yes,READ,실제 인터뷰 아님
+I003,01-official-program-criteria.md,공식 기준 요약,2026-08-01,Dayoun,공개,yes,READ,원문 링크 확인
+I004,demo-business-plan.hwpx,교육용 주석 양식,2026-08-01,Dayoun,공개 교육용,yes,READ,플레이스홀더 4개

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.0.0",
+  "target": "course-kit",
+  "status": "BOOTSTRAP_NO_PREVIOUS_RELEASE",
+  "archiveRoot": "",
+  "requiredPaths": ["manifest.json", "starter-project/README.md", "requirements.txt", "LICENSE"],
+  "forbiddenPaths": ["internal", "materials-backlog.md"]
+}

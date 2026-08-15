@@ -1,0 +1,67 @@
+name: Promote business-plan-writer
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact plugin version to qualify and tag
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  portable:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.11" }
+      - run: python -m pip install -r requirements.txt pillow opencv-python pymupdf numpy python-pptx
+      - run: python scripts/validate_contracts.py contracts
+      - run: python scripts/generate_course.py --check
+      - run: python -m unittest discover -s tests -v
+  qualify:
+    needs: portable
+    runs-on: [self-hosted, Windows, X64, dayoun-rc]
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.11" }
+      - run: python -m pip install -r requirements.txt pillow opencv-python pymupdf numpy python-pptx
+      - shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          python scripts/build_release_artifacts.py --target business-plan-writer --closure release/manifests/business-plan-writer.json --version "$VERSION" --output-dir dist/writer-a
+          python scripts/build_release_artifacts.py --target business-plan-writer --closure release/manifests/business-plan-writer.json --version "$VERSION" --output-dir dist/writer-b
+      - run: python scripts/compare_release_builds.py dist/writer-a dist/writer-b --target business-plan-writer --compare-archive-sha --compare-member-manifests
+      - run: python scripts/smoke_public_artifacts.py dist/writer-a --target business-plan-writer --clean-home --hide-repository-root --ppt-modes scene-deck,image-first --require-approved-resolver --require-extractor
+      - run: python scripts/release_dry_run.py --target business-plan-writer --closure release/manifests/business-plan-writer.json --artifacts dist/writer-a --evidence release/evidence/business-plan-writer --no-publish --assert-no-tag --strict-evidence --audit-access-log
+      - run: python scripts/rollback_rehearsal.py --target business-plan-writer --last-verified release/last-verified/business-plan-writer.json --clean-home --install-smoke-remove --ppt-modes scene-deck,image-first
+      - uses: actions/upload-artifact@v4
+        with: { name: business-plan-writer-release, path: dist/writer-a }
+  release:
+    needs: qualify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - uses: actions/download-artifact@v4
+        with: { name: business-plan-writer-release, path: dist }
+      - shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          test "$(python -c 'import json; print(json.load(open("plugins/business-plan-writer/plugin.json"))["version"])')" = "$VERSION"
+          gh release create "business-plan-writer/v$VERSION" dist/* --target "$GITHUB_SHA" --title "business-plan-writer v$VERSION"

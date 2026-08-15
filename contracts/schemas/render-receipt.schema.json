@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dayoun.dev/contracts/render-receipt.schema.json",
+  "title": "Digest-bound image render receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "receiptVersion", "approvalEnvelopeDigest", "rendererMode", "rendererVersion", "slides"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "receiptVersion": { "const": "dayoun-image-render-receipt-v1" },
+    "approvalEnvelopeDigest": { "$ref": "#/$defs/digest" },
+    "rendererMode": { "const": "image-first" },
+    "rendererVersion": { "type": "string", "minLength": 1 },
+    "slides": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slideIdentity", "fileName", "sha256"],
+        "properties": {
+          "slideIdentity": { "type": "string", "pattern": "^[1-9][0-9]*:[1-9][0-9]*$" },
+          "fileName": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9가-힣](?:[A-Za-z0-9가-힣._ -]{0,122}[A-Za-z0-9가-힣_-])?\\.png$"
+          },
+          "sha256": { "$ref": "#/$defs/digest" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}

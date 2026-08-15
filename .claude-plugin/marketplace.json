@@ -9,8 +9,14 @@
     {
       "name": "business-plan-writer",
       "source": "./plugins/business-plan-writer",
-      "description": "Analyze official requirements, research evidence, draft and review the plan, fill approved HWPX, and build presentation decks.",
-      "version": "0.9.0"
+      "description": "Build evidence-based plans in QUICK, SECTION, or FULL scope with independently selected HWPX and dual-mode PPT outputs.",
+      "version": "0.10.0"
+    },
+    {
+      "name": "business-documents",
+      "source": "./plugins/business-documents",
+      "description": "Generate approved quotations, profiles, resumes, and official notices as safe printable HTML.",
+      "version": "0.1.0"
     }
   ]
 }

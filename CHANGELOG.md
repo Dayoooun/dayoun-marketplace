@@ -1,5 +1,15 @@
 # 변경 기록
 
+## Unreleased
+
+- authored `contracts/`에 canonical payload, approval envelope, validation, provider-run, visible-text/OCR schemas와 QUICK·SECTION·FULL 상태기계를 추가
+- `create-business-documents`를 독립 `business-documents` 플러그인과 SemVer/tag namespace로 분리
+- HWPX와 PPT를 독립 선택 산출물로 변경하고 PPT-only 경로에서 HWPX 선행 의존성을 제거
+- `scene-deck`과 `image-first`를 동등 1.0 후보로 유지하고 image-first 승인 digest·region mapping·PPTX/PDF OCR fail-closed 검증 추가
+- `course-src` 원본에서 `course` 배포판과 스타터 스킬 snapshot을 생성하도록 변경하고 수작업 mirror·`fallback/` 제거
+- 실제 3 provider 30회, N≥10 강의, 10명 외부 베타, exact Windows 시각 baseline을 별도 BLOCK 가능한 릴리스 증거로 고정
+- contracts·writer·documents·course-kit의 target-scoped deterministic ZIP과 독립 tag workflow 추가
+
 ## 0.9.0 · 2026-08-08
 
 - 사업계획서 10단계와 분리된 선택 스킬 `create-business-documents` 추가

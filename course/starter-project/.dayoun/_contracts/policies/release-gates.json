@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0.0",
+  "providerConformance": {
+    "fixtures": 10,
+    "providers": ["codex", "claude-code", "antigravity"],
+    "requiredRuns": 30,
+    "distinctProvenance": true,
+    "ordinaryChatAiIsSupportedProvider": false
+  },
+  "course": {
+    "validStartersMinimum": 10,
+    "validStarter": ["consent", "preRubric", "firstActionWithin600Seconds"],
+    "rubric": ["gapDiagnosis", "evidenceRecord", "changeRecord", "actionCard"],
+    "rubricRange": [0, 3],
+    "artifactMinimumPerItem": 2,
+    "completionDeadlineSeconds": 6600,
+    "completionThreshold": "ceil(0.80*N)",
+    "improvement": "median(post)-median(pre)>=1.0",
+    "improvementThreshold": "ceil(0.70*N)",
+    "assessors": 2,
+    "calibration": { "goldenArtifacts": 8, "exactScores": 32, "exactSafetyClassifications": 8 },
+    "safetyIncidentsAllowed": 0,
+    "fallbackTransitionMaximumSeconds": 300,
+    "lateBufferChangesCompletion": false
+  },
+  "externalBeta": {
+    "intentToTreatParticipants": 10,
+    "providerAllocation": { "codex": 4, "claude-code": 3, "antigravity": 3 },
+    "scopeAllocation": { "QUICK": 5, "SECTION": 5 },
+    "minimumComplete": 8,
+    "minimumCompletePerProvider": 2,
+    "retry": "one infrastructure-only retry",
+    "criticalDefectsAllowed": 0
+  },
+  "criticalDefects": {
+    "C1": "A fact, number, date, proper noun, or evidence relation is fabricated or materially changed.",
+    "C2": "Scope, output, or aggregate status reports PASS while a required item is NOT_REVIEWED, NOT_REQUESTED, missing, or blocked.",
+    "C3": "Generation or validation bypasses, mutates, or uses a stale approval tuple.",
+    "C4": "A selected HWPX, PPTX, or PDF is unreadable, structurally invalid, visually clipped, or materially inconsistent on the locked baseline.",
+    "C5": "A supported provider changes canonical semantics, lacks real invocation provenance, or passes through a simulated runner.",
+    "C6": "The product exposes private data, overwrites protected source material, reads an unrelated artifact, or publishes without the target release gate."
+  },
+  "criticalityAuthority": "QA lead records the final C1-C6 classification; release owner records the resulting block. Neither may convert a validator BLOCK to PASS.",
+  "visualBaseline": {
+    "platform": "Windows 11 x64",
+    "applications": ["Hancom Office 2024 Hangeul", "Microsoft PowerPoint 2024 x64", "Microsoft Edge Stable"],
+    "requireExactBuilds": true,
+    "requirePinnedFontDigest": true,
+    "requirePinnedRasterizerDigest": true,
+    "requirePinnedOcrDigests": true,
+    "generalizationClaimedBeyondBaseline": false
+  }
+}

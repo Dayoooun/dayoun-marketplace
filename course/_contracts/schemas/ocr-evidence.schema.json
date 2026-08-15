@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dayoun.dev/contracts/ocr-evidence.schema.json",
+  "title": "Image-first OCR conformance evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "approvalEnvelopeDigest",
+    "visibleTextManifestDigest",
+    "artifactDigest",
+    "surface",
+    "pageCount",
+    "pageRasterDigests",
+    "toolchain",
+    "detections",
+    "mapping",
+    "status",
+    "blockers"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "approvalEnvelopeDigest": { "$ref": "#/$defs/digest" },
+    "visibleTextManifestDigest": { "$ref": "#/$defs/digest" },
+    "artifactDigest": { "$ref": "#/$defs/digest" },
+    "surface": { "enum": ["PPTX", "PDF"] },
+    "pageCount": { "type": "integer", "minimum": 1 },
+    "pageRasterDigests": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/digest" }
+    },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rasterizer", "ocrExecutable", "ocrModel", "languagePack", "normalizer", "mapper"],
+      "properties": {
+        "rasterizer": { "$ref": "#/$defs/versionedDigest" },
+        "ocrExecutable": { "$ref": "#/$defs/versionedDigest" },
+        "ocrModel": { "$ref": "#/$defs/versionedDigest" },
+        "languagePack": { "$ref": "#/$defs/versionedDigest" },
+        "normalizer": { "$ref": "#/$defs/versionedDigest" },
+        "mapper": { "$ref": "#/$defs/versionedDigest" }
+      }
+    },
+    "detections": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/detection" }
+    },
+    "mapping": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/mappedEntry" }
+    },
+    "status": { "enum": ["PASS", "AUTO_BLOCK"] },
+    "blockers": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "PASS" } } },
+      "then": {
+        "properties": {
+          "blockers": { "maxItems": 0 },
+          "mapping": {
+            "items": {
+              "allOf": [
+                { "$ref": "#/$defs/mappedEntry" },
+                { "properties": { "status": { "const": "PASS" } } }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "versionedDigest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "digest"],
+      "properties": {
+        "version": { "type": "string", "minLength": 1 },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "region": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "number", "minimum": 0, "maximum": 1 },
+        { "type": "number", "minimum": 0, "maximum": 1 },
+        { "type": "number", "minimum": 0, "maximum": 1 },
+        { "type": "number", "minimum": 0, "maximum": 1 }
+      ],
+      "items": false,
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "detection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["detectionId", "slide", "text", "confidence", "region", "alternatives", "clipped", "tofu"],
+      "properties": {
+        "detectionId": { "type": "string", "minLength": 1 },
+        "slide": { "type": "integer", "minimum": 1 },
+        "text": { "type": "string" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "region": { "$ref": "#/$defs/region" },
+        "alternatives": { "type": "array", "items": { "type": "string" } },
+        "clipped": { "type": "boolean" },
+        "tofu": { "type": "boolean" }
+      }
+    },
+    "mappedEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["textId", "detectionIds", "normalizedText", "expectedText", "status"],
+      "properties": {
+        "textId": { "type": "string", "minLength": 1 },
+        "detectionIds": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "normalizedText": { "type": "string", "minLength": 1 },
+        "expectedText": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["PASS", "AUTO_BLOCK"] }
+      }
+    }
+  }
+}

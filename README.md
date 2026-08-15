@@ -6,7 +6,7 @@
 
 ## 가장 쉬운 시작
 
-수업에서는 [`fallback/starter-project`](fallback/starter-project)를 내려받아 작업 폴더로 여는 방법을 권장합니다. 일곱 핵심 스킬과 한 개의 선택 스킬을 Codex·Claude Code·Antigravity가 각자의 워크스페이스 경로에서 읽습니다.
+수업에서는 릴리스의 [`course/starter-project`](course/starter-project)를 작업 폴더로 여는 방법을 권장합니다. `course-src`와 일곱 핵심 스킬에서 자동 생성되며, Codex·Claude Code·Antigravity가 각자의 워크스페이스 경로에서 읽습니다. `business-documents`는 별도 설치하는 독립 플러그인이라 기본 강의 배포판에 들어가지 않습니다.
 
 - Codex·Antigravity: `.agents/skills`
 - Claude Code: `.claude/skills`
@@ -67,7 +67,7 @@ Antigravity와 일반 채팅형 AI를 포함한 차이는 [멀티 프로바이�
 
 내가 알고 있는 사업 정보와 외부 자료·고객 기록으로 확인할 내용을 분리합니다. 네 결과물은 같은 확인 내용을 사용합니다.
 
-일반 채팅형 GPT, Gemini, Claude 등을 쓰는 참가자도 [`course/06-participant-quick-start.md`](course/06-participant-quick-start.md)의 같은 질문과 출력 형식으로 공통 경로를 완주할 수 있습니다. 다만 파일 생성·추적·HWPX 자동화는 에이전트 도구와 같은 기능이라고 안내하지 않습니다.
+일반 채팅형 GPT, Gemini, Claude 등은 Yellow/Red 강의 fallback에서 [`course/06-participant-quick-start.md`](course/06-participant-quick-start.md)의 질문과 출력 형식만 연습합니다. core conformance·외부 베타 공식 프로바이더·marketplace 지원 표면에는 포함하지 않으며 파일 생성·추적·HWPX·PPT 자동화를 설치형 도구와 같다고 안내하지 않습니다.
 
 ## 공고에서 발표까지 이어지는 10단계
 
@@ -79,9 +79,9 @@ Antigravity와 일반 채팅형 AI를 포함한 차이는 [멀티 프로바이�
 5. 사업전략·실행계획·수익구조 설계
 6. 평가지표와 양식에 맞춰 텍스트 초안 작성
 7. 검토·수정·사용자 승인
-8. 승인된 내용만 HWPX 양식에 반영
-9. HWPX 구조검사·한글 화면검사
-10. 발표 PPT·대본·예상 Q&A 제작
+8. 선택한 경우 승인 내용을 HWPX 양식에 반영
+9. 선택한 HWPX 구조·화면검사
+10. 선택한 PPT·대본·예상 Q&A 제작
 ```
 
 | 구간 | 담당 스킬 | 다음 단계로 넘어가는 조건 |
@@ -98,7 +98,7 @@ Antigravity와 일반 채팅형 AI를 포함한 차이는 [멀티 프로바이�
 HWPX 안에서 초안을 쓰지 않으며, HWPX 페이지를 PPT로 그대로 변환하지도 않습니다.
 승인된 텍스트를 발표 목적과 시간에 맞춰 압축·재구성해 PPTX를 만듭니다.
 
-## 제공하는 7개 핵심 스킬 + 1개 선택 스킬
+## 제공하는 7개 핵심 스킬
 
 | 스킬 | 하는 일 |
 | --- | --- |
@@ -110,18 +110,32 @@ HWPX 안에서 초안을 쓰지 않으며, HWPX 페이지를 PPT로 그대로 �
 | `review-business-plan` | 콘텐츠와 선택 HWPX 산출물을 분리해 검토 |
 | `ppt-editorial` | 발표 덱 제작 — 자료 정리 후 씬 덱(텍스트는 코드 렌더) 또는 이미지 퍼스트 중 선택 |
 
-### 사업계획서 10단계와 별개로 쓰는 선택 스킬
+## 독립 `business-documents` 플러그인
 
 | 스킬 | 하는 일 |
 | --- | --- |
 | `create-business-documents` | 승인된 사실로 견적서·프로필·이력서·공문·안내문을 A4 HTML로 생성하고 사용자가 브라우저에서 PDF로 저장 |
 
-이 선택 스킬은 스타터 워크스페이스에 함께 설치되지만 위 10단계의 담당 스킬이나 강의 단계가 아닙니다. 다음처럼 문서 유형과 가진 정보를 주면 모르는 값은 placeholder로 남깁니다.
+이 스킬은 같은 marketplace에서 `business-documents@dayoun`으로 별도 설치·버전·릴리스합니다. `business-plan-writer` 10단계나 기본 강의 배포판에 포함되지 않으며 한 플러그인의 실패가 다른 플러그인의 릴리스를 막지 않습니다.
 
 ```text
 create-business-documents 스킬로 이 품목표를 부가세 별도 견적서 HTML로 만들어줘.
 공급자 정보 중 비어 있는 값은 만들지 말고 표시만 남겨줘.
 ```
+
+## 모노레포와 계약 경계
+
+| authored 원본 | generated·배포 표면 |
+| --- | --- |
+| `contracts/` | 각 ZIP의 immutable `_contracts/` snapshot |
+| `plugins/business-plan-writer/` | `business-plan-writer` 독립 ZIP |
+| `plugins/business-documents/` | `business-documents` 독립 ZIP |
+| `course-src/` + writer의 일곱 스킬 | `course/`와 `business-plan-course-kit` ZIP |
+| `tests/` | 공개 플러그인 ZIP에서 제외 |
+
+runtime contract fetch, 저장소 상대경로 조회, 예전 이름 compatibility alias는 사용하지 않습니다. `course/`와 starter의 두 skill directory는 생성물이므로 직접 수정하지 않습니다.
+
+네 산출물은 별도 tag namespace를 씁니다: `contracts/v*`, `business-plan-writer/v*`, `business-documents/v*`, `course-kit/v*`. `python scripts/build_release_artifacts.py --all --health-only --output-dir dist/health`는 전체 건강검사이며 release qualification이 아닙니다. 각 `Promote ...` workflow는 `workflow_dispatch`에서 candidate commit을 먼저 검증하고, target closure·deterministic rebuild·public-artifact smoke·raw-bound 외부 증거·`release_dry_run.py --strict-evidence`·immutable last-verified rollback rehearsal이 모두 PASS한 뒤에만 namespaced tag와 GitHub Release를 생성합니다. Writer qualification은 exact-app digest를 재검증할 수 있는 `self-hosted/Windows/X64/dayoun-rc` runner에서만 실행합니다.
 
 ## 발표 덱 만들기 (`ppt-editorial`)
 
@@ -148,13 +162,12 @@ create-business-documents 스킬로 이 품목표를 부가세 별도 견적서 
 | AI가 그리는 것 | 배경 그림**만** | 슬라이드 **한 장 전체** |
 | 글자 | **코드가 씁니다** — 한글이 안 깨집니다 | 그림 안에 그려집니다 |
 | 문구 고치기 | 다시 조립만 — **몇 초** | 그 장을 다시 생성 |
-| 결과물 | PDF + **수정 가능한** PPTX | 이미지 PPTX |
+| 결과물 | PDF + 재조립 가능한 PPTX(텍스트 직접 편집 불가) | 이미지 PPTX |
 | 어울리는 곳 | 제안서·결과보고·IR·강의 | 콘셉트 제안·비주얼 우선 |
 
-**고르는 기준 한 줄** — 글자가 틀리면 안 되거나 나중에 고칠 일이 있으면 **A**,
-그림이 전부이고 글자는 장식이면 **B**.
+**고르는 기준 한 줄** — 자주 편집할 텍스트·표가 중심이면 **A**, 전달 pixels 자체가 최종 디자인이고 재생성을 감수할 수 있으면 **B**입니다.
 
-두 방식 모두 같은 이미지 생성 엔진을 씁니다. 차이는 **AI에게 무엇을 그리게 하느냐**입니다.
+두 방식 모두 같은 이미지 생성 엔진을 쓰지만 지원·완료 기준은 같습니다. 이미지 퍼스트도 한글 깨짐을 허용하지 않습니다. 생성 전 canonical payload·ordered deck briefs·stable `text_id`와 normalized region·relation geometry를 가진 visible-text manifest를 한 approval digest에 묶습니다. 렌더 직후 ordered PNG digest receipt를 고정하고, 전달 PPTX와 PDF pixels의 source artifact/page raster digest가 일치하는 OCR만 받아 label/value·evidence/claim 관계까지 검사합니다. 한 글자·수치·날짜·고유명사·clip·tofu·ambiguous region·stale OCR이 다르면 자동 BLOCK입니다.
 
 ### 레퍼런스는 역할을 나눠서 줍니다
 
@@ -174,7 +187,7 @@ create-business-documents 스킬로 이 품목표를 부가세 별도 견적서 
 직접 하려면 다음 두 줄입니다.
 
 ```bash
-pip install pillow opencv-python pymupdf numpy python-pptx
+python -m pip install -r requirements.txt
 npm i -g @openai/codex && codex login
 ```
 
@@ -244,9 +257,9 @@ codex plugin add business-plan-writer@dayoun
 - [강사 운영 가이드](course/04-instructor-guide.md)
 - [참가자 한 장 빠른 시작](course/06-participant-quick-start.md)
 - [Codex·Claude Code·Antigravity 공통 사용 안내](course/07-multi-provider-guide.md)
-- [설치 없는 스타터 프로젝트](fallback/starter-project)
-- [완성 예시](fallback/completed-project)
-- [인터넷 장애용 오프라인 근거팩](fallback/offline-evidence-pack)
+- [설치 없는 스타터 프로젝트](course/starter-project)
+- [완성 예시](course/completed-project)
+- [인터넷 장애용 오프라인 근거팩](course/offline-evidence-pack)
 
 ## 안전 원칙
 
@@ -257,7 +270,7 @@ codex plugin add business-plan-writer@dayoun
 
 ## 버전
 
-현재 공개 버전은 `0.9.0`입니다. 범용 사업계획서 스킬 원본과 선택형 실무 문서 스킬을 Codex·Claude Code·Antigravity에서 사용하며, 일반 채팅형 AI에는 같은 사고 순서와 출력 형식의 프롬프트 경로를 제공합니다.
+현재 공개된 `business-plan-writer`는 `0.9.0`, 새 독립 `business-documents`는 `0.1.0` 개발선입니다. `1.0`은 10개 fixture × 3개 실제 프로바이더, 선택 문서의 자동·외부 화면검수, N≥10 강의 검증, 10명 외부 베타, 중대 결함 0건을 모두 만족하기 전에는 태그하지 않습니다.
 
 ## 기여와 문의
 

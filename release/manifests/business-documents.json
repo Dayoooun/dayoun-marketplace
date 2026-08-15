@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0.0",
+  "target": "business-documents",
+  "tagNamespace": "business-documents/v",
+  "required": ["contracts", "business-documents"],
+  "forbiddenReads": ["business-plan-writer", "course-kit"],
+  "sourceRoots": ["plugins/business-documents", "contracts", "LICENSE"],
+  "forbiddenSourceRoots": ["plugins/business-plan-writer", "course", "course-src", "tests"],
+  "artifactPattern": "dayoun-business-documents-{version}.zip"
+}

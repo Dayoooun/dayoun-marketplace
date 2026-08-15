@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1.0.0",
+  "axes": {
+    "contentStatus": ["DRAFT", "APPROVED", "STALE_APPROVAL", "BLOCK", "PASS"],
+    "outputStatus": ["NOT_REQUESTED", "NOT_REVIEWED", "BLOCK", "PASS"],
+    "validatorStatus": ["NOT_REVIEWED", "BLOCK", "PASS"],
+    "cycleStatus": ["IN_PROGRESS", "PASS", "BLOCK", "STALE_APPROVAL", "REJECTED"]
+  },
+  "attempts": [1, 2],
+  "legalTransitions": [
+    { "from": "DRAFT", "to": "APPROVED", "requires": ["user-approval", "approval-envelope"] },
+    { "from": "APPROVED", "to": "STALE_APPROVAL", "when": "any approved payload, brief, manifest, mode, version, or digest changes" },
+    { "from": "APPROVED", "to": "BLOCK", "when": "any required automated validator or selected-output visual validator blocks" },
+    { "from": "BLOCK", "to": "APPROVED", "requires": ["new approval revision", "new cycle id"] },
+    { "from": "APPROVED", "to": "PASS", "requires": ["scope steps complete", "fact PASS", "structure PASS", "contract PASS", "all selected outputs automation PASS", "all selected outputs visual PASS"] },
+    { "from": "BLOCK", "to": "REJECTED", "when": "attempt 2 blocks" }
+  ],
+  "aggregateTruth": {
+    "PASS": [
+      "approval tuple is current",
+      "scope-required content is complete",
+      "fact, structure, and contract validators all PASS",
+      "every requested output automation status is PASS",
+      "every requested output visual status is PASS",
+      "every unrequested output is NOT_REQUESTED"
+    ],
+    "BLOCK": [
+      "any required validator BLOCK",
+      "any requested output NOT_REVIEWED or BLOCK",
+      "any unresolved OCR assignment, ambiguity, low confidence, or missing toolchain",
+      "attempt 2 fails"
+    ],
+    "STALE_APPROVAL": [
+      "approval revision or any approved digest does not match evidence"
+    ]
+  },
+  "rerunPolicy": {
+    "firstBlock": "modify, create a current approval revision, then rerun all three validators once",
+    "secondBlock": "reject cycle or start a separately approved new cycle",
+    "humanMayOverrideToPass": false
+  }
+}

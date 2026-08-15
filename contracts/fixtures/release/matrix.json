@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "providers": ["codex", "claude-code", "antigravity"],
+  "expectedRunCount": 30,
+  "cases": [
+    { "id": "R01", "scope": "QUICK", "sectionId": null, "outputs": { "hwpx": false, "ppt": false }, "rendererMode": null, "visual": [] },
+    { "id": "R02", "scope": "QUICK", "sectionId": null, "outputs": { "hwpx": true, "ppt": true }, "rendererMode": "scene-deck", "visual": ["HWPX", "PPTX", "PDF"] },
+    { "id": "R03", "scope": "SECTION", "sectionId": "market", "outputs": { "hwpx": true, "ppt": false }, "rendererMode": null, "visual": ["HWPX"] },
+    { "id": "R04", "scope": "SECTION", "sectionId": "market", "outputs": { "hwpx": false, "ppt": true }, "rendererMode": "scene-deck", "visual": ["PPTX", "PDF"] },
+    { "id": "R04-I", "scope": "SECTION", "sectionId": "market", "outputs": { "hwpx": false, "ppt": true }, "rendererMode": "image-first", "visual": ["PPTX", "PDF"], "ocrSuite": "full" },
+    { "id": "R05", "scope": "FULL", "sectionId": null, "outputs": { "hwpx": false, "ppt": false }, "rendererMode": null, "visual": [] },
+    { "id": "R06", "scope": "FULL", "sectionId": null, "outputs": { "hwpx": true, "ppt": false }, "rendererMode": null, "visual": ["HWPX"] },
+    { "id": "R07", "scope": "FULL", "sectionId": null, "outputs": { "hwpx": false, "ppt": true }, "rendererMode": "scene-deck", "visual": ["PPTX", "PDF"] },
+    { "id": "R07-I", "scope": "FULL", "sectionId": null, "outputs": { "hwpx": false, "ppt": true }, "rendererMode": "image-first", "visual": ["PPTX", "PDF"], "ocrSuite": "regression" },
+    { "id": "R08", "scope": "FULL", "sectionId": null, "outputs": { "hwpx": true, "ppt": true }, "rendererMode": "scene-deck", "visual": ["HWPX", "PPTX", "PDF"] }
+  ]
+}

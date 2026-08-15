@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0.0",
+  "scopes": {
+    "QUICK": {
+      "requiredContentSteps": [
+        "gap-diagnosis",
+        "evidence-record",
+        "change-record",
+        "action-card"
+      ],
+      "sectionRequired": false
+    },
+    "SECTION": {
+      "requiredContentSteps": [
+        "official-requirements",
+        "business-facts",
+        "evidence-research",
+        "selected-section-draft",
+        "selected-section-review",
+        "content-approval"
+      ],
+      "sectionRequired": true
+    },
+    "FULL": {
+      "requiredContentSteps": [
+        "setup-business-plan-project",
+        "analyze-official-requirements",
+        "diagnose-business-gaps",
+        "research-business-evidence",
+        "design-business-strategy",
+        "draft-business-plan",
+        "review-business-plan"
+      ],
+      "sectionRequired": false
+    }
+  },
+  "optionalOutputSteps": {
+    "hwpx": ["fill-approved-hwpx", "validate-hwpx-structure", "validate-hwpx-visual"],
+    "ppt": ["build-approved-ppt", "validate-ppt-automation", "validate-ppt-visual"]
+  },
+  "rules": [
+    "Only the selected scope's required content steps determine content completion.",
+    "HWPX and PPT are independent output selections.",
+    "Unselected output status is NOT_REQUESTED, never PASS.",
+    "Out-of-scope content status is NOT_REVIEWED, never PASS.",
+    "FULL references the seven content skills; selected document outputs add their own gates."
+  ]
+}

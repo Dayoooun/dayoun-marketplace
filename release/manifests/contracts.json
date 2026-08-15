@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0.0",
+  "target": "contracts",
+  "tagNamespace": "contracts/v",
+  "required": ["contracts"],
+  "forbiddenReads": ["business-plan-writer", "business-documents", "course-kit"],
+  "sourceRoots": ["contracts", "LICENSE"],
+  "forbiddenSourceRoots": ["plugins", "course", "course-src", "tests"],
+  "artifactPattern": "dayoun-contracts-{version}.zip"
+}

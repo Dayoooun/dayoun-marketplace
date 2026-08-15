@@ -1,0 +1,48 @@
+name: Promote course-kit
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: Exact course-kit version to qualify and tag
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.11" }
+      - run: python -m pip install -r requirements.txt pillow opencv-python pymupdf numpy python-pptx
+      - run: python scripts/validate_contracts.py contracts
+      - run: python scripts/generate_course.py --check
+      - run: python -m unittest discover -s tests/course -v
+      - shell: bash
+        env: { VERSION: "${{ inputs.version }}" }
+        run: |
+          python scripts/build_release_artifacts.py --target course-kit --closure release/manifests/course-kit.json --version "$VERSION" --output-dir dist/course-a
+          python scripts/build_release_artifacts.py --target course-kit --closure release/manifests/course-kit.json --version "$VERSION" --output-dir dist/course-b
+      - run: python scripts/compare_release_builds.py dist/course-a dist/course-b --target course-kit --compare-archive-sha --compare-member-manifests
+      - run: python scripts/smoke_public_artifacts.py dist/course-a --target course-kit --clean-home --hide-repository-root
+      - run: python scripts/release_dry_run.py --target course-kit --closure release/manifests/course-kit.json --artifacts dist/course-a --evidence release/evidence/course-kit --no-publish --assert-no-tag --strict-evidence --audit-access-log
+      - run: python scripts/rollback_rehearsal.py --target course-kit --last-verified release/last-verified/course-kit.json --candidate dist/course-a --clean-home --install-smoke-remove
+      - uses: actions/upload-artifact@v4
+        with: { name: course-kit-release, path: dist/course-a }
+  release:
+    needs: qualify
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: course-kit-release, path: dist }
+      - shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: gh release create "course-kit/v$VERSION" dist/* --target "$GITHUB_SHA" --title "course-kit v$VERSION"

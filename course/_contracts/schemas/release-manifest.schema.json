@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dayoun.dev/contracts/release-manifest.schema.json",
+  "title": "Target release component and source closure",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "target", "tagNamespace", "required", "forbiddenReads", "sourceRoots", "forbiddenSourceRoots", "artifactPattern"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "target": { "enum": ["contracts", "business-plan-writer", "business-documents", "course-kit"] },
+    "tagNamespace": { "type": "string", "minLength": 1 },
+    "required": { "$ref": "#/$defs/uniqueStrings" },
+    "forbiddenReads": { "$ref": "#/$defs/uniqueStrings" },
+    "sourceRoots": { "$ref": "#/$defs/nonEmptyUniqueStrings" },
+    "forbiddenSourceRoots": { "$ref": "#/$defs/uniqueStrings" },
+    "artifactPattern": { "type": "string", "pattern": "\\{version\\}" },
+    "oneDotZeroRequiresCourseKit": { "type": "boolean" }
+  },
+  "$defs": {
+    "uniqueStrings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "nonEmptyUniqueStrings": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

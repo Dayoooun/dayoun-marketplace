@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0.0",
+  "target": "course-kit",
+  "tagNamespace": "course-kit/v",
+  "required": ["contracts", "business-plan-writer", "course-kit"],
+  "forbiddenReads": ["business-documents"],
+  "sourceRoots": ["course", "LICENSE", "requirements.txt"],
+  "forbiddenSourceRoots": ["plugins/business-documents", "course-src/internal", "tests"],
+  "artifactPattern": "dayoun-business-plan-course-kit-{version}.zip"
+}

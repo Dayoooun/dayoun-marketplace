@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dayoun.dev/contracts/toolchain-lock.schema.json",
+  "title": "Exact Windows visual and OCR toolchain lock",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "status", "platform", "applications", "fonts", "rasterizer", "ocr", "normalizer", "mapper", "manifestBuilder", "sourceDigests"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "status": { "enum": ["UNLOCKED", "LOCKED"] },
+    "platform": { "$ref": "#/$defs/buildComponent" },
+    "applications": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hancomHangeul", "powerPoint", "edge"],
+      "properties": {
+        "hancomHangeul": { "$ref": "#/$defs/buildComponent" },
+        "powerPoint": { "$ref": "#/$defs/buildComponent" },
+        "edge": { "$ref": "#/$defs/buildComponent" }
+      }
+    },
+    "fonts": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/namedComponent" } },
+    "rasterizer": { "$ref": "#/$defs/buildComponent" },
+    "ocr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["executable", "model", "languagePack"],
+      "properties": {
+        "executable": { "$ref": "#/$defs/buildComponent" },
+        "model": { "$ref": "#/$defs/buildComponent" },
+        "languagePack": { "$ref": "#/$defs/buildComponent" }
+      }
+    },
+    "normalizer": { "$ref": "#/$defs/versionComponent" },
+    "mapper": { "$ref": "#/$defs/versionComponent" },
+    "manifestBuilder": { "$ref": "#/$defs/versionComponent" },
+    "sourceDigests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["build_visible_text_manifest.py", "map_ocr_regions.py", "validate_visible_text.py"],
+      "properties": {
+        "build_visible_text_manifest.py": { "$ref": "#/$defs/nullableDigest" },
+        "map_ocr_regions.py": { "$ref": "#/$defs/nullableDigest" },
+        "validate_visible_text.py": { "$ref": "#/$defs/nullableDigest" }
+      }
+    }
+  },
+  "$defs": {
+    "nullableDigest": { "type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$" },
+    "buildComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "exactBuild", "path", "digest", "verified"],
+      "properties": {
+        "name": { "type": ["string", "null"] },
+        "exactBuild": { "type": ["string", "null"] },
+        "path": { "type": ["string", "null"] },
+        "digest": { "$ref": "#/$defs/nullableDigest" },
+        "verified": { "type": "boolean" }
+      }
+    },
+    "namedComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "path", "digest", "verified"],
+      "properties": {
+        "name": { "type": ["string", "null"] },
+        "path": { "type": ["string", "null"] },
+        "digest": { "$ref": "#/$defs/nullableDigest" },
+        "verified": { "type": "boolean" }
+      }
+    },
+    "versionComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "digest", "verified"],
+      "properties": {
+        "version": { "type": ["string", "null"] },
+        "digest": { "$ref": "#/$defs/nullableDigest" },
+        "verified": { "type": "boolean" }
+      }
+    }
+  }
+}

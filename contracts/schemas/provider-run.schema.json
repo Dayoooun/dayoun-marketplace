@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dayoun.dev/contracts/provider-run.schema.json",
+  "title": "Real-provider conformance run evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocolVersion",
+    "runId",
+    "fixtureId",
+    "provider",
+    "executable",
+    "executableDigest",
+    "executableVersion",
+    "adapterDigest",
+    "installMethod",
+    "invocation",
+    "startedAt",
+    "finishedAt",
+    "exitCode",
+    "timeout",
+    "workspaceDigest",
+    "approvedTuple",
+    "rawOutputRef",
+    "rawOutputDigest",
+    "normalizedProjection",
+    "capabilities",
+    "os",
+    "provenanceId"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "protocolVersion": { "const": "dayoun-provider-run-v1" },
+    "runId": { "type": "string", "minLength": 1 },
+    "fixtureId": { "type": "string", "pattern": "^R[0-9]{2}(-I)?$" },
+    "provider": { "enum": ["codex", "claude-code", "antigravity"] },
+    "executable": { "type": "string", "minLength": 1 },
+    "executableDigest": { "$ref": "#/$defs/digest" },
+    "executableVersion": { "type": "string", "minLength": 1 },
+    "adapterDigest": { "$ref": "#/$defs/digest" },
+    "installMethod": { "type": "string", "minLength": 1 },
+    "invocation": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "finishedAt": { "type": "string", "format": "date-time" },
+    "exitCode": { "type": "integer" },
+    "timeout": { "type": "boolean" },
+    "workspaceDigest": { "$ref": "#/$defs/digest" },
+    "approvedTuple": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["payloadDigest", "approvalEnvelopeDigest", "visibleTextManifestDigest"],
+      "properties": {
+        "payloadDigest": { "$ref": "#/$defs/digest" },
+        "approvalEnvelopeDigest": { "$ref": "#/$defs/digest" },
+        "visibleTextManifestDigest": {
+          "anyOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }]
+        }
+      }
+    },
+    "rawOutputRef": { "type": "string", "minLength": 1 },
+    "rawOutputDigest": { "$ref": "#/$defs/digest" },
+    "normalizedProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cycle", "facts", "evidenceRefs", "businessVerdicts", "contentSteps", "scope", "outputs", "rendererMode"],
+      "properties": {
+        "cycle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cycleId", "currentRevision", "status"],
+          "properties": {
+            "cycleId": { "type": "string", "minLength": 1 },
+            "currentRevision": { "type": "integer", "minimum": 1 },
+            "status": { "const": "CURRENT" }
+          }
+        },
+        "facts": { "type": "array" },
+        "evidenceRefs": { "type": "array" },
+        "businessVerdicts": { "type": "array" },
+        "contentSteps": { "type": "array" },
+        "scope": { "enum": ["QUICK", "SECTION", "FULL"] },
+        "sectionId": { "type": "string", "minLength": 1 },
+        "outputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["hwpx", "ppt"],
+          "properties": {
+            "hwpx": { "type": "boolean" },
+            "ppt": { "type": "boolean" }
+          }
+        },
+        "rendererMode": { "enum": ["scene-deck", "image-first", null] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "scope": { "const": "SECTION" } } },
+          "then": { "required": ["sectionId"] },
+          "else": { "not": { "required": ["sectionId"] } }
+        }
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "os": { "type": "string", "minLength": 1 },
+    "provenanceId": { "type": "string", "minLength": 1 }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "normalizedProjection": {
+            "properties": { "rendererMode": { "const": "image-first" } },
+            "required": ["rendererMode"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "approvedTuple": {
+            "properties": { "visibleTextManifestDigest": { "$ref": "#/$defs/digest" } }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "approvedTuple": {
+            "properties": { "visibleTextManifestDigest": { "type": "null" } }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}

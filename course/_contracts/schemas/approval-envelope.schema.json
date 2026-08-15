@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dayoun.dev/contracts/approval-envelope.schema.json",
+  "title": "Immutable pre-render approval envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "payloadDigest",
+    "selectedOutputs",
+    "deckBriefDigests",
+    "visibleTextManifestDigest",
+    "rendererMode",
+    "canonicalization",
+    "normalizerVersion",
+    "rendererVersion",
+    "mapperVersion",
+    "approvedBy",
+    "approvedAt",
+    "approvalRevision",
+    "cycleId"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "payloadDigest": { "$ref": "#/$defs/digest" },
+    "selectedOutputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hwpx", "ppt"],
+      "properties": {
+        "hwpx": { "type": "boolean" },
+        "ppt": { "type": "boolean" }
+      }
+    },
+    "deckBriefDigests": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/digest" }
+    },
+    "visibleTextManifestDigest": {
+      "anyOf": [
+        { "$ref": "#/$defs/digest" },
+        { "type": "null" }
+      ]
+    },
+    "rendererMode": {
+      "type": ["string", "null"],
+      "enum": ["scene-deck", "image-first", null]
+    },
+    "canonicalization": { "const": "RFC8785-JCS" },
+    "normalizerVersion": { "type": "string", "minLength": 1 },
+    "rendererVersion": { "type": "string", "minLength": 1 },
+    "mapperVersion": { "type": "string", "minLength": 1 },
+    "approvedBy": { "type": "string", "minLength": 1 },
+    "approvedAt": { "type": "string", "format": "date-time" },
+    "approvalRevision": { "type": "integer", "minimum": 1 },
+    "cycleId": { "type": "string", "minLength": 1 },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceRefs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "note": { "type": "string" }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "rendererMode": { "enum": ["scene-deck", "image-first"] }
+        }
+      },
+      "then": {
+        "properties": {
+          "deckBriefDigests": { "minItems": 1 }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "rendererMode": { "const": "image-first" } } },
+      "then": {
+        "properties": {
+          "visibleTextManifestDigest": { "$ref": "#/$defs/digest" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "selectedOutputs": {
+            "properties": { "ppt": { "const": true } },
+            "required": ["ppt"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "rendererMode": { "enum": ["scene-deck", "image-first"] },
+          "deckBriefDigests": { "minItems": 1 }
+        }
+      },
+      "else": {
+        "properties": {
+          "rendererMode": { "type": "null" },
+          "deckBriefDigests": { "maxItems": 0 },
+          "visibleTextManifestDigest": { "type": "null" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "rendererMode": { "const": "scene-deck" } } },
+      "then": {
+        "properties": {
+          "visibleTextManifestDigest": { "type": "null" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

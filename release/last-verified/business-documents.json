@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0.0",
+  "target": "business-documents",
+  "status": "BOOTSTRAP_NO_PREVIOUS_RELEASE",
+  "archiveRoot": "",
+  "requiredPaths": ["plugin.json", "skills/create-business-documents/SKILL.md", "LICENSE"],
+  "forbiddenPaths": ["skills/ppt-editorial"],
+  "pluginManifest": "plugin.json",
+  "pluginName": "business-documents"
+}
