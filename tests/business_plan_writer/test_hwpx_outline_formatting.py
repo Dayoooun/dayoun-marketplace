@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import os
 import json
 import subprocess
 import sys
@@ -129,6 +130,7 @@ def run_fill_source(
             *extra,
         ],
         cwd=ROOT,
+        env={**os.environ, "PYTHONIOENCODING": "cp1252"},
         text=True,
         encoding="utf-8",
         capture_output=True,
@@ -407,6 +409,7 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                     str(output),
                 ],
                 cwd=ROOT,
+                env={**os.environ, "PYTHONIOENCODING": "cp1252"},
                 text=True,
                 encoding="utf-8",
                 capture_output=True,

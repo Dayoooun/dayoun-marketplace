@@ -10,6 +10,7 @@ import html
 import json
 import os
 import re
+import sys
 import tempfile
 import unicodedata
 import xml.etree.ElementTree as ET
@@ -1040,6 +1041,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="backslashreplace")
     parser = build_parser()
     args = parser.parse_args()
     try:
