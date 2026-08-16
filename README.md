@@ -12,8 +12,8 @@
 
 | 사용하는 AI | 설치 방식 | 설치 후 보이는 버전 |
 |---|---|---|
-| Codex CLI | 터미널에서 marketplace 추가 | `business-plan-writer 0.11.0`, `business-documents 0.1.0` |
-| Claude Code | Claude Code의 `/plugin` 명령 | `business-plan-writer 0.11.0`, `business-documents 0.1.0` |
+| Codex CLI | 터미널에서 marketplace 추가 | `business-plan-writer 0.12.0`, `business-documents 0.1.0` |
+| Claude Code | Claude Code의 `/plugin` 명령 | `business-plan-writer 0.12.0`, `business-documents 0.1.0` |
 | Antigravity | `course/starter-project` 폴더를 작업공간으로 열기 | `.agents/skills`의 일곱 사업계획서 스킬 |
 | 일반 채팅형 AI | 자동 설치 없음 | [참가자 빠른 시작](course/06-participant-quick-start.md)의 질문·출력 형식만 사용 |
 
@@ -46,7 +46,7 @@ codex plugin list
 마지막 명령에서 아래 두 항목이 `installed, enabled`이면 끝입니다.
 
 ```text
-business-plan-writer@dayoun  0.11.0
+business-plan-writer@dayoun  0.12.0
 business-documents@dayoun    0.1.0
 ```
 
@@ -63,7 +63,7 @@ Claude Code를 연 뒤 대화 입력창에 한 줄씩 실행합니다.
 /plugin list
 ```
 
-목록에서 두 플러그인이 `enabled`이고 버전이 `0.11.0`, `0.1.0`이면 설치가 끝난 것입니다. 새 스킬이 바로 보이지 않으면 Claude Code를 한 번 다시 시작합니다.
+목록에서 두 플러그인이 `enabled`이고 버전이 `0.12.0`, `0.1.0`이면 설치가 끝난 것입니다. 새 스킬이 바로 보이지 않으면 Claude Code를 한 번 다시 시작합니다.
 
 터미널 명령을 선호하면 같은 작업을 다음처럼 실행할 수 있습니다.
 
@@ -92,6 +92,27 @@ cd dayoun-marketplace
 ```text
 course/starter-project/.agents/skills
 ```
+
+### 설치 후에는 자연어로 지시합니다
+
+스킬 이름이나 10단계를 외울 필요가 없습니다. 결과와 자료, 고정할 조건만 말하면
+`complete-business-plan`이 필요한 스킬을 연결하고 작업을 리드합니다.
+
+```text
+이 공고와 우리 회사 자료를 보고 평가기준에 맞는 사업계획서를 처음부터 작성해줘.
+빠진 근거는 조사하고, 내가 결정해야 할 것만 권장안과 함께 물어봐.
+최종 문안이 승인되면 원본 양식을 보존한 HWPX를 전문적으로 디자인하고 검수해줘.
+```
+
+```text
+이 HWPX를 분석해서 내용은 바꾸지 말고 평가자가 빨리 이해하도록 알아서 보기 좋게 다듬어줘.
+브랜드 색은 #0057B8이고, 표·문단·시각자료의 잘림까지 PDF로 확인해줘.
+```
+
+에이전트는 지시를 고정 조건으로 기록하고, 이미 있는 자료를 먼저 읽고, 되돌릴 수 있는
+분석·조사·디자인은 스스로 진행합니다. 고객·전략·최종 문안·공개범위처럼 결과를 바꾸는
+결정만 권장안과 대안을 제시해 확인받습니다. `알아서`는 사실·실적을 만들어도 된다는
+뜻이 아니며, 근거 안에서 정보구조와 디자인을 주도하라는 뜻입니다.
 
 ### 설치 확인용 첫 요청
 
@@ -192,14 +213,14 @@ complete-business-plan 스킬을 사용해 공고문·평가지표·작성지침
 | 근거 조사 | `research-business-evidence` | 질문별 출처·기준일·단위·한계와 유지·수정·보류 판정이 있음 |
 | 전략·텍스트 초안 | `draft-business-plan` | 공식 요구사항이 초안 장·절과 근거 위치에 연결됨 |
 | 검토·승인 | `review-business-plan` | BLOCK이 없고 최종 문안과 공개 범위를 사용자가 승인함 |
-| HWPX 반영·검사 | `fill-hwpx-template` + `review-business-plan` | 승인값만 반영되고 구조검사와 한글 화면검사가 통과함 |
+| HWPX 반영·검사 | `fill-hwpx-template` + `review-business-plan` | 승인값과 위임된 디자인만 반영되고 원본 고정 구조 검사, 실제 PDF·페이지별 PNG, 전체·100%·확대 검수 기록이 모두 PASS |
 | 발표자료 | `ppt-editorial` | 승인 원문과 수치가 일치하고 PDF/PPTX·대본·Q&A를 육안 검수함 |
 
 조사 결과가 아이디어의 핵심 가정을 부정하면 앞 단계로 돌아가 사업정보와 전략을 고칩니다.
 HWPX 안에서 초안을 쓰지 않으며, HWPX 페이지를 PPT로 그대로 변환하지도 않습니다.
 승인된 텍스트를 발표 목적과 시간에 맞춰 압축·재구성해 PPTX를 만듭니다.
 
-시각자료를 선택하면 초안 단계에서 종류·핵심 메시지·근거·표 셀·앞 문단·뒤 문단·짧은 캡션을 먼저 승인합니다. HWPX에서는 답변 셀 마지막이 아니라 설명 문단 직후에 배치하고, 중첩표 계층·이미지 참조·원본 쪽 설정을 `hwpx_visuals.py`로 재현 검증합니다.
+시각자료를 사용자가 직접 지정하지 않았더라도 `알아서·전문적으로·보기 좋게`라고 디자인을 위임하면 별도 디자인 승인을 다시 요구하지 않습니다. 에이전트가 근거가 있는 한 가지 권장안을 디자인 결정표에 기록해 작업용 복사본에 적용합니다. 문안·공개범위 승인과 공식 양식 불명확·사용자 지시 충돌만 REAL 확인 게이트로 유지합니다. 위임되지 않은 중대한 시각 선택은 권장안과 대안을 제시해 승인받습니다. HWPX에서는 의미상 위치에 배치하고 원본 고정 구조·중첩표·이미지 참조·쪽 설정과 실제 PDF/PNG 렌더를 재현 검증합니다.
 
 ## 제공하는 7개 핵심 스킬
 
@@ -383,7 +404,7 @@ codex plugin add business-plan-writer@dayoun
 
 ## 버전
 
-현재 `main` marketplace의 공개 RC는 `business-plan-writer 0.11.0`, `business-documents 0.1.0`입니다. Codex와 Claude Code의 원격 설치를 실제 검증했습니다. stable `1.0`은 10개 fixture × 3개 실제 프로바이더, 선택 문서의 자동·외부 화면검수, N≥10 강의 검증, 10명 외부 베타, 중대 결함 0건을 모두 만족하기 전에는 태그하지 않습니다.
+현재 `main` marketplace의 공개 RC는 `business-plan-writer 0.12.0`, `business-documents 0.1.0`입니다. Codex와 Claude Code의 원격 설치를 실제 검증했습니다. stable `1.0`은 10개 fixture × 3개 실제 프로바이더, 선택 문서의 자동·외부 화면검수, N≥10 강의 검증, 10명 외부 베타, 중대 결함 0건을 모두 만족하기 전에는 태그하지 않습니다.
 
 ## 기여와 문의
 
