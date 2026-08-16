@@ -60,6 +60,7 @@ def build_brief(request: str, *, mode: str = "REAL") -> dict[str, Any]:
         "lock-official-form-and-user-constraints",
         "preserve-source-and-create-working-copy",
         "map-requirements-to-evidence-and-sections",
+        "assign-inline-source-status-markers-and-evidence-registry",
     ]
     if "HWPX" in outputs:
         autonomous_actions.extend(
@@ -126,6 +127,7 @@ def build_brief(request: str, *, mode: str = "REAL") -> dict[str, Any]:
         ),
         "completionRequirements": {
             "noFabricatedFactsOrApprovals": True,
+            "claimSourceTraceabilityRequired": True,
             "resultHwpxRequired": "HWPX" in outputs,
             "sourceStructureIntegrityRequired": "HWPX" in outputs,
             "pdfAndPagePngRenderReceiptRequired": "HWPX" in outputs,
