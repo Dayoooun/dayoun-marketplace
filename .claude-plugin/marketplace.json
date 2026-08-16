@@ -10,7 +10,7 @@
       "name": "business-plan-writer",
       "source": "./plugins/business-plan-writer",
       "description": "Build evidence-based plans in QUICK, SECTION, or FULL scope with independently selected HWPX and dual-mode PPT outputs.",
-      "version": "0.10.0"
+      "version": "0.11.0"
     },
     {
       "name": "business-documents",

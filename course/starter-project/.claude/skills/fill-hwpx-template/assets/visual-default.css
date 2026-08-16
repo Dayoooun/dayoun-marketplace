@@ -1,0 +1,45 @@
+@font-face { font-family: "Pretendard"; src: local("Pretendard Thin"); font-weight: 100; }
+@font-face { font-family: "Pretendard"; src: local("Pretendard ExtraLight"); font-weight: 200; }
+@font-face { font-family: "Pretendard"; src: local("Pretendard Light"); font-weight: 300; }
+@font-face { font-family: "Pretendard"; src: local("Pretendard Regular"); font-weight: 400; }
+@font-face { font-family: "Pretendard"; src: local("Pretendard Medium"); font-weight: 500; }
+@font-face { font-family: "Pretendard"; src: local("Pretendard SemiBold"); font-weight: 600; }
+@font-face { font-family: "Pretendard"; src: local("Pretendard Bold"); font-weight: 700; }
+@font-face { font-family: "Pretendard"; src: local("Pretendard ExtraBold"); font-weight: 800; }
+@font-face { font-family: "Pretendard"; src: local("Pretendard Black"); font-weight: 900; }
+
+:root {
+  --visual-font: "Pretendard", "Noto Sans KR", sans-serif;
+  --visual-bg: #ffffff;
+  --visual-surface: #f7f9fa;
+  --visual-caption: #f2f2f2;
+  --visual-text: #191f28;
+  --visual-muted: #6b7684;
+  --visual-accent: #3182f6;
+  --visual-line: #e5e8eb;
+  --visual-radius: 16px;
+  --visual-shadow: 0 8px 24px rgb(25 31 40 / 8%);
+}
+
+.visual-canvas {
+  box-sizing: border-box;
+  margin: 0;
+  background: var(--visual-bg);
+  color: var(--visual-text);
+  font-family: var(--visual-font);
+}
+
+.visual-card {
+  border: 1px solid var(--visual-line);
+  border-radius: var(--visual-radius);
+  background: var(--visual-surface);
+  box-shadow: var(--visual-shadow);
+}
+
+.visual-caption {
+  background: var(--visual-caption);
+  color: var(--visual-text);
+  font-size: 12pt;
+  font-weight: 700;
+  text-align: center;
+}

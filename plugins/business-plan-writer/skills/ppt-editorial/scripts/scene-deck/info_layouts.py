@@ -13,7 +13,7 @@
 ```python
 from deck import Deck
 import info_layouts as IL
-IL.register()                    # LAY 에 4개 구도 등록 — build() 전에 한 번
+IL.register()                    # LAY 에 7개 정보 구도 등록 — build() 전에 한 번
 
 d = Deck(domain="교육", foot="㈜바이론", title="슬라이드")
 IL.table(d, "CONCEPT 01", ["불편과 문제는", "다르다"], ["섞어 쓰면 해결책이 좁아진다"],
@@ -52,8 +52,9 @@ IL.bar(d, "RESULT", ["집계", "이렇게 해석한다"], [],
 - **씬을 만들지 않는다.** `s["scene"] = None` 이라 `jobs()` 가 건너뛴다.
 - **고정 y 좌표 금지.** `_body_top()` 으로 헤더가 실제 끝난 위치를 받는다.
   (실측: 고정값을 쓰면 헤드라인이 2줄일 때 서브텍스트와 본문이 겹친다)
-- 내용이 넘치면 폰트를 단계적으로 줄이고, 남으면 행 높이로 분배한다.
+- 내용이 24px 이상 투사용 크기에서 본문·footer 경계에 맞지 않으면 ValueError로 BLOCK하고 슬라이드를 나눈다.
 """
+import math
 import re
 
 import layout_engine as LE
@@ -64,6 +65,7 @@ FILL_RATIO = 0.55         # 규칙 5 — 열을 이 비율 이하로 채울 때�
 SHORT_K = 8               # 규칙 5 — 가운데를 허용하는 셀 폭 절대 상한 (폰트 × N)
 SPREAD_K = 3.5            # 규칙 4 — 폰트 크기의 몇 배까지 편차를 허용하나
 RE_INDEX = re.compile(r"\d+\s*[–\-~]?\s*\d*")
+MIN_PROJECTED_FONT = 24
 
 BAD = (202, 72, 72)       # 대비 구도의 좌측(부정) 캡션
 
@@ -96,6 +98,15 @@ def _block(d, x, y, w, lines, fn, fill, lh, align="left"):
         d.text((tx, y), ln, font=fn, fill=fill)
         y += lh
     return y
+
+
+def _assert_lines_fit(d, lines, width, font, layout):
+    overflowing = [line for line in lines if d.textlength(line, font=font) > width]
+    if overflowing:
+        raise ValueError(
+            f"{layout} text exceeds its card width at {font.size}px; "
+            "shorten content or split the slide"
+        )
 
 
 def _header(d, s):
@@ -161,23 +172,54 @@ def align_of(d, cols, rows, wrapped, xs, fn, cpad):
 
 # ────────────────────────── TABLE ──────────────────────────
 def lay_TABLE(im, d, s):
-    """표 — 최대 5열 × 6행 권장. 넘치면 폰트가 32→22 로 줄어든다."""
+    """표 — 최대 5열 × 6행 권장. font_sizes로 투사용 본문 크기를 고정할 수 있다."""
     ytop = _body_top(d, s, gap=40)
     cols, rows = s["columns"], s["rows"]
+    if not cols or not rows:
+        raise ValueError("TABLE requires at least one column and one row")
+    if any(len(row) != len(cols) for row in rows):
+        raise ValueError("TABLE row width must match the column count")
     xs = _cols_x(cols, s.get("widths"))
     x0, x1 = xs[0], xs[-1]
 
     limit = int(LE.H * BODY_BOT)
     hh, pad, cpad = 78, 26, 22
 
-    for size in (32, 30, 28, 26, 24, 22):
+    requested_sizes = s.get("font_sizes", (32, 30, 28, 26, 24, 22))
+    sizes = [int(size) for size in requested_sizes if int(size) >= MIN_PROJECTED_FONT]
+    if not sizes:
+        raise ValueError(
+            f"TABLE requires a projection font of at least {MIN_PROJECTED_FONT}px"
+        )
+    fits = False
+    for size in sizes:
         fn = LE.f("sub", size=size)
         lh = int(size * 1.34)
-        wrapped = [[_lines(d, cell, xs[c + 1] - xs[c] - cpad * 2, fn)
-                    for c, cell in enumerate(row)] for row in rows]
-        rh = pad * 2 + max(max(len(x) for x in row) for row in wrapped) * lh
+        wrapped = [
+            [
+                _lines(d, cell, xs[c + 1] - xs[c] - cpad * 2, fn)
+                for c, cell in enumerate(row)
+            ]
+            for row in rows
+        ]
+        for row in wrapped:
+            for column, cell in enumerate(row):
+                _assert_lines_fit(
+                    d,
+                    cell,
+                    xs[column + 1] - xs[column] - cpad * 2,
+                    fn,
+                    "TABLE",
+                )
+        rh = pad * 2 + max(max(len(cell) for cell in row) for row in wrapped) * lh
         if ytop + hh + rh * len(rows) <= limit:
+            fits = True
             break
+    if not fits:
+        raise ValueError(
+            "TABLE exceeds the body/footer boundary at the minimum projection font; "
+            "split the table across slides"
+        )
 
     # 남는 세로 공간을 행 높이로 분배 — 표가 본문 영역을 채우게 한다
     rh = max(rh, min((limit - ytop - hh) // len(rows), int(LE.H * .108)))
@@ -188,9 +230,27 @@ def lay_TABLE(im, d, s):
     d.rounded_rectangle((x0, ytop, x1, ytop + hh), radius=14, fill=LE.BLUE)
     d.rectangle((x0, ytop + hh - 16, x1, ytop + hh), fill=LE.BLUE)
     fh = LE.f("label", size=min(31, fn.size + 2))
+    header_lh = int(fh.size * 1.15)
     for c, col in enumerate(cols):
-        _block(d, xs[c] + cpad, ytop + (hh - int(fh.size * 1.1)) // 2,
-               xs[c + 1] - xs[c] - cpad * 2, [str(col)], fh, LE.WHITE, lh, align[c])
+        width = xs[c + 1] - xs[c] - cpad * 2
+        lines = _lines(d, str(col), width, fh)
+        _assert_lines_fit(d, lines, width, fh, "TABLE header")
+        if len(lines) * header_lh > hh - 16:
+            raise ValueError(
+                "TABLE header exceeds the header row at the minimum projection font; "
+                "shorten the header or split the table"
+            )
+        _block(
+            d,
+            xs[c] + cpad,
+            ytop + (hh - len(lines) * header_lh) // 2,
+            width,
+            lines,
+            fh,
+            LE.WHITE,
+            header_lh,
+            align[c],
+        )
 
     for r, row in enumerate(wrapped):
         yy = ytop + hh + r * rh
@@ -309,11 +369,319 @@ def lay_BAR(im, d, s):
     _source(d, s, ytop + step * len(bars) + 18)
 
 
+# ────────────────────────── FLOW ──────────────────────────
+def _arrow(d, start, end, color=LE.BLUE, width=5):
+    x1, y1 = start
+    x2, y2 = end
+    d.line((x1, y1, x2, y2), fill=color, width=width)
+    dx, dy = x2 - x1, y2 - y1
+    length = max(1.0, math.hypot(dx, dy))
+    ux, uy = dx / length, dy / length
+    px, py = -uy, ux
+    base_x, base_y = x2 - ux * 18, y2 - uy * 18
+    d.polygon(
+        [
+            (x2, y2),
+            (base_x + px * 10, base_y + py * 10),
+            (base_x - px * 10, base_y - py * 10),
+        ],
+        fill=color,
+    )
+
+
+def lay_FLOW(im, d, s):
+    """모듈 흐름 — cols 열의 뱀형 경로. step·title·detail 튜플을 순서대로 연결한다."""
+    ytop = _body_top(d, s, gap=38, floor=.34)
+    modules = s["modules"]
+    cols = s.get("cols", 3)
+    if not modules:
+        raise ValueError("FLOW requires at least one module")
+    if not isinstance(cols, int) or not 1 <= cols <= 5:
+        raise ValueError("FLOW cols must be between 1 and 5")
+    rows = math.ceil(len(modules) / cols)
+    gap_x, gap_y = 34, 34
+    limit = int(LE.H * BODY_BOT)
+    total_w = LE.W - 2 * LE.M
+    bw = (total_w - gap_x * (cols - 1)) // cols
+    bh = min(226, (limit - ytop - gap_y * (rows - 1)) // rows)
+    if bh < 150:
+        raise ValueError(
+            "FLOW cards are too short for projection text; reduce modules or split the slide"
+        )
+    positions = []
+
+    for index in range(len(modules)):
+        row, offset = divmod(index, cols)
+        col = offset if row % 2 == 0 else cols - 1 - offset
+        x = LE.M + col * (bw + gap_x)
+        y = ytop + row * (bh + gap_y)
+        positions.append((x, y, x + bw, y + bh))
+
+    for index in range(len(positions) - 1):
+        current = positions[index]
+        following = positions[index + 1]
+        current_cy = (current[1] + current[3]) // 2
+        following_cy = (following[1] + following[3]) // 2
+        if current[1] == following[1]:
+            if following[0] > current[0]:
+                start = (current[2] + 6, current_cy)
+                end = (following[0] - 8, following_cy)
+            else:
+                start = (current[0] - 6, current_cy)
+                end = (following[2] + 8, following_cy)
+        else:
+            start = ((current[0] + current[2]) // 2, current[3] + 5)
+            end = ((following[0] + following[2]) // 2, following[1] - 8)
+        _arrow(d, start, end, color=(170, 184, 199), width=4)
+
+    chosen = None
+    for title_size, detail_size in ((34, 28), (32, 27), (30, 26)):
+        ft = LE.f("label", size=title_size)
+        fd = LE.f("sub", size=detail_size)
+        title_lh = int(ft.size * 1.24)
+        detail_lh = int(fd.size * 1.28)
+        fits = True
+        for module, box in zip(modules, positions):
+            title = str(module[1])
+            detail = str(module[2]) if len(module) > 2 else ""
+            maxw = box[2] - box[0] - 40
+            title_lines = _lines(d, title, maxw, ft)
+            detail_lines = _lines(d, detail, maxw, fd) if detail else []
+            _assert_lines_fit(d, title_lines, maxw, ft, "FLOW")
+            _assert_lines_fit(d, detail_lines, maxw, fd, "FLOW")
+            content_bottom = 76 + len(title_lines) * title_lh
+            if detail_lines:
+                content_bottom += 24 + len(detail_lines) * detail_lh
+            if content_bottom > bh - 16:
+                fits = False
+                break
+        if fits:
+            chosen = (ft, fd)
+            break
+    if chosen is None:
+        raise ValueError(
+            "FLOW content does not fit at the minimum projection font; "
+            "shorten modules or split the slide"
+        )
+    ft, fd = chosen
+    fs = LE.f("chrome", size=MIN_PROJECTED_FONT)
+    highlights = set(str(value) for value in s.get("highlight_steps", []))
+
+    for module, box in zip(modules, positions):
+        step, title = str(module[0]), str(module[1])
+        detail = str(module[2]) if len(module) > 2 else ""
+        x0, y0, x1, y1 = box
+        highlight = step in highlights
+        fill = (235, 244, 255) if highlight else (248, 250, 252)
+        outline = LE.BLUE if highlight else LE.LINE
+        d.rounded_rectangle(box, radius=22, fill=fill, outline=outline, width=3)
+        d.rounded_rectangle((x0 + 20, y0 + 18, x0 + 86, y0 + 58), radius=14, fill=LE.BLUE)
+        sw = d.textlength(step, font=fs)
+        d.text((x0 + 53 - sw / 2, y0 + 22), step, font=fs, fill=LE.WHITE)
+
+        maxw = x1 - x0 - 40
+        title_lines = _lines(d, title, maxw, ft)
+        y = _block(d, x0 + 20, y0 + 76, maxw, title_lines, ft, LE.INK, int(ft.size * 1.24))
+        if detail:
+            d.line((x0 + 20, y + 10, x1 - 20, y + 10), fill=LE.LINE, width=2)
+            _block(
+                d,
+                x0 + 20,
+                y + 24,
+                maxw,
+                _lines(d, detail, maxw, fd),
+                fd,
+                LE.GREY,
+                int(fd.size * 1.28),
+            )
+
+    note = s.get("footer_note")
+    if note and s.get("source"):
+        raise ValueError("FLOW footer note and source need separate vertical rows")
+    if note:
+        fn = LE.f("chrome", size=24)
+        note_width = LE.W - 2 * LE.M
+        note_lines = _lines(d, str(note), note_width, fn)
+        _assert_lines_fit(d, note_lines, note_width, fn, "FLOW footer note")
+        if len(note_lines) != 1:
+            raise ValueError("FLOW footer note must fit on one projected line")
+        d.text((LE.M, limit + 22), note_lines[0], font=fn, fill=LE.GREY)
+    _source(d, s, limit + 54)
+
+
+# ────────────────────────── GENEALOGY ──────────────────────────
+def lay_GENEALOGY(im, d, s):
+    """엔지니어링 계보 — 번호 timeline과 분리된 동일 폭 카드로 설명한다."""
+    ytop = _body_top(d, s, gap=32, floor=.31)
+    modules = s["modules"]
+    if not modules:
+        raise ValueError("GENEALOGY requires at least one module")
+    limit = int(LE.H * BODY_BOT)
+    gap = 14
+    row_h = min(134, (limit - ytop - gap * (len(modules) - 1)) // len(modules))
+    if row_h < 96:
+        raise ValueError(
+            "GENEALOGY rows are too short for projection text; split the slide"
+        )
+    connector_x = LE.M + 42
+    card_x0 = LE.M + 112
+    card_x1 = LE.W - LE.M
+    ft = LE.f("label", size=32)
+    fd = LE.f("sub", size=27)
+    fg = LE.f("chrome", size=MIN_PROJECTED_FONT)
+    fn = LE.f("chrome", size=MIN_PROJECTED_FONT)
+    highlight = int(s.get("highlight", 2))
+    card_inner = card_x1 - card_x0 - 56
+    for module in modules:
+        name = str(module[0])
+        description = str(module[1])
+        group = str(module[2]) if len(module) > 2 else ""
+        _assert_lines_fit(d, [description], card_inner, fd, "GENEALOGY")
+        reserved_group = d.textlength(group, font=fg) + 32 if group else 0
+        _assert_lines_fit(
+            d,
+            [name],
+            card_inner - reserved_group,
+            ft,
+            "GENEALOGY",
+        )
+
+    d.line(
+        (
+            connector_x,
+            ytop + row_h // 2,
+            connector_x,
+            ytop + (row_h + gap) * (len(modules) - 1) + row_h // 2,
+        ),
+        fill=(180, 190, 201),
+        width=4,
+    )
+
+    for index, module in enumerate(modules):
+        name, description = str(module[0]), str(module[1])
+        group = str(module[2]) if len(module) > 2 else ""
+        y0 = ytop + index * (row_h + gap)
+        y1 = y0 + row_h
+        is_highlight = index == highlight
+        fill = (230, 241, 255) if is_highlight else (248, 249, 250)
+        outline = LE.BLUE if is_highlight else LE.LINE
+
+        d.ellipse(
+            (
+                connector_x - 25,
+                y0 + row_h // 2 - 25,
+                connector_x + 25,
+                y0 + row_h // 2 + 25,
+            ),
+            fill=LE.BLUE,
+        )
+        step = f"{index + 1:02d}"
+        step_w = d.textlength(step, font=fn)
+        d.text(
+            (connector_x - step_w / 2, y0 + row_h // 2 - 12),
+            step,
+            font=fn,
+            fill=LE.WHITE,
+        )
+
+        d.rounded_rectangle(
+            (card_x0, y0, card_x1, y1),
+            radius=18,
+            fill=fill,
+            outline=outline,
+            width=3,
+        )
+        d.text((card_x0 + 28, y0 + 18), name, font=ft, fill=LE.INK)
+        d.text((card_x0 + 28, y0 + 54), description, font=fd, fill=(72, 82, 94))
+        if group:
+            group_w = d.textlength(group, font=fg)
+            d.text(
+                (card_x1 - 28 - group_w, y0 + 22),
+                group,
+                font=fg,
+                fill=LE.BLUE if is_highlight else LE.GREY,
+            )
+
+    note = s.get("note")
+    if note and s.get("source"):
+        raise ValueError("GENEALOGY note and source need separate vertical rows")
+    if note:
+        note_font = LE.f("chrome", size=24)
+        note_width = LE.W - 2 * LE.M
+        note_lines = _lines(d, str(note), note_width, note_font)
+        _assert_lines_fit(d, note_lines, note_width, note_font, "GENEALOGY note")
+        if len(note_lines) != 1:
+            raise ValueError("GENEALOGY note must fit on one projected line")
+        d.text((LE.M, limit + 22), note_lines[0], font=note_font, fill=LE.GREY)
+    _source(d, s, limit + 54)
+
+
+# ────────────────────────── PROMPT ──────────────────────────
+def lay_PROMPT(im, d, s):
+    """복사용 프롬프트 — 코드 블록과 실행 후 확인값을 한 화면에 보여준다."""
+    ytop = _body_top(d, s, gap=38, floor=.33)
+    x0, x1 = LE.M, LE.W - LE.M
+    prompt_lines = s["prompt"]
+    checks = s.get("checks", [])
+    if not prompt_lines:
+        raise ValueError("PROMPT requires at least one prompt line")
+    card_bottom = int(LE.H * .71)
+    d.rounded_rectangle((x0, ytop, x1, card_bottom), radius=24, fill=(30, 36, 46))
+    d.rounded_rectangle((x0, ytop, x1, ytop + 66), radius=24, fill=(41, 50, 63))
+    d.rectangle((x0, ytop + 42, x1, ytop + 66), fill=(41, 50, 63))
+    fl = LE.f("label", size=25)
+    d.text((x0 + 28, ytop + 19), "PROMPT", font=fl, fill=(123, 181, 255))
+
+    fp = LE.f("sub", size=31)
+    line_h = int(fp.size * 1.34)
+    y = ytop + 92
+    maxw = x1 - x0 - 64
+    for raw in prompt_lines:
+        color = (123, 181, 255) if str(raw).startswith("https://") else LE.WHITE
+        wrapped = _lines(d, raw, maxw, fp)
+        _assert_lines_fit(d, wrapped, maxw, fp, "PROMPT")
+        y = _block(d, x0 + 32, y, maxw, wrapped, fp, color, line_h)
+        y += 8
+    if y > card_bottom - 24:
+        raise ValueError(
+            "PROMPT text exceeds the code card; shorten it or split the slide"
+        )
+
+    if checks:
+        if len(checks) > 4:
+            raise ValueError("PROMPT supports at most four projection check cards")
+        gap = 24
+        box_w = (x1 - x0 - gap * (len(checks) - 1)) // len(checks)
+        box_y0 = card_bottom + 30
+        box_y1 = min(int(LE.H * BODY_BOT), box_y0 + 94)
+        fc = LE.f("label", size=25)
+        for index, check in enumerate(checks):
+            bx0 = x0 + index * (box_w + gap)
+            bx1 = bx0 + box_w
+            d.rounded_rectangle((bx0, box_y0, bx1, box_y1), radius=18, fill=(237, 244, 255))
+            text = str(check)
+            if d.textlength(str(check), font=fc) > box_w - 32:
+                raise ValueError(
+                    "PROMPT check text exceeds its card; shorten it or split the slide"
+                )
+            tw = d.textlength(text, font=fc)
+            d.text((bx0 + (box_w - tw) / 2, box_y0 + 29), text, font=fc, fill=LE.BLUE)
+    _source(d, s, int(LE.H * BODY_BOT) + 30)
+
 # ────────────────────────── 등록 ──────────────────────────
 def register():
-    """LAY 에 4개 구도를 얹는다. build() 전에 한 번 호출한다."""
-    LE.LAY.update({"TABLE": lay_TABLE, "EXAMPLE": lay_EXAMPLE,
-                   "MATRIX": lay_MATRIX, "BAR": lay_BAR})
+    """LAY 에 7개 정보 구도를 얹는다. build() 전에 한 번 호출한다."""
+    LE.LAY.update(
+        {
+            "TABLE": lay_TABLE,
+            "EXAMPLE": lay_EXAMPLE,
+            "MATRIX": lay_MATRIX,
+            "BAR": lay_BAR,
+            "FLOW": lay_FLOW,
+            "GENEALOGY": lay_GENEALOGY,
+            "PROMPT": lay_PROMPT,
+        }
+    )
     return LE.LAY
 
 
@@ -326,10 +694,29 @@ def _add(d, lay, eyebrow, head, sub, **data):
     return d
 
 
-def table(d, eyebrow, head, sub, columns, rows, widths=None, align=None, source=None):
-    """표. widths 는 열 상대 비율, align 은 열별 수동 정렬(규칙보다 우선)."""
-    return _add(d, "TABLE", eyebrow, head, sub, columns=columns, rows=rows,
-                widths=widths, align=align, source=source)
+def table(
+    d,
+    eyebrow,
+    head,
+    sub,
+    columns,
+    rows,
+    widths=None,
+    align=None,
+    source=None,
+    font_sizes=None,
+):
+    """표. widths·font_sizes를 조정할 수 있고 align 수동 지정은 규칙보다 우선한다."""
+    data = {
+        "columns": columns,
+        "rows": rows,
+        "widths": widths,
+        "align": align,
+        "source": source,
+    }
+    if font_sizes:
+        data["font_sizes"] = font_sizes
+    return _add(d, "TABLE", eyebrow, head, sub, **data)
 
 
 def example(d, eyebrow, head, sub, blocks, source=None):
@@ -346,3 +733,58 @@ def matrix(d, eyebrow, head, sub, quadrants, x_label, y_label, source=None):
 def bar(d, eyebrow, head, sub, bars, source=None):
     """가로 막대. bars=[(라벨, 값), ...]."""
     return _add(d, "BAR", eyebrow, head, sub, bars=bars, source=source)
+
+
+def flow(
+    d,
+    eyebrow,
+    head,
+    sub,
+    modules,
+    cols=3,
+    highlight_steps=None,
+    footer_note=None,
+    source=None,
+):
+    """순서형 모듈 그래프. modules=[(step, title, detail), ...]."""
+    return _add(
+        d,
+        "FLOW",
+        eyebrow,
+        head,
+        sub,
+        modules=modules,
+        cols=cols,
+        highlight_steps=highlight_steps or [],
+        footer_note=footer_note,
+        source=source,
+    )
+
+
+def genealogy(d, eyebrow, head, sub, modules, highlight=2, note=None, source=None):
+    """엔지니어링 계보. modules=[(name, description, group), ...]."""
+    return _add(
+        d,
+        "GENEALOGY",
+        eyebrow,
+        head,
+        sub,
+        modules=modules,
+        highlight=highlight,
+        note=note,
+        source=source,
+    )
+
+
+def prompt(d, eyebrow, head, sub, prompt_lines, checks=None, source=None):
+    """복사용 프롬프트 코드 블록과 실행 후 확인값."""
+    return _add(
+        d,
+        "PROMPT",
+        eyebrow,
+        head,
+        sub,
+        prompt=prompt_lines,
+        checks=checks or [],
+        source=source,
+    )

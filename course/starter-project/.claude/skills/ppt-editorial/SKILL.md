@@ -149,6 +149,7 @@ d = Deck.from_brief("deck_brief.md", domain="it", out_dir="deck_out")
 다음 질문이 반환된다. 승인 뒤 요구사항을 수정하면 승인은 자동 무효화하고 다시 확인한다.
 콘텐츠 근거를 정리한 다음에만 밝기·전문/스타일리시 노선·프리뷰 개수를 짧게 맞춘다.
 상세 인터뷰 순서는 `references/image-first-workflow.md`의 Stage 1~1.5를 따른다.
+사용자·브랜드·공식 양식의 스타일 요구가 없으면 `references/style-system.md`의 Pretendard와 밝고 절제된 중립 기본값을 사용한다. 장식 이미지보다 승인된 주장·구조를 설명하는 다이어그램, 비교, 타임라인, KPI, 프로세스를 우선한다.
 
 ## ★★★ 1. 확인된 요구사항과 자료를 정리한다 (두 모드 공통)
 
@@ -274,7 +275,7 @@ d.photos(["a.jpg", "b.jpg"], "ON SITE", ["현장에서 함께합니다"], ["..."
 d.closing(["함께 만드는 무결점 라인"], issuer="(주)OO정밀", scene="...")
 
 # d.slides와 d.approval_config()를 deck_brief의 sceneDeckSlides/sceneDeckConfig로 기록하고
-# approved_inputs.py build --renderer-version scene-deck-v1 으로 승인한다.
+# approved_inputs.py build --renderer-version scene-deck-v2 으로 승인한다.
 
 APPROVAL_DIGEST = "sha256:..."  # approved_inputs.py build 출력
 APPROVAL_STORE = "approval-store"
@@ -294,7 +295,7 @@ d.build(APPROVAL_DIGEST, APPROVAL_STORE, pdf=True, pptx=True) # 조립 + PDF/PPT
 | **`scripts/scene-deck/deck.py`** | 진입점. `from_brief → cover/agenda/slide/photos/closing → generate → build` |
 | `scripts/scene-deck/presets.py` | 도메인 9종 — it/food/manufacturing/education/welfare/culture/public/medical/retail |
 | `scripts/scene-deck/layout_engine.py` | 씬 구도 10종 + 강조요소 + 오버플로우 방어 |
-| `scripts/scene-deck/info_layouts.py` | 표·대비·2×2·막대 정보 레이아웃 네 가지 |
+| `scripts/scene-deck/info_layouts.py` | TABLE·EXAMPLE·MATRIX·BAR·FLOW·GENEALOGY·PROMPT 정보 레이아웃 7종 |
 | `scripts/scene-deck/fonts.py` | 폰트 풀 11종 + 황금비 스케일 + 운영체제 폴백 |
 | `scripts/scene-deck/revise.py` | 수정 인터페이스 (자연어 + API, 재생성 자동 판별) |
 | `scripts/scene-deck/photos.py` | 실사진 4모드 (hero/compare/sequence/grid) |
@@ -307,11 +308,13 @@ d.build(APPROVAL_DIGEST, APPROVAL_STORE, pdf=True, pptx=True) # 조립 + PDF/PPT
 - **구도 10종** — 본문 `L`(좌텍/우씬) `S`(반전) `W`(프로세스) `C`(비교·교집합)
  `A`(비대칭대형) `F`(전면) `T`(3분할) / 실무 `COVER` `AGENDA` `CLOSING`.
  **연속 3장 이상 같은 구도 금지.**
+- **정보 구도 7종** — 순서·의존관계는 `FLOW`, 개념 확장 관계는 `GENEALOGY`, 복사용 요청문은 `PROMPT`를 쓴다. `GENEALOGY` 번호 timeline은 카드 밖 gutter에 둔다. 표·흐름·계보·프롬프트가 24px 이상 투사용 글자 크기에서 body/footer 경계에 맞지 않으면 축소하지 말고 BLOCK한 뒤 슬라이드를 나눈다. 투사용 표는 `font_sizes=[...]`로 후보 크기를 지정한다.
+- **씬 안전여백** — 모든 화면·카드·버튼·연결선·라벨·그림자는 상하좌우 18%를 비우고 중앙 64% 안에 완전히 들어와야 한다. `codex_parallel_gen.py`가 생성본을 중앙 64%로 framing하고 실제 foreground bbox를 검사해 `.safe.json`과 scene receipt에 결속한다. receipt가 없거나 이미지 digest가 바뀌면 재생성·조립을 BLOCK한다.
 - 크롬은 미니멀: 상단 파란 대시 + 영문 eyebrow / 우측 쪽번호, 하단 얇은 라인 + 회사명.
  **파란 풀블리드 밴드 금지**(촌스러움, 실측 반려). 표지는 크롬 없음.
 - 헤드라인 **115px**(2560 캔버스). 씬 생성은 **`--effort high` 필수**.
 - 필수 게이트: `python scripts/deck_qc.py <out폴더> --cover 01`
-- 코드를 고쳤으면: `python scripts/harness_smoke.py`와 `python -m unittest tests.ppt.test_harness -v`
+- 코드를 고쳤으면: `python scripts/harness_smoke.py`, `python -m unittest tests.ppt.test_harness -v`, `python -m unittest tests.ppt.test_information_layouts -v`
 - 디스크: 씬 생성 시 `.cxwork` 격리 홈이 덱당 300~700MB 생긴다. 시작·종료 시 자동 정리(`--keep-work`로 보존). 상세는 scene-deck README §20
 
 > ⚠️ **아이콘 ≠ 씬.** 아이콘(80px 타일)을 키워 큰 영역에 쓰면 "커진 아이콘"으로 보여 싸구려가 된다.

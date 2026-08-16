@@ -8,6 +8,21 @@ Use a parameterized style vector internally, then synthesize multiple coherent s
 This rule is about the deck's visual language, not about workflow UI files.
 The bundled preview/review HTML shells in `assets/preview_shell/index.html` and `assets/review_shell/index.html` remain mandatory workflow assets unless unavailable or explicitly overridden by the user.
 
+## Neutral default when no style is supplied
+
+An explicit user direction, brand system, or official template always wins. When none exists,
+start with Pretendard for Korean text and a bright, restrained information-design language:
+white and light-gray surfaces, dark blue-gray copy, one blue accent, thin separators, generous
+spacing, and shallow depth.
+
+This is a neutral starting point, not a request to imitate Toss or any other financial product.
+Do not reproduce product logos, proprietary screens, trademark elements, or a distinctive
+brand composition.
+
+Prefer decision-supporting diagrams, comparisons, timelines, KPI views, and process maps over
+decorative images. Every visual must explain an approved claim or structure; remove visuals
+that merely repeat the slide text.
+
 ## Style vectors
 
 - `V1` Layout System

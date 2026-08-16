@@ -25,4 +25,8 @@
 | 치환 | 양식의 대상 위치와 실제 치환 횟수가 같은가 | PASS/WARN/BLOCK |
 | 누락 | 미치환 중괄호, 빈 필수값, 찾지 못한 항목이 0건인가 | PASS/WARN/BLOCK |
 | 구조 | HWPX ZIP·XML 구조검사를 통과했는가 | PASS/WARN/BLOCK |
-| 화면 | 한글에서 표·줄바꿈·글자 겹침·페이지 넘김을 확인했는가 | PASS/WARN/BLOCK |
+| 시각 위치 | 시각자료가 승인한 앞 문단과 뒤 문단 사이에 있는가 | PASS/WARN/BLOCK |
+| 중첩표 | `tc → subList → p → run → tbl`의 1열 2행 구조인가 | PASS/WARN/BLOCK |
+| 참조·쪽 설정 | 이미지 참조 3요소가 일치하고 원본 `secPr`이 보존됐는가 | PASS/WARN/BLOCK |
+| 캡션 | `그림 N. 핵심 그림명` 형식, 가운데 정렬, 승인 서식인가 | PASS/WARN/BLOCK |
+| 화면 | 한글에서 실제 문맥 위치·비율·해상도·표·줄바꿈·글자 겹침·페이지 넘김을 확인했는가 | PASS/WARN/BLOCK |

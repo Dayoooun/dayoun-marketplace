@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0.0",
+  "interactionMode": "DEMO",
+  "questionRound": {
+    "status": "NOT_CONFIRMED",
+    "answers": [],
+    "confirmedBy": "",
+    "confirmedAt": "",
+    "sourceQuote": ""
+  },
+  "strategyDecision": {
+    "status": "NOT_CONFIRMED",
+    "selectedOption": "",
+    "confirmedBy": "",
+    "confirmedAt": "",
+    "sourceQuote": ""
+  },
+  "contentApproval": {
+    "status": "NOT_APPROVED",
+    "approvedFile": "",
+    "approvedBy": "",
+    "approvedAt": "",
+    "sourceQuote": ""
+  },
+  "hwpxChoice": {
+    "status": "NOT_CONFIRMED",
+    "confirmedBy": "",
+    "confirmedAt": "",
+    "sourceQuote": ""
+  },
+  "presentationChoice": {
+    "status": "NOT_CONFIRMED",
+    "confirmedBy": "",
+    "confirmedAt": "",
+    "sourceQuote": ""
+  }
+}

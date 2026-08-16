@@ -55,8 +55,13 @@ def trim(im, thr=248):
 
 
 def scene(name):
-    p = os.path.join(SCN, "%s.png" % name)
-    return trim(Image.open(p).convert("RGB")) if os.path.exists(p) else None
+    path = os.path.join(SCN, "%s.png" % name)
+    if not os.path.exists(path):
+        return None
+    image = Image.open(path).convert("RGB")
+    if os.path.isfile(path + ".safe.json"):
+        return image
+    return trim(image)
 
 
 def chrome(im, d, eyebrow, num, total):

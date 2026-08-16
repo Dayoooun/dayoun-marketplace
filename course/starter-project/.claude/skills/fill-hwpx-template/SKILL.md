@@ -13,6 +13,7 @@ description: "한글 HWP 파일을 HWPX로 준비하도록 안내하고, HWPX �
 - 중괄호 항목이 0개면 자동 입력 성공이 아니라 BLOCK이다.
 - 구조검사와 한글 화면 확인은 서로 다른 검사이며 둘 다 필요하다.
 - 원본의 문단·글자·목록·표 스타일을 유지하고, 공백·탭·줄 바꿈으로 들여쓰기를 임의로 만들지 않는다.
+- 시각자료가 있으면 `references/visual-design-system.md`와 승인된 `앞 문단 / 뒤 문단 / 짧은 캡션` 명세를 먼저 확인한다.
 
 ## 파이프라인 위치: 8단계 HWPX 반영 + 9단계 검사
 
@@ -22,7 +23,8 @@ BLOCK이 없고 사용자가 승인한 문안만 최종 제출 양식의 작업�
 **진입 조건**: 승인 대상 파일·버전·승인자·시각, 승인된 치환값 또는 위치표가 있다.
 
 **완료 조건**: 새 HWPX와 변경 로그가 있고, 미치환·빈 값이 없으며 구조검사와
-한글 화면검사가 모두 통과해야 한다.
+한글 화면검사가 모두 통과해야 한다. 시각자료가 있으면 의미상 위치, 중첩표 계층,
+이미지 참조, 캡션, 원본 `secPr` 보존도 PASS해야 한다.
 
 **다음 단계**: 승인된 사업계획서 원문과 HWPX 검증 기록을 `ppt-editorial`에 넘긴다.
 PPT는 HWPX 페이지를 복사하지 않고 발표 목적에 맞게 내용을 다시 구성한다.
@@ -64,7 +66,40 @@ python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_placeholders.py" validate "
 ```
 
 4. 변경 로그에서 찾지 못한 항목, 빈 값, 미치환 중괄호가 없는지 확인한다.
-5. 한글에서 결과 파일을 열어 표 너비·행 높이, 문단·자동 줄 바꿈, 번호 체계·목록 단계·들여쓰기, 글자 겹침, 페이지 넘김을 직접 확인한다.
+5. 한글에서 결과 파일을 열어 표 너비·행 높이, 문단·자동 줄 바꿈, 번호 체계·목록 단계·들여쓰기, 글자 겹침, 페이지 넘김을 직접 확인한다. 시각자료는 실제 문맥 위치, 1열 2행 중첩표, 이미지 비율·해상도, 짧고 가운데 정렬된 캡션을 함께 확인한다.
 6. 오류가 있으면 원본을 덮어쓰지 말고 승인값 또는 위치표를 고친 뒤 새 버전을 만든다.
 
-HWP에서 HWPX로 저장하는 방법과 제한은 `references/hwp-to-hwpx.md`를 읽는다.
+### 4. 시각자료 구조와 위치 검사
+
+시각자료는 답변 셀 마지막에 일괄 배치하지 않는다. 승인 명세의 설명 문단 직후,
+다음 항목 직전에 `tc → subList → p → run → tbl` 계층의 1열 2행 중첩표로
+삽입한다. 위 행은 이미지, 아래 행은 `그림 N. 핵심 그림명` 캡션이다.
+
+현재 결과 설정을 먼저 확인한다.
+
+```powershell
+python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_visuals.py" inspect "07. 최종본\사업계획서_v01.hwpx"
+```
+
+승인된 위치 명세와 원본 HWPX를 기준으로 재현 검증한다.
+
+```powershell
+python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_visuals.py" validate "07. 최종본\사업계획서_v01.hwpx" --source "03. 사업계획서양식\원본.hwpx" --spec "03. 사업계획서양식\visual-placement.approved.json"
+```
+
+macOS/Linux에서는 `python3`와 `/` 경로 구분자를 사용한다. 검사는 다음을 모두
+fail-closed로 확인한다.
+
+- `앞 문단 / 뒤 문단` 사이의 의미상 위치
+- `tc → subList → p → run → tbl` 계층과 1열 2행 구조
+- `<img binaryItemIDRef>`·`Contents/content.hpf`·실제 `BinData` member 일치
+- 짧은 캡션, 가운데 정렬, 행 높이, 배경
+- 원본과 결과의 `secPr` canonical digest 일치
+- `--source`는 필수다. 원본 없이 `secPrPreserved`를 PASS로 만들 수 없다.
+- manifest ID와 ZIP member가 중복되거나 href가 절대경로·역슬래시·`.`·`..` segment를 포함하거나 이미지가 `BinData/` 밖을 가리키면 BLOCK
+- 시각표 후보 수와 승인 명세 수가 정확히 같고 캡션도 중복되지 않음
+
+1R 실측값과 다른 양식의 비례 조정 규칙은 `references/visual-design-system.md`를
+따른다. 1R 수치를 다른 양식에 강제로 덮어쓰거나 시각자료 때문에 쪽 여백을 바꾸지 않는다.
+
+HWP에서 HWPX로 저장하는 방법과 제한은 `references/hwp-to-hwpx.md`, 시각자료 배치·디자인·검증 기준은 `references/visual-design-system.md`를 읽는다.
