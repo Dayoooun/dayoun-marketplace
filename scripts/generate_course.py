@@ -14,10 +14,6 @@ OUTPUT_ROOT = REPO_ROOT / "course"
 CONTRACT_ROOT = REPO_ROOT / "contracts"
 
 
-def file_sha256(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def comparable_bytes(path: Path) -> bytes:
     data = path.read_bytes()
     if b"\0" in data:
@@ -27,6 +23,10 @@ def comparable_bytes(path: Path) -> bytes:
     except UnicodeDecodeError:
         return data
     return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+
+
+def file_sha256(path: Path) -> str:
+    return "sha256:" + hashlib.sha256(comparable_bytes(path)).hexdigest()
 
 
 def copy_tree(source: Path, target: Path) -> None:
