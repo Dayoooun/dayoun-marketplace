@@ -64,4 +64,4 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           test "$(python -c 'import json; print(json.load(open("plugins/business-plan-writer/plugin.json"))["version"])')" = "$VERSION"
-          gh release create "business-plan-writer/v$VERSION" dist/* --target "$GITHUB_SHA" --title "business-plan-writer v$VERSION"
+          gh release create "business-plan-writer/v$VERSION" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "business-plan-writer v$VERSION"

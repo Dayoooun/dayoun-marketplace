@@ -38,10 +38,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions: { contents: write }
     steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
       - uses: actions/download-artifact@v4
         with: { name: business-documents-release, path: dist }
       - shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
-        run: gh release create "business-documents/v$VERSION" dist/* --target "$GITHUB_SHA" --title "business-documents v$VERSION"
+        run: gh release create "business-documents/v$VERSION" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "business-documents v$VERSION"

@@ -34,6 +34,19 @@ class ReleaseBoundaryTests(unittest.TestCase):
         stream.flush()
         self.assertEqual(buffer.getvalue().decode("utf-8"), "한글 파일")
         stream.detach()
+
+    def test_release_publish_steps_bind_the_repository(self) -> None:
+        workflows = [
+            ROOT / ".github" / "workflows" / "release-contracts.yml",
+            ROOT / ".github" / "workflows" / "release-business-plan-writer.yml",
+            ROOT / ".github" / "workflows" / "release-business-documents.yml",
+            ROOT / ".github" / "workflows" / "release-course-kit.yml",
+        ]
+        for workflow in workflows:
+            text = workflow.read_text(encoding="utf-8")
+            release_job = text.split("\n  release:\n", 1)[1]
+            self.assertIn("actions/checkout@v5", release_job, workflow.name)
+            self.assertIn('--repo "$GITHUB_REPOSITORY"', release_job, workflow.name)
     def test_writer_build_is_reproducible_and_excludes_documents_and_tests(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             left = Path(directory) / "left"
