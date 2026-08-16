@@ -18,6 +18,17 @@ def file_sha256(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def comparable_bytes(path: Path) -> bytes:
+    data = path.read_bytes()
+    if b"\0" in data:
+        return data
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data
+    return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+
+
 def copy_tree(source: Path, target: Path) -> None:
     if not source.is_dir():
         raise FileNotFoundError(f"missing authored course source: {source}")
@@ -74,12 +85,12 @@ def build_course(target: Path) -> dict[str, object]:
 
 def compare_directories(expected: Path, actual: Path) -> list[str]:
     expected_files = {
-        path.relative_to(expected).as_posix(): path.read_bytes()
+        path.relative_to(expected).as_posix(): comparable_bytes(path)
         for path in expected.rglob("*")
         if path.is_file()
     }
     actual_files = {
-        path.relative_to(actual).as_posix(): path.read_bytes()
+        path.relative_to(actual).as_posix(): comparable_bytes(path)
         for path in actual.rglob("*")
         if path.is_file()
     }

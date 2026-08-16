@@ -2,7 +2,7 @@
 
 이 저장소에서 작업하기 전에 [`AGENTS.md`](AGENTS.md)를 전체 읽고 설치·업데이트·스킬 라우팅·안전 규칙을 그대로 따릅니다. `AGENTS.md`가 AI 운영 계약의 단일 원본이며 이 파일에 같은 규칙을 복제하지 않습니다.
 
-사용자가 플러그인 설치를 요청하면 다음 공식 경로를 사용합니다.
+사용자가 플러그인 설치를 요청하면 다음 지원 경로를 사용합니다.
 
 ```text
 /plugin marketplace add Dayoooun/dayoun-marketplace

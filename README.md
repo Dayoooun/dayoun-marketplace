@@ -2,6 +2,8 @@
 
 비개발자도 지원사업, 투자·IR, 사내 검토 등 여러 목적의 사업계획서를 공고·양식 분석부터 조사·설계·작성·검토·HWPX 제출본·발표 PPT까지 진행할 수 있게 만든 공개 플러그인입니다.
 
+> 이 저장소는 Dayoun이 운영하는 비공식 오픈소스 marketplace입니다. OpenAI, Anthropic, Google 또는 각 제품사가 운영·인증하는 공식 marketplace가 아닙니다.
+
 기본 스킬은 특정 기관이나 사업에 묶이지 않습니다. 부산대 수업에서는 현재 공식 공고와 평가표를 선택 설정으로 넣어 사용합니다. HWPX 반영은 원본 보존, 사용자 승인, 양식 검증이 확인된 경우에만 선택합니다. 누구나 무료로 설치하고 수정할 수 있도록 MIT 라이선스로 공개합니다.
 
 ## 1분 설치
@@ -20,12 +22,12 @@
 현재 사용 중인 코딩 AI에게 아래 문장을 그대로 붙여넣습니다.
 
 ```text
-https://github.com/Dayoooun/dayoun-marketplace 의 AGENTS.md를 읽고,
-내 컴퓨터에 설치된 Codex CLI 또는 Claude Code를 감지해줘.
-business-plan-writer와 business-documents를 공식 marketplace 명령으로 설치하고,
-설치된 버전이 각각 0.10.0과 0.1.0인지 확인해줘.
+아래 GitHub 저장소를 확인해서 현재 환경에
+business-plan-writer와 business-documents 플러그인을 설치해줘.
+https://github.com/Dayoooun/dayoun-marketplace
+설치 뒤 marketplace와 플러그인을 최신 상태로 업데이트하고 전체 테스트를 실행해줘.
 기존 설정과 다른 플러그인은 삭제하거나 덮어쓰지 말고,
-실패하면 추측하지 말고 실패한 명령과 해결 방법을 알려줘.
+마지막에 설치 버전, enabled 상태, 테스트 결과를 요약해줘.
 ```
 
 AI가 읽을 상세 설치 계약은 [`AGENTS.md`](AGENTS.md)에 있습니다. Claude Code는 [`CLAUDE.md`](CLAUDE.md)에서 같은 문서로 연결됩니다.
