@@ -94,12 +94,12 @@ def visual_table(
     table.append(element("sz", {"width": "45900", "height": "26000"}))
 
     image_row = element("tr")
-    image_cell = element("tc", {"borderFillIDRef": "4"})
+    image_cell = element("tc", {"borderFillIDRef": "15"})
     image_list = element("subList")
     image_p = element("p", {"paraPrIDRef": "0"})
     image_run = element("run", {"charPrIDRef": "0"})
     picture = element("pic")
-    picture.append(element("sz", {"width": "43900", "height": "24000"}))
+    picture.append(element("sz", {"width": "39982", "height": "24000"}))
     picture.append(element("img", {"binaryItemIDRef": "image3"}))
     image_run.append(picture)
     image_p.append(image_run)
@@ -120,7 +120,7 @@ def visual_table(
     table.append(image_row)
 
     caption_row = element("tr")
-    caption_cell = element("tc", {"borderFillIDRef": "15"})
+    caption_cell = element("tc", {"borderFillIDRef": "16"})
     caption_list = element("subList")
     caption_list.append(paragraph(caption, para_ref="19", char_ref="31"))
     caption_cell.extend(
@@ -146,13 +146,24 @@ def visual_table(
 
 def header_xml() -> bytes:
     root = element("head")
-    border = element("borderFill", {"id": "15"})
-    brush = element("fillBrush")
-    brush.append(element("winBrush", {"faceColor": "#F2F2F2"}))
-    border.append(brush)
-    root.append(border)
 
-    char = element("charPr", {"id": "31", "height": "1200"})
+    def bordered(border_id: str, background: str) -> ET.Element:
+        border = element("borderFill", {"id": border_id})
+        for side in ("leftBorder", "rightBorder", "topBorder", "bottomBorder"):
+            border.append(
+                element(
+                    side,
+                    {"type": "SOLID", "width": "0.1 mm", "color": "#000000"},
+                )
+            )
+        brush = element("fillBrush")
+        brush.append(element("winBrush", {"faceColor": background}))
+        border.append(brush)
+        return border
+
+    root.extend([bordered("15", "#FFFFFF"), bordered("16", "#F2F2F2")])
+
+    char = element("charPr", {"id": "31", "height": "1000"})
     char.append(element("bold"))
     root.append(char)
 
@@ -335,10 +346,12 @@ def write_spec(path: Path) -> None:
                         "beforeParagraphContains": "설명하는 문단",
                         "afterParagraphContains": "o 다음 핵심항목",
                         "tableWidth": 45900,
-                        "imageWidth": 43900,
+                        "imageWidth": 39982,
+                        "imageCellBorderFillID": "15",
+                        "captionCellBorderFillID": "16",
                         "cellMargin": {"left": 510, "right": 510, "top": 220, "bottom": 220},
                         "captionRowHeight": 1200,
-                        "captionPointSize": 12,
+                        "captionPointSize": 10,
                         "captionBold": True,
                         "captionAlign": "CENTER",
                         "captionBackground": "#F2F2F2",
@@ -361,11 +374,19 @@ class HwpxVisualRegressionTests(unittest.TestCase):
             visual = report["visuals"][0]
             self.assertEqual(visual["hierarchy"], ["tc", "subList", "p", "run", "tbl"])
             self.assertEqual(visual["tableWidth"], "45900")
-            self.assertEqual(visual["imageWidth"], "43900")
+            self.assertEqual(visual["imageWidth"], "39982")
             self.assertEqual(visual["captionRowHeight"], "1200")
-            self.assertEqual(visual["captionPointSize"], "12")
+            self.assertEqual(visual["captionPointSize"], "10")
             self.assertTrue(visual["captionBold"])
             self.assertEqual(visual["captionAlign"], "CENTER")
+            self.assertEqual(visual["imageCellBorderFillID"], "15")
+            self.assertEqual(visual["captionCellBorderFillID"], "16")
+            self.assertTrue(visual["imageCellBorderDigest"])
+            self.assertTrue(visual["captionCellBorderDigest"])
+            self.assertNotEqual(
+                visual["imageCellBorderDigest"],
+                visual["captionCellBorderDigest"],
+            )
             self.assertEqual(visual["captionBackground"], "#F2F2F2")
 
     def test_validate_passes_semantic_placement_and_secpr_preservation(self) -> None:

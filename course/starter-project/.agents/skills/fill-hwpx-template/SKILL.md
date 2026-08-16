@@ -8,19 +8,23 @@ description: "승인된 내용을 원본 보존 작업용 HWPX에 반영하고, 
 ## 먼저 확인
 
 - `.hwp`는 직접 처리하지 않는다. 한글에서 **다른 이름으로 저장 → HWPX**로 준비한다.
-- 원본은 보존하고 `03. 사업계획서양식/작업용 HWPX`의 복사본만 사용한다.
+- 최초 원본은 보존한다. 사용자가 자동 생성본을 한글에서 수정해 다시 올리면 그 최신 업로드본을 새 `user-edited-canonical`로 잠그고, 이후 작업용 HWPX는 반드시 그 파일에서 복사한다. 과거 원본·과거 자동 생성본으로 되돌아가 재생성하지 않는다.
 - 사용자가 승인한 `placeholder-values.approved.json`만 기본 입력으로 사용한다.
 - 중괄호 항목이 0개면 자동 입력 성공이 아니라 BLOCK이다.
 - 구조검사와 실제 렌더 검사는 서로 다른 검사이며 둘 다 필요하다. 실제 렌더러가 만든 PDF·페이지별 PNG와 전체·100%·확대 검수 기록이 없으면 BLOCK이다.
 - 공식 고정 구조·고정 문구와 사용자가 지정하지 않은 문단·글자·목록·표 스타일은 유지한다. 공식 지시, 사용자 지시, 디자인 결정표가 지정한 속성만 작업용 복사본에서 변경하고 변경 속성을 로그에 남긴다.
 - 시각자료가 있으면 `references/visual-design-system.md`와 승인된 `앞 문단 / 뒤 문단 / 짧은 캡션` 명세를 먼저 확인한다.
 - 원본의 섹션 순서, 공식 질문·제목·안내문, 최상위 표 topology, 고정 셀 텍스트를 source integrity receipt로 잠근다. 승인된 답변 셀·치환값·디자인 삽입영역 밖의 변경은 BLOCK이다.
-- 장문 답변은 공식 서술형 요구가 없는 한 `o 핵심항목`과 `- 세부내용` 개조식이어야 한다. filler는 각 플레이스홀더 답변 셀의 글꼴·크기·자간 등 기준 글자 스타일을 별도로 복제한 뒤 `o` 문단에 1,200/-1,200 HWPUNIT, `-` 문단에 2,400/-1,200 HWPUNIT의 실제 내어쓰기 `paraPr`을 만들고 제목은 굵게, 세부내용은 일반 굵기로 연결한다.
+- 장문 답변은 공식 서술형 요구가 없는 한 `o 대항목 → - 핵심항목 → · 세부내용`의 3단계 개조식을 사용한다. filler는 각 답변 셀의 기준 스타일을 별도로 복제해 `o` 1,200/-1,200 굵게, `-` 2,400/-1,200 보통, `·` 3,600/-800 보통의 실제 내어쓰기를 적용한다. 세부내용이 필요 없는 경우 `o → -` 2단계는 허용하지만 장문 앞에 기호 하나만 붙이지 않는다.
 - 공백·탭으로 들여쓰기를 흉내 내거나 장문 산문을 한 문단으로 넣으면 BLOCK이다. 공식 양식이 장문 서술형을 요구할 때만 근거를 기록하고 `--allow-prose-values`를 사용한다.
-- 각 `- 세부내용` 주장 끝에는 보고서 안에서 출처·상태가 보이고 `근거목록.csv`로 연결되는 `[E001 | 기관·연도]`·`[U001 | 사용자 자료]`·`[H001 | 검증가설]`·`[P001 | 실행계획]` 표지가 있어야 한다. 장문 서술형 예외도 각 문단 끝에 표지가 없으면 BLOCK한다.
+- 각 `- 핵심항목`과 `· 세부내용` 주장 끝에는 보고서 안에서 출처·상태가 읽히고 `근거목록.csv`로 연결되는 `[E001 | 기관명, 「자료명」, 발표일]`·`[U001 | 사용자 제공자료, 기록일]`·`[H001 | 검증가설]`·`[P001 | 실행계획]` 표지가 있어야 한다. `[M-01]`처럼 번호만 남기면 BLOCK한다.
 - 비어 있지 않은 플레이스홀더 값은 길이와 무관하게 기본적으로 주장 문단이다. 회사명·성명·날짜 같은 식별 라벨만 승인 JSON의 `_claim_free` 객체에 `"{회사명}": "회사명 식별값"`처럼 키와 사유를 명시해 제외한다.
 - 주장 표지의 `|` 뒤 짧은 출처·상태는 `--evidence-registry 근거목록.csv`의 동일 ID `inline_citation`과 정확히 같아야 한다. E/U 행은 출처명·경로 또는 URL·확인일도 없으면 BLOCK한다.
 - 주장 플레이스홀더는 한 개의 문단과 한 개의 텍스트 run을 단독 점유해야 한다. 뒤에 고정 문구가 붙거나 여러 run으로 쪼개졌으면 최종 문단 끝 표지를 보장할 수 없으므로 BLOCK한다.
+- `paraProperties`, `charProperties`, `borderFills`는 ID 존재 여부뿐 아니라 XML 배열 위치·연속성·`itemCnt`까지 검사한다. 문단 스타일을 추가하면 숫자 ID 순서로 재정렬하며 `·` 본문은 LEFT, 이미지 문단만 CENTER여야 한다.
+- 사용자가 삭제한 문단·시각자료·`o 근거 원문` 블록은 deletion receipt에 기록하고 명시적 복원 승인 없이 다시 만들지 않는다.
+- 사용자 확정 시각자료는 table/image width, 두 셀 borderFill, 테두리, 배경, 캡션, 행 높이, 여백을 profile로 잠근다. 새 시각자료는 전역 기본값이 아니라 최신 canonical의 확정 skeleton을 복제한다.
+- 최종 `Preview/PrvText.txt`는 section 본문에서 다시 만들고 정확히 대조한다. 같은 파일명을 교체하지 않고 새 버전 파일명을 사용한다.
 
 ## `알아서 보기 좋게` 실행 계약
 
@@ -63,6 +67,25 @@ PPT는 HWPX 페이지를 복사하지 않고 발표 목적에 맞게 내용을 �
 
 ## 실행 방법
 
+### 0. 사용자 수정본을 최신 canonical로 잠그기
+
+사용자가 한글에서 표·셀·테두리·배경·문단·캡션을 수정한 HWPX를 다시 올리면 먼저
+해당 파일을 새 canonical source로 복사하고 digest·스타일·시각자료 profile·삭제 의도를
+receipt에 결속한다.
+
+```powershell
+python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_revision.py" lock "사용자수정본.hwpx" --canonical-output "03. 사업계획서양식\canonical\사용자수정본_v08.hwpx" --receipt "06. 검토결과\user-canonical-v08.json" --previous "07. 최종본\직전자동생성_v07.hwpx" --removed-blocks "03. 사업계획서양식\removed-blocks.approved.json"
+```
+
+후속 결과는 canonical profile과 삭제 receipt를 다시 검사한다.
+
+```powershell
+python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_revision.py" validate "03. 사업계획서양식\canonical\사용자수정본_v08.hwpx" --receipt "06. 검토결과\user-canonical-v08.json" --candidate "07. 최종본\사업계획서_v09.hwpx"
+```
+
+사용자 수정본이 없으면 최초 원본을 canonical로 사용하되 `role`을 임의로
+`user-edited-canonical`이라고 기록하지 않는다.
+
 이 SKILL.md가 있는 폴더를 스킬 루트로 정하고 그 아래 `scripts/hwpx_placeholders.py`를 사용한다. 프로젝트 루트의 scripts로 해석하지 않는다.
 
 Windows에서는 `python`, macOS/Linux에서는 `python3`를 사용한다.
@@ -95,6 +118,12 @@ macOS/Linux에서는 `python3`와 `/` 경로 구분자를 사용한다.
 
 ```powershell
 python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_placeholders.py" validate "07. 최종본\사업계획서_v01.hwpx"
+```
+
+스타일 배열 순서·참조·정렬을 별도로 검사한다.
+
+```powershell
+python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_style_integrity.py" validate "07. 최종본\사업계획서_v09.hwpx" --output "06. 검토결과\hwpx-style-integrity.json"
 ```
 
 4. 변경 로그에서 찾지 못한 항목, 빈 값, 미치환 중괄호가 없는지 확인한다.
@@ -141,11 +170,12 @@ fail-closed로 확인한다.
 - `앞 문단 / 뒤 문단` 사이의 의미상 위치
 - `tc → subList → p → run → tbl` 계층과 1열 2행 구조
 - `<img binaryItemIDRef>`·`Contents/content.hpf`·실제 `BinData` member 일치
-- 짧은 캡션, 가운데 정렬, 행 높이, 배경
+- 짧은 캡션, 가운데 정렬, 행 높이, 배경, 이미지·캡션 셀의 borderFill ID와 canonical digest
 - 원본과 결과의 `secPr` canonical digest 일치
 - `--source`는 필수다. 원본 없이 `secPrPreserved`를 PASS로 만들 수 없다.
 - manifest ID와 ZIP member가 중복되거나 href가 절대경로·역슬래시·`.`·`..` segment를 포함하거나 이미지가 `BinData/` 밖을 가리키면 BLOCK
 - 시각표 후보 수와 승인 명세 수가 정확히 같고 캡션도 중복되지 않음
+- 사용자 확정 시각자료 profile과 같은 table/image width·셀 여백·테두리·배경·캡션 설정
 
 ### 6. 실제 렌더와 확대 검수
 
@@ -160,6 +190,13 @@ python "<이 SKILL.md가 있는 폴더>\scripts\verify_hwpx_render.py" "07. 최�
 ```
 
 PDF·페이지 PNG·렌더러 버전·확대 검수 중 하나라도 없거나 digest가 바뀌면 BLOCK이다.
+
+최종 파일의 미리보기 텍스트를 본문과 동기화한 새 버전을 만든 뒤 검증한다.
+
+```powershell
+python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_preview_sync.py" sync "07. 최종본\사업계획서_v09.hwpx" --output "07. 최종본\사업계획서_v10.hwpx" --report "06. 검토결과\preview-sync.json"
+python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_preview_sync.py" validate "07. 최종본\사업계획서_v10.hwpx" --output "06. 검토결과\preview-validate.json"
+```
 
 1R 실측값과 다른 양식의 비례 조정 규칙은 `references/visual-design-system.md`를
 따른다. 1R 수치를 다른 양식에 강제로 덮어쓰거나 시각자료 때문에 쪽 여백을 바꾸지 않는다.

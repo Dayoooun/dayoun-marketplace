@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0.0",
+  "family": "Pretendard",
+  "version": "1.3.9",
+  "license": "SIL Open Font License 1.1",
+  "source": "https://github.com/orioncactus/pretendard/releases/tag/v1.3.9",
+  "releaseArchive": "https://github.com/orioncactus/pretendard/releases/download/v1.3.9/Pretendard-1.3.9.zip",
+  "files": [
+    {
+      "path": "Pretendard-Regular.otf",
+      "weight": 400,
+      "sha256": "sha256:3ffbacde6ab8411f1d2db54bb9b1f0b3ee2a738932033722cf0388c06aed1c93"
+    },
+    {
+      "path": "Pretendard-Medium.otf",
+      "weight": 500,
+      "sha256": "sha256:d39e50e4bb52b4993b6a4eeb821a171254745bd824446af01e1f616b89fface0"
+    },
+    {
+      "path": "Pretendard-SemiBold.otf",
+      "weight": 600,
+      "sha256": "sha256:c89bc43027dc7cde5726e96223376f8eec09302b2fc1f8147fd5b57cfc376118"
+    },
+    {
+      "path": "Pretendard-Bold.otf",
+      "weight": 700,
+      "sha256": "sha256:2e91915fab54df71cc9598ebf608b2bdb54c6fe3c066ac61dff0bc44fca71cc7"
+    }
+  ]
+}

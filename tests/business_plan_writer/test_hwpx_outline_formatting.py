@@ -21,6 +21,13 @@ SCRIPT = (
     / "scripts"
     / "hwpx_placeholders.py"
 )
+STYLE_SCRIPT = (
+    PLUGIN
+    / "skills"
+    / "fill-hwpx-template"
+    / "scripts"
+    / "hwpx_style_integrity.py"
+)
 DEMO = PLUGIN / "assets" / "demo" / "demo-business-plan.hwpx"
 
 
@@ -301,6 +308,96 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                 sum(local_name(node.tag) == "charPr" for node in list(char_container)),
             )
 
+
+    def test_three_level_outline_styles_and_style_array_order(self) -> None:
+        outline = "\n".join(
+            [
+                "o 산업·기술 근거와 한계",
+                "- 확인된 산업근거 [E001 | 공식자료]",
+                "· 국내 양식 미역 생산량을 확인한다. [E002 | 보조자료]",
+                "- 근거의 한계 [H001 | 검증가설]",
+                "· 전국 통계를 기장 물량으로 환산하지 않는다. [H001 | 검증가설]",
+            ]
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            values = root / "values.json"
+            output = root / "three-level.hwpx"
+            values.write_text(
+                json.dumps(approved_values(outline), ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            completed = run_fill(values, output)
+            self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+
+            with zipfile.ZipFile(output) as archive:
+                header = ET.fromstring(archive.read("Contents/header.xml"))
+                section = ET.fromstring(archive.read("Contents/section0.xml"))
+            paragraphs = {
+                text_of(node): node
+                for node in section.iter()
+                if local_name(node.tag) == "p" and text_of(node) in outline.splitlines()
+            }
+            self.assertEqual(set(paragraphs), set(outline.splitlines()))
+
+            para_defs = {
+                attributes(node).get("id"): node
+                for node in header.iter()
+                if local_name(node.tag) == "paraPr"
+            }
+            role_expectations = {
+                outline.splitlines()[0]: ("1200", "-1200"),
+                outline.splitlines()[1]: ("2400", "-1200"),
+                outline.splitlines()[2]: ("3600", "-800"),
+                outline.splitlines()[3]: ("2400", "-1200"),
+                outline.splitlines()[4]: ("3600", "-800"),
+            }
+            for text, (left, intent) in role_expectations.items():
+                para_ref = attributes(paragraphs[text])["paraPrIDRef"]
+                definition = para_defs[para_ref]
+                self.assertEqual(
+                    {
+                        attributes(node).get("value")
+                        for node in definition.iter()
+                        if local_name(node.tag) == "left"
+                    },
+                    {left},
+                )
+                self.assertEqual(
+                    {
+                        attributes(node).get("value")
+                        for node in definition.iter()
+                        if local_name(node.tag) == "intent"
+                    },
+                    {intent},
+                )
+
+            para_container = next(
+                node
+                for node in header.iter()
+                if local_name(node.tag) == "paraProperties"
+            )
+            ids = [
+                int(attributes(node)["id"])
+                for node in list(para_container)
+                if local_name(node.tag) == "paraPr"
+            ]
+            self.assertEqual(ids, list(range(ids[0], ids[0] + len(ids))))
+
+            style_check = subprocess.run(
+                [sys.executable, str(STYLE_SCRIPT), "validate", str(output)],
+                cwd=ROOT,
+                text=True,
+                encoding="utf-8",
+                capture_output=True,
+                check=False,
+                env={**os.environ, "PYTHONIOENCODING": "cp1252"},
+            )
+            self.assertEqual(
+                style_check.returncode,
+                0,
+                style_check.stdout + style_check.stderr,
+            )
     def test_long_prose_blocks_by_default_and_requires_explicit_override(self) -> None:
         prose = " ".join(["근거를 확인하지 않은 장문 서술형 문단이다."] * 20)
         with tempfile.TemporaryDirectory() as directory:
@@ -761,6 +858,7 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
         invalid_values = {
             "mixed": "o 핵심항목\n표시 없는 장문\n- 세부내용 [E001 | 공식자료]",
             "detail_first": "- 세부내용 [E001 | 공식자료]\no 핵심항목\n- 다음 세부내용 [E002 | 보조자료]",
+            "subdetail_before_core": "o 대항목\n· 세부내용 [E001 | 공식자료]\n- 핵심항목 [E002 | 보조자료]",
             "heading_without_detail": "o 핵심항목",
             "consecutive_headings": "o 첫 항목\no 둘째 항목\n- 세부내용 [E001 | 공식자료]",
             "orphan_last_heading": "o 핵심항목\n- 세부내용 [E001 | 공식자료]\no 마지막 항목",

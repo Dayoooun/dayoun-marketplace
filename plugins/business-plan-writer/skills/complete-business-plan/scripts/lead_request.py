@@ -9,6 +9,24 @@ from typing import Any
 
 
 DESIGN_DELEGATION = ("알아서", "전문적으로", "보기 좋게", "보기좋게", "디자인해")
+PPT_TERMS = (
+    "ppt",
+    "pptx",
+    "powerpoint",
+    "파워포인트",
+    "슬라이드",
+    "발표자료",
+    "발표 자료",
+    "발표덱",
+    "발표 덱",
+    "피치덱",
+    "피치 덱",
+    "ir덱",
+    "ir 덱",
+    "제안서",
+    "강의자료",
+    "교육자료",
+)
 
 
 def _contains(text: str, values: tuple[str, ...]) -> bool:
@@ -32,10 +50,12 @@ def build_brief(request: str, *, mode: str = "REAL") -> dict[str, Any]:
 
     design_delegated = _contains(text, DESIGN_DELEGATION)
     outputs: list[str] = ["TEXT_DRAFT"]
+    ppt_requested = False
     if _contains(text, ("hwpx", "한글 양식", "한글파일", "한글 파일")):
         outputs.append("HWPX")
-    if _contains(text, ("ppt", "발표자료", "발표 자료", "발표덱")):
+    if _contains(text, PPT_TERMS):
         outputs.append("PPT")
+        ppt_requested = True
 
     fixed_constraints: list[dict[str, str]] = []
     if _contains(text, ("내용은 바꾸지", "내용 바꾸지", "문안은 바꾸지")):
@@ -62,6 +82,12 @@ def build_brief(request: str, *, mode: str = "REAL") -> dict[str, Any]:
         "map-requirements-to-evidence-and-sections",
         "assign-inline-source-status-markers-and-evidence-registry",
     ]
+    if ppt_requested:
+        autonomous_actions = [
+            "invoke-ppt-editorial-immediately",
+            "protect-facts-and-humanize-all-presentation-prose",
+            *autonomous_actions,
+        ]
     if "HWPX" in outputs:
         autonomous_actions.extend(
             [
@@ -100,7 +126,7 @@ def build_brief(request: str, *, mode: str = "REAL") -> dict[str, Any]:
 
     return {
         "schemaVersion": "1.0.0",
-        "entrySkill": "complete-business-plan",
+        "entrySkill": "ppt-editorial" if ppt_requested and "HWPX" not in outputs else "complete-business-plan",
         "interactionMode": mode,
         "request": text,
         "requestedOutputs": outputs,
@@ -128,6 +154,12 @@ def build_brief(request: str, *, mode: str = "REAL") -> dict[str, Any]:
         "completionRequirements": {
             "noFabricatedFactsOrApprovals": True,
             "claimSourceTraceabilityRequired": True,
+            "presentationHumanizationRequired": "PPT" in outputs,
+            "presentationHumanizationScope": (
+                "titles-body-captions-script-and-qa"
+                if "PPT" in outputs
+                else None
+            ),
             "resultHwpxRequired": "HWPX" in outputs,
             "sourceStructureIntegrityRequired": "HWPX" in outputs,
             "pdfAndPagePngRenderReceiptRequired": "HWPX" in outputs,

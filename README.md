@@ -6,14 +6,16 @@
 
 기본 스킬은 특정 기관이나 사업에 묶이지 않습니다. 부산대 수업에서는 현재 공식 공고와 평가표를 선택 설정으로 넣어 사용합니다. HWPX 반영은 원본 보존, 사용자 승인, 양식 검증이 확인된 경우에만 선택합니다. 누구나 무료로 설치하고 수정할 수 있도록 MIT 라이선스로 공개합니다.
 
+PPT·PPTX·파워포인트·슬라이드·발표자료·피치덱·IR덱·제안서·강의자료의 생성·수정·리디자인을 말하면 `ppt-editorial`이 스킬명 없이 즉시 시작됩니다. 모든 제목·본문·캡션·대본·예상 Q&A는 사실·수치·고유명사·URL·명령을 보호한 한국어 윤문을 반드시 거칩니다.
+
 ## 1분 설치
 
 설치할 프로그램에 맞는 한 줄을 고르면 됩니다.
 
 | 사용하는 AI | 설치 방식 | 설치 후 보이는 버전 |
 |---|---|---|
-| Codex CLI | 터미널에서 marketplace 추가 | `business-plan-writer 0.12.1`, `business-documents 0.1.0` |
-| Claude Code | Claude Code의 `/plugin` 명령 | `business-plan-writer 0.12.1`, `business-documents 0.1.0` |
+| Codex CLI | 터미널에서 marketplace 추가 | `business-plan-writer 0.12.2`, `business-documents 0.1.0` |
+| Claude Code | Claude Code의 `/plugin` 명령 | `business-plan-writer 0.12.2`, `business-documents 0.1.0` |
 | Antigravity | `course/starter-project` 폴더를 작업공간으로 열기 | `.agents/skills`의 일곱 사업계획서 스킬 |
 | 일반 채팅형 AI | 자동 설치 없음 | [참가자 빠른 시작](course/06-participant-quick-start.md)의 질문·출력 형식만 사용 |
 
@@ -46,7 +48,7 @@ codex plugin list
 마지막 명령에서 아래 두 항목이 `installed, enabled`이면 끝입니다.
 
 ```text
-business-plan-writer@dayoun  0.12.1
+business-plan-writer@dayoun  0.12.2
 business-documents@dayoun    0.1.0
 ```
 
@@ -63,7 +65,7 @@ Claude Code를 연 뒤 대화 입력창에 한 줄씩 실행합니다.
 /plugin list
 ```
 
-목록에서 두 플러그인이 `enabled`이고 버전이 `0.12.1`, `0.1.0`이면 설치가 끝난 것입니다. 새 스킬이 바로 보이지 않으면 Claude Code를 한 번 다시 시작합니다.
+목록에서 두 플러그인이 `enabled`이고 버전이 `0.12.2`, `0.1.0`이면 설치가 끝난 것입니다. 새 스킬이 바로 보이지 않으면 Claude Code를 한 번 다시 시작합니다.
 
 터미널 명령을 선호하면 같은 작업을 다음처럼 실행할 수 있습니다.
 
@@ -213,8 +215,8 @@ complete-business-plan 스킬을 사용해 공고문·평가지표·작성지침
 | 근거 조사 | `research-business-evidence` | 질문별 출처·기준일·단위·한계와 유지·수정·보류 판정이 있음 |
 | 전략·텍스트 초안 | `draft-business-plan` | 공식 요구사항이 초안 장·절과 근거 위치에 연결됨 |
 | 검토·승인 | `review-business-plan` | BLOCK이 없고 최종 문안과 공개 범위를 사용자가 승인함 |
-| HWPX 반영·검사 | `fill-hwpx-template` + `review-business-plan` | 승인값과 위임된 디자인만 반영되고 원본 고정 구조 검사, 실제 PDF·페이지별 PNG, 전체·100%·확대 검수 기록이 모두 PASS |
-| 발표자료 | `ppt-editorial` | 승인 원문과 수치가 일치하고 PDF/PPTX·대본·Q&A를 육안 검수함 |
+| HWPX 반영·검사 | `fill-hwpx-template` + `review-business-plan` | 최신 사용자 수정본이 canonical로 잠기고 승인값만 반영되며 스타일 배열·시각 profile·삭제 receipt·Preview·실제 PDF/PNG 검수가 모두 PASS |
+| 발표자료 | `ppt-editorial` | PPT 관련 자연어 요청에서 즉시 라우팅되고 보호값 대조를 포함한 한국어 윤문 PASS 뒤 PDF/PPTX·대본·Q&A를 육안 검수함 |
 
 조사 결과가 아이디어의 핵심 가정을 부정하면 앞 단계로 돌아가 사업정보와 전략을 고칩니다.
 HWPX 안에서 초안을 쓰지 않으며, HWPX 페이지를 PPT로 그대로 변환하지도 않습니다.
@@ -230,9 +232,9 @@ HWPX 안에서 초안을 쓰지 않으며, HWPX 페이지를 PPT로 그대로 �
 | `setup-business-plan-project` | 원본을 보존하는 범용 폴더와 기본 작업표 생성 |
 | `research-business-evidence` | 확인할 내용 하나를 공식 출처 또는 기존 고객 근거로 조사 |
 | `draft-business-plan` | 목적·요구사항과 확인된 근거로 선택 항목 초안 작성 |
-| `fill-hwpx-template` | 조건부 HWPX 치환·수동 매핑, 의미상 시각자료 배치와 `secPr`·이미지 참조 검증 |
+| `fill-hwpx-template` | 최신 사용자 수정본 canonical, 3단계 개조식, 스타일 배열·시각 profile·삭제·Preview, 실제 렌더 검증 |
 | `review-business-plan` | 콘텐츠와 선택 HWPX 산출물을 분리해 검토 |
-| `ppt-editorial` | 씬 덱·이미지 퍼스트, FLOW·GENEALOGY·PROMPT 포함 정보 구도 7종, 대본·Q&A |
+| `ppt-editorial` | PPT 자연어 즉시 라우팅, 필수 한국어 윤문, 씬 덱·이미지 퍼스트, 정보 구도 7종, 대본·Q&A |
 
 ## 독립 `business-documents` 플러그인
 
@@ -324,6 +326,7 @@ npm i -g @openai/codex && codex login
 | `python-pptx` | 수정 가능한 PPTX 저장 | PDF만 나옴 |
 | `opencv-python` | 사진 자동 크롭 | 사진 슬라이드만 안 됨 |
 | **codex CLI** | **배경 그림 생성** | **글자만 있는 덱은 그대로 됩니다** |
+| **Bundled Pretendard 1.3.9** | Regular·Medium·SemiBold·Bold, SIL OFL 1.1 | 사용자 범위 설치기로 검증·등록 |
 
 codex CLI는 **Claude Code에서 써도 따로 설치해야 합니다.** 배경 그림을 만드는
 이미지 생성 엔진을 이 CLI로 부르기 때문입니다. 설치돼 있지 않으면
@@ -366,6 +369,9 @@ DEMO/PARTIAL은 승인·선택을 합성하지 않으므로 7단계를 BLOCK으�
 - 원본 문서는 그대로 보관하고 복사본만 치환합니다.
 - 일반 양식에 중괄호가 0개이면 자동치환을 중단하고 `template-field-map.csv`로 수동 매핑합니다.
 - 콘텐츠 검토와 사용자 승인이 끝난 값만 HWPX에 반영합니다.
+- 사용자가 한글에서 수정한 HWPX를 다시 올리면 그 파일을 새 `user-edited-canonical`로 잠그고 과거 자동 생성본에서 다시 만들지 않습니다.
+- `paraProperties`·`charProperties`·`borderFills`의 배열 순서·ID·`itemCnt`와 LEFT/CENTER 참조를 검사합니다.
+- 사용자가 지운 블록은 deletion receipt로 복원을 차단하고 `Preview/PrvText.txt`를 최종 section 본문과 동기화합니다.
 - 시각자료는 승인된 `앞 문단 / 뒤 문단` 사이에 놓고 답변 셀 마지막 일괄 배치를 금지합니다.
 - 한글 호환 구조는 `tc → subList → p → run → tbl`의 1열 2행 중첩표입니다.
 - 캡션은 `그림 N. 핵심 그림명`으로 짧게 쓰고 가운데 정렬합니다.
@@ -404,7 +410,7 @@ codex plugin add business-plan-writer@dayoun
 
 ## 버전
 
-현재 `main` marketplace의 공개 RC는 `business-plan-writer 0.12.1`, `business-documents 0.1.0`입니다. Codex와 Claude Code의 원격 설치를 실제 검증했습니다. stable `1.0`은 10개 fixture × 3개 실제 프로바이더, 선택 문서의 자동·외부 화면검수, N≥10 강의 검증, 10명 외부 베타, 중대 결함 0건을 모두 만족하기 전에는 태그하지 않습니다.
+현재 `main` marketplace의 공개 RC는 `business-plan-writer 0.12.2`, `business-documents 0.1.0`입니다. Codex와 Claude Code의 원격 설치를 실제 검증했습니다. stable `1.0`은 10개 fixture × 3개 실제 프로바이더, 선택 문서의 자동·외부 화면검수, N≥10 강의 검증, 10명 외부 베타, 중대 결함 0건을 모두 만족하기 전에는 태그하지 않습니다.
 
 ## 기여와 문의
 

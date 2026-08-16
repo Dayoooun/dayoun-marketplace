@@ -12,17 +12,20 @@
 - 기존 플러그인, 사용자 설정, 작업 파일은 보존한다.
 - 실패를 성공으로 보고하거나 확인되지 않은 명령을 만들지 않는다.
 
-설치 성공 보고에서 멈추지 않습니다. 사용자가 자연어로 사업계획서·HWPX·PPT 결과를
-요청하면 스킬 이름이나 명령을 되묻지 않고 `complete-business-plan`을 기본 진입점으로
-사용합니다. 사용자의 명시적 지시를 고정 조건으로 기록하고, 되돌릴 수 있는 분석·조사·
-디자인은 직접 진행하며 결과를 바꾸는 결정만 권장안과 함께 확인받습니다. 특히 HWPX는
+설치 성공 보고에서 멈추지 않습니다. 사용자가 자연어로 사업계획서·HWPX 결과를 요청하면
+스킬 이름이나 명령을 되묻지 않고 `complete-business-plan`을 기본 진입점으로 사용합니다.
+PPT·PPTX·파워포인트·슬라이드·발표자료·피치덱·IR 덱·제안서·강의자료의 생성·수정·
+리디자인·PDF 변환·대본·예상 Q&A를 말하면 `ppt-editorial`을 즉시 적용합니다.
+모든 PPT 제목·본문·캡션·대본·Q&A는 보호값 대조를 포함한 한국어 윤문을 반드시 거칩니다.
+사용자의 명시적 지시를 고정 조건으로 기록하고, 되돌릴 수 있는 분석·조사·디자인은 직접
+진행하며 결과를 바꾸는 결정만 권장안과 함께 확인받습니다. 특히 HWPX는
 원본 보존, 의미 기반 시각자료, 실제 PDF/PNG 화면검수까지 리드합니다.
 
 현재 공개 RC 버전:
 
 | 플러그인 | 버전 | 용도 |
 |---|---:|---|
-| `business-plan-writer` | `0.12.1` | 자연어 지시 리드, QUICK·SECTION·FULL, 자율 HWPX 디자인, scene-deck/image-first PPT |
+| `business-plan-writer` | `0.12.2` | 자연어 지시 리드, 사용자 수정 HWPX 보존, QUICK·SECTION·FULL, 즉시 라우팅·필수 윤문 PPT |
 | `business-documents` | `0.1.0` | 견적서·회사소개서·이력서·공문·안내문 HTML |
 
 stable `1.0`은 외부 프로바이더·화면검수·강의·베타 증거가 충족되기 전까지 설치 대상으로 안내하지 않습니다.
@@ -63,7 +66,7 @@ codex plugin list
 
 - marketplace 이름이 `dayoun`이다.
 - `business-plan-writer@dayoun`이 `installed, enabled`다.
-- writer 버전이 `0.12.1`이다.
+- writer 버전이 `0.12.2`이다.
 - 요청한 경우 `business-documents@dayoun`이 `installed, enabled`이고 `0.1.0`이다.
 
 marketplace가 이미 등록되어 있으면 추가 실패를 반복하지 않습니다. 다음 업데이트 명령으로 전환합니다.
@@ -97,7 +100,7 @@ claude plugin list
 
 - 두 플러그인의 scope가 의도한 사용자 또는 프로젝트 scope다.
 - 상태가 enabled다.
-- 버전이 각각 `0.12.1`, `0.1.0`이다.
+- 버전이 각각 `0.12.2`, `0.1.0`이다.
 - 설치 후 Claude Code 재시작이 필요하다고 안내한다.
 
 이미 등록된 marketplace는 중복 추가하지 않고 업데이트합니다.
@@ -160,6 +163,9 @@ create-business-documents 스킬을 사용해줘.
 | 견적서·회사소개서·공문 | `create-business-documents` |
 
 HWPX와 PPT는 독립 선택 산출물입니다. PPT를 만들기 위해 HWPX를 먼저 만들도록 강제하지 않습니다.
+
+PPT 렌더 전 bundled Pretendard 1.3.9의 bundle·사용자 범위 설치를 검사하고 없을 때만
+`install_bundled_fonts.py install`을 실행합니다.
 
 ## 안전 규칙
 

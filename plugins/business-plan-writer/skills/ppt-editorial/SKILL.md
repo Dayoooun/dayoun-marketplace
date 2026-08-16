@@ -1,8 +1,37 @@
 ---
 name: ppt-editorial
-description: "발표 덱 제작 통합 하네스. 요구사항을 확인한 뒤 deck_brief·content_report·style_card·slide_blueprint로 정리하고 두 모드 중 하나로 생성한다 — (A) 씬 덱: 배경 일러스트만 모델이 그리고 텍스트는 코드가 렌더해 한글이 정확하며 원본 spec 수정이 빠른 이미지형 PPTX/PDF 산출. (B) 이미지 퍼스트: 슬라이드를 한 장 이미지로 통째 생성, 비주얼 자유도 최대. 제안서·결과보고·IR·강의자료·리디자인에 쓴다. Windows와 macOS 지원."
+description: "PPT·PPTX·파워포인트·슬라이드·발표자료·발표덱·피치덱·IR덱·제안서·강의자료를 새로 만들거나 수정·리디자인·PDF 변환·대본·예상 Q&A까지 요청하면 스킬명을 말하지 않아도 즉시 사용하는 통합 하네스. scene-deck과 image-first를 지원하고, 모든 제목·본문·캡션·대본·Q&A는 사실·수치·고유명사·URL·명령을 보호한 한국어 윤문을 반드시 거친 뒤 PPTX/PDF로 렌더한다. Windows와 macOS 지원."
 ---
 
+
+## 호출 조건 — PPT 이야기면 즉시 사용
+
+사용자가 스킬명을 몰라도 다음 표현 중 하나를 말하면 이 스킬을 바로 적용한다.
+
+- `PPT`, `pptx`, `파워포인트`, `슬라이드`, `발표자료`, `발표 덱`
+- `피치덱`, `IR 덱`, `제안서`, `강의자료`, `교육자료`
+- 기존 PPT의 `수정`, `리디자인`, `다듬기`, `PDF 변환`, `대본`, `예상 Q&A`
+
+단순히 PPT 파일 내용을 조회하는 정보 질문만 read-only로 답한다. 생성·수정·변환 의도가
+있으면 `ppt-editorial`이라는 이름을 다시 말하게 하지 않고 이 하네스를 시작한다.
+
+## 필수 한국어 윤문 gate
+
+`references/korean-prose-humanization.md`를 모든 모드에서 반드시 적용한다. 윤문은 선택
+옵션이 아니다.
+
+1. `content_report`의 사실·수치·고유명사·기관명·날짜·단위·URL·명령·복사용 프롬프트를
+   보호 목록으로 먼저 잠근다.
+2. 제목·본문·캡션·전환문·발표 대본·예상 Q&A의 한국어 산문을 Document prose mode로
+   윤문한다. `kill-ai-slop`이 설치돼 있으면 그 스킬을 사용해 `humanize-korean`에
+   위임하고, 없으면 이 플러그인에 포함된 로컬 reference 규칙을 그대로 적용한다.
+3. 복사용 명령·코드·URL·정확한 제품명은 윤문하지 않는다.
+4. 윤문 전후 보호 목록이 글자 단위로 같지 않으면 BLOCK하고 문구를 되돌린다.
+5. 윤문 완료 전에는 `slide_blueprint`, 씬 프롬프트, PPTX/PDF 조립으로 넘어가지 않는다.
+6. 대본·예상 Q&A를 만든 뒤에도 같은 gate를 한 번 더 적용한다.
+
+완료 보고에는 `윤문: PASS`, 적용 범위, 보호한 사실과 실행한 방식
+(`kill-ai-slop` 또는 bundled local rules)을 남긴다.
 # 슬라이드 덱 하네스 — 씬 덱 방식
 
 ## 파이프라인 위치: 10단계 발표 PPT·대본·예상 Q&A
@@ -79,6 +108,16 @@ python3 -m pip install pillow opencv-python pymupdf numpy python-pptx
 npm i -g @openai/codex
 codex login
 python3 scripts/harness_smoke.py
+```
+
+이 플러그인은 Pretendard 1.3.9의 Regular·Medium·SemiBold·Bold와 SIL OFL 1.1
+라이선스를 `assets/fonts/pretendard`에 포함한다. 렌더 전에 다음 명령으로 bundle과
+사용자 범위 설치 상태를 검사하고, 없을 때만 설치한다.
+
+```bash
+python ../fill-hwpx-template/scripts/install_bundled_fonts.py verify-bundle
+python ../fill-hwpx-template/scripts/install_bundled_fonts.py check
+python ../fill-hwpx-template/scripts/install_bundled_fonts.py install
 ```
 
 `platform_support.py`가 Windows의 사용자 폰트 폴더와 macOS의

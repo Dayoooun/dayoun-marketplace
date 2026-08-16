@@ -66,6 +66,33 @@ def element_digest(element: ET.Element) -> str:
     return hashlib.sha256(canonical_element(element)).hexdigest()
 
 
+def border_fill_profile(definition: ET.Element | None) -> dict[str, Any]:
+    if definition is None:
+        return {
+            "id": "",
+            "digest": "",
+            "background": "",
+            "borders": {},
+        }
+    values = attributes(definition)
+    brush = first_descendant(definition, "winBrush")
+    borders = {
+        local_name(node.tag): attributes(node)
+        for node in list(definition)
+        if local_name(node.tag).endswith("Border")
+    }
+    return {
+        "id": values.get("id", ""),
+        "digest": element_digest(definition),
+        "background": (
+            attributes(brush).get("faceColor", "")
+            if brush is not None
+            else ""
+        ),
+        "borders": borders,
+    }
+
+
 def read_xml(archive: zipfile.ZipFile, name: str) -> ET.Element:
     try:
         return ET.fromstring(archive.read(name))
@@ -261,15 +288,18 @@ def visual_receipt(
     char_ref = attributes(caption_run).get("charPrIDRef", "") if caption_run is not None else ""
     para_definition = find_header_definition(header, "paraPr", para_ref)
     char_definition = find_header_definition(header, "charPr", char_ref)
-    border_ref = attributes(caption_cell).get("borderFillIDRef", "") if caption_cell is not None else ""
-    border_definition = find_header_definition(header, "borderFill", border_ref)
+    image_border_ref = attributes(image_cell).get("borderFillIDRef", "") if image_cell is not None else ""
+    caption_border_ref = attributes(caption_cell).get("borderFillIDRef", "") if caption_cell is not None else ""
+    image_border_definition = find_header_definition(header, "borderFill", image_border_ref)
+    caption_border_definition = find_header_definition(header, "borderFill", caption_border_ref)
+    image_border_profile = border_fill_profile(image_border_definition)
+    caption_border_profile = border_fill_profile(caption_border_definition)
 
     align = first_descendant(para_definition, "align") if para_definition is not None else None
     caption_align = attributes(align).get("horizontal", "") if align is not None else ""
     caption_height = attributes(char_definition).get("height", "") if char_definition is not None else ""
     caption_bold = bool(descendants(char_definition, "bold")) if char_definition is not None else False
-    brush = first_descendant(border_definition, "winBrush") if border_definition is not None else None
-    caption_background = attributes(brush).get("faceColor", "") if brush is not None else ""
+    caption_background = caption_border_profile["background"]
 
     if not CAPTION_PATTERN.fullmatch(caption):
         errors.append("caption must use '그림 N. 핵심 그림명' format")
@@ -295,6 +325,12 @@ def visual_receipt(
         "imageHref": image_href,
         "imageCellMargin": attributes(image_margin) if image_margin is not None else {},
         "captionCellMargin": attributes(caption_margin) if caption_margin is not None else {},
+        "imageCellBorderFillID": image_border_ref,
+        "captionCellBorderFillID": caption_border_ref,
+        "imageCellBorderDigest": image_border_profile["digest"],
+        "captionCellBorderDigest": caption_border_profile["digest"],
+        "imageCellBorders": image_border_profile["borders"],
+        "captionCellBorders": caption_border_profile["borders"],
         "captionRowHeight": attributes(caption_size).get("height", "") if caption_size is not None else "",
         "captionPointSize": str(int(caption_height) // 100) if caption_height.isdigit() else "",
         "captionBold": caption_bold,
@@ -422,6 +458,10 @@ def validate_against_spec(
             "captionBold": "captionBold",
             "captionAlign": "captionAlign",
             "captionBackground": "captionBackground",
+            "imageCellBorderFillID": "imageCellBorderFillID",
+            "captionCellBorderFillID": "captionCellBorderFillID",
+            "imageCellBorderDigest": "imageCellBorderDigest",
+            "captionCellBorderDigest": "captionCellBorderDigest",
         }
         for spec_key, report_key in scalar_checks.items():
             if spec_key in expected:
