@@ -4,16 +4,17 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import csv
 import html
 import json
 import os
-import random
 import re
 import tempfile
+import unicodedata
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable
 from xml.sax.saxutils import escape
 from zipfile import BadZipFile, ZIP_STORED, ZipFile
 
@@ -30,7 +31,26 @@ LINES_RE = re.compile(
     r"<hp:linesegarray\b[^>]*>.*?</hp:linesegarray>|<hp:linesegarray\b[^>]*/>",
     flags=re.DOTALL,
 )
-P_ID_RE = re.compile(r'(<hp:p\b[^>]*\bid=")[^"]+(")')
+P_ID_RE = re.compile(r'(<hp:p\b[^>]*\bid=")([^"]+)(")')
+PARA_REF_RE = re.compile(r'(<hp:p\b[^>]*\bparaPrIDRef=")([^"]+)(")')
+RUN_CHAR_REF_RE = re.compile(r'(<hp:run\b[^>]*\bcharPrIDRef=")([^"]+)(")')
+RUN_BLOCK_RE = re.compile(r"<hp:run\b[^>]*>.*?</hp:run>", flags=re.DOTALL)
+OUTLINE_HEADING_PREFIXES = ("o ", "○ ", "□ ")
+OUTLINE_DETAIL_PREFIXES = ("- ", "• ", "▪ ")
+LONG_PROSE_THRESHOLD = 200
+CLAIM_MARKER_START_RE = re.compile(r"\[[EUHP]\d{3}")
+CLAIM_MARKER_RE = re.compile(
+    r"\[([EUHP]\d{3}) \| ([^\[\]\|]{2,100})\]"
+)
+EVIDENCE_TYPE_BY_PREFIX = {
+    "E": "external",
+    "U": "user",
+    "H": "hypothesis",
+    "P": "plan",
+}
+HEAD_NS = "http://www.hancom.co.kr/hwpml/2011/head"
+PARAGRAPH_NS = "http://www.hancom.co.kr/hwpml/2011/paragraph"
+CORE_NS = "http://www.hancom.co.kr/hwpml/2011/core"
 REQUIRED_APPROVAL_FIELDS = ("approved_by", "approved_at", "source_draft")
 BLOCK_LOG_STATUSES = {"BLOCK", "NOT_FOUND", "SKIPPED_EMPTY"}
 
@@ -110,12 +130,356 @@ def visible_text(xml_fragment: str) -> str:
     return html.unescape(re.sub(r"<[^>]+>", "", xml_fragment)).strip()
 
 
-def reset_paragraph_id(block: str) -> str:
-    new_id = str(random.randint(100_000_000, 2_000_000_000))
-    return P_ID_RE.sub(rf"\g<1>{new_id}\2", block, count=1)
+def reset_paragraph_id(block: str, new_id: str) -> str:
+    return P_ID_RE.sub(
+        lambda match: match.group(1) + new_id + match.group(3),
+        block,
+        count=1,
+    )
 
 
-def replace_multiline(text: str, marker: str, value: str) -> tuple[str, int, str | None]:
+def local_name(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1]
+
+
+def outline_role(line: str) -> str | None:
+    stripped = line.strip()
+    if stripped.startswith(OUTLINE_HEADING_PREFIXES):
+        return "heading"
+    if stripped.startswith(OUTLINE_DETAIL_PREFIXES):
+        return "detail"
+    return None
+
+
+def claim_markers_at_end(text: str) -> list[tuple[str, str]]:
+    stripped = text.strip()
+    start = CLAIM_MARKER_START_RE.search(stripped)
+    if start is None:
+        return []
+    suffix = stripped[start.start():]
+    parsed = []
+    cursor = 0
+    for match in CLAIM_MARKER_RE.finditer(suffix):
+        if match.start() != cursor:
+            raise ValueError(
+                "첫 주장 표지부터 문단 끝까지 올바른 표지만 연속으로 와야 합니다."
+            )
+        evidence_id = match.group(1)
+        label = match.group(2)
+        if (
+            label != label.strip()
+            or len(label) < 2
+            or any(unicodedata.category(char).startswith("C") for char in label)
+        ):
+            raise ValueError(
+                "주장 표지의 짧은 출처·상태는 공백·제어문자 없는 2자 이상이어야 합니다."
+            )
+        parsed.append((evidence_id, label))
+        cursor = match.end()
+    if not parsed or cursor != len(suffix):
+        raise ValueError(
+            "첫 주장 표지부터 문단 끝까지 올바른 표지만 연속으로 와야 합니다."
+        )
+    return parsed
+
+
+def parse_outline_value(value: str) -> list[str] | None:
+    lines = [line.strip() for line in value.splitlines() if line.strip()]
+    roles = [outline_role(line) for line in lines]
+    if not any(roles):
+        return None
+    if any(role is None for role in roles):
+        raise ValueError("개조식 값의 모든 일반 문단에는 허용된 항목 기호가 필요합니다.")
+    if roles[0] != "heading":
+        raise ValueError("개조식 값은 `o`, `○`, `□` 핵심항목으로 시작해야 합니다.")
+    if "detail" not in roles:
+        raise ValueError("각 개조식 값에는 `-`, `•`, `▪` 세부내용이 필요합니다.")
+    previous_role = None
+    for role in roles:
+        if role == "heading" and previous_role == "heading":
+            raise ValueError("핵심항목 뒤에는 다음 핵심항목 전에 세부내용이 필요합니다.")
+        previous_role = role
+    if roles[-1] == "heading":
+        raise ValueError("마지막 핵심항목에도 세부내용이 필요합니다.")
+    untraced_details = [
+        line
+        for line, role in zip(lines, roles)
+        if role == "detail" and not claim_markers_at_end(line)
+    ]
+    if untraced_details:
+        raise ValueError(
+            "각 세부내용 주장은 끝에 "
+            "[E001 | 기관·연도]·[U001 | 사용자 자료]·"
+            "[H001 | 검증가설]·[P001 | 실행계획] 형식의 "
+            "근거 또는 상태 표지가 필요합니다."
+        )
+    return lines
+
+
+def marker_block_style_refs(
+    block: str,
+    marker: str,
+) -> tuple[str, str] | None:
+    para_match = PARA_REF_RE.search(block)
+    marker_runs = [
+        match.group(0)
+        for match in RUN_BLOCK_RE.finditer(block)
+        if marker in match.group(0)
+    ]
+    if para_match is None or len(marker_runs) != 1:
+        return None
+    marker_run = marker_runs[0]
+    if visible_text(marker_run) != marker:
+        return None
+    char_match = RUN_CHAR_REF_RE.search(marker_run)
+    if char_match is None:
+        return None
+    return para_match.group(2), char_match.group(2)
+
+
+def find_marker_style_refs(
+    text: str,
+    marker: str,
+) -> set[tuple[str, str]]:
+    refs: set[tuple[str, str]] = set()
+    search_from = 0
+    while True:
+        marker_at = text.find(marker, search_from)
+        if marker_at < 0:
+            break
+        p_start = text.rfind("<hp:p", 0, marker_at)
+        p_end_at = text.find("</hp:p>", marker_at)
+        if p_start >= 0 and p_end_at >= 0:
+            block = text[p_start:p_end_at + len("</hp:p>")]
+            if visible_text(block) == marker:
+                pair = marker_block_style_refs(block, marker)
+                if pair is not None:
+                    refs.add(pair)
+        search_from = marker_at + len(marker)
+    return refs
+
+
+def _numeric_id(node: ET.Element) -> int:
+    try:
+        return int(node.attrib.get("id", "-1"))
+    except ValueError:
+        return -1
+
+
+def _has_child(node: ET.Element, child_name: str) -> bool:
+    return any(local_name(child.tag) == child_name for child in list(node))
+
+
+
+
+def _set_outline_margin(para_pr: ET.Element, *, left: int, intent: int) -> None:
+    found_left = False
+    found_intent = False
+    for node in para_pr.iter():
+        name = local_name(node.tag)
+        if name == "left":
+            node.set("value", str(left))
+            node.set("unit", "HWPUNIT")
+            found_left = True
+        elif name == "intent":
+            node.set("value", str(intent))
+            node.set("unit", "HWPUNIT")
+            found_intent = True
+        elif name == "align":
+            node.set("horizontal", "LEFT")
+    if not found_left or not found_intent:
+        raise ValueError("기준 문단 스타일에서 내어쓰기 margin을 찾지 못했습니다.")
+
+
+def _clone_char_style(
+    char_properties: ET.Element,
+    base: ET.Element,
+    *,
+    new_id: int,
+    bold: bool,
+) -> str:
+    clone = deepcopy(base)
+    clone.set("id", str(new_id))
+    for child in list(clone):
+        if local_name(child.tag) == "bold" and not bold:
+            clone.remove(child)
+    if bold and not _has_child(clone, "bold"):
+        bold_node = ET.Element(f"{{{HEAD_NS}}}bold")
+        children = list(clone)
+        insert_at = next(
+            (
+                index
+                for index, child in enumerate(children)
+                if local_name(child.tag) in {"underline", "strikeout"}
+            ),
+            len(children),
+        )
+        clone.insert(insert_at, bold_node)
+    char_properties.append(clone)
+    return str(new_id)
+
+
+def ensure_outline_styles(
+    header_text: str,
+    base_pairs: set[tuple[str, str]],
+) -> tuple[str, dict[tuple[str, str], dict[str, str]]]:
+    ET.register_namespace("hh", HEAD_NS)
+    ET.register_namespace("hp", PARAGRAPH_NS)
+    ET.register_namespace("hc", CORE_NS)
+    root = ET.fromstring(header_text.encode("utf-8"))
+    para_properties = next(
+        (node for node in root.iter() if local_name(node.tag) == "paraProperties"),
+        None,
+    )
+    char_properties = next(
+        (node for node in root.iter() if local_name(node.tag) == "charProperties"),
+        None,
+    )
+    if para_properties is None or char_properties is None:
+        raise ValueError("header.xml에서 문단·글자 스타일 목록을 찾지 못했습니다.")
+
+    para_defs = {
+        node.attrib.get("id"): node
+        for node in list(para_properties)
+        if local_name(node.tag) == "paraPr"
+    }
+    char_defs = {
+        node.attrib.get("id"): node
+        for node in list(char_properties)
+        if local_name(node.tag) == "charPr"
+    }
+    next_para_id = max(
+        (_numeric_id(node) for node in list(para_properties)),
+        default=-1,
+    ) + 1
+    next_char_id = max(
+        (_numeric_id(node) for node in list(char_properties)),
+        default=-1,
+    ) + 1
+    styles_by_base: dict[tuple[str, str], dict[str, str]] = {}
+
+    def stable_pair(pair: tuple[str, str]) -> tuple[int, int, str, str]:
+        para_id, char_id = pair
+        try:
+            para_number = int(para_id)
+        except ValueError:
+            para_number = -1
+        try:
+            char_number = int(char_id)
+        except ValueError:
+            char_number = -1
+        return para_number, char_number, para_id, char_id
+
+    for base_para_id, base_char_id in sorted(base_pairs, key=stable_pair):
+        base_para = para_defs.get(base_para_id)
+        base_char = char_defs.get(base_char_id)
+        if base_para is None or base_char is None:
+            raise ValueError("플레이스홀더의 기준 문단·글자 스타일을 찾지 못했습니다.")
+
+        heading_para_id = str(next_para_id)
+        next_para_id += 1
+        heading_para = deepcopy(base_para)
+        heading_para.set("id", heading_para_id)
+        _set_outline_margin(heading_para, left=1200, intent=-1200)
+        para_properties.append(heading_para)
+
+        detail_para_id = str(next_para_id)
+        next_para_id += 1
+        detail_para = deepcopy(base_para)
+        detail_para.set("id", detail_para_id)
+        _set_outline_margin(detail_para, left=2400, intent=-1200)
+        para_properties.append(detail_para)
+
+        heading_char_id = _clone_char_style(
+            char_properties,
+            base_char,
+            new_id=next_char_id,
+            bold=True,
+        )
+        next_char_id += 1
+        detail_char_id = _clone_char_style(
+            char_properties,
+            base_char,
+            new_id=next_char_id,
+            bold=False,
+        )
+        next_char_id += 1
+        styles_by_base[(base_para_id, base_char_id)] = {
+            "headingParaPrIDRef": heading_para_id,
+            "detailParaPrIDRef": detail_para_id,
+            "headingCharPrIDRef": heading_char_id,
+            "detailCharPrIDRef": detail_char_id,
+        }
+
+    para_properties.set(
+        "itemCnt",
+        str(sum(local_name(node.tag) == "paraPr" for node in list(para_properties))),
+    )
+    char_properties.set(
+        "itemCnt",
+        str(sum(local_name(node.tag) == "charPr" for node in list(char_properties))),
+    )
+    serialized = ET.tostring(
+        root,
+        encoding="utf-8",
+        xml_declaration=True,
+    ).decode("utf-8")
+    return serialized, styles_by_base
+
+
+def apply_outline_style(
+    block: str,
+    marker: str,
+    role: str,
+    styles_by_base: dict[tuple[str, str], dict[str, str]],
+) -> str:
+    base_refs = marker_block_style_refs(block, marker)
+    if base_refs is None:
+        raise ValueError(
+            "개조식 플레이스홀더는 한 개의 텍스트 run에 단독으로 있어야 합니다."
+        )
+    styles = styles_by_base.get(base_refs)
+    if styles is None:
+        raise ValueError("플레이스홀더 기준 스타일의 개조식 매핑을 찾지 못했습니다.")
+
+    prefix = "heading" if role == "heading" else "detail"
+    para_id = styles[f"{prefix}ParaPrIDRef"]
+    char_id = styles[f"{prefix}CharPrIDRef"]
+    block = PARA_REF_RE.sub(
+        lambda match: match.group(1) + para_id + match.group(3),
+        block,
+        count=1,
+    )
+    marker_run_match = next(
+        (
+            match
+            for match in RUN_BLOCK_RE.finditer(block)
+            if marker in match.group(0)
+        ),
+        None,
+    )
+    if marker_run_match is None:
+        raise ValueError("플레이스홀더 텍스트 run을 찾지 못했습니다.")
+    marker_run = RUN_CHAR_REF_RE.sub(
+        lambda match: match.group(1) + char_id + match.group(3),
+        marker_run_match.group(0),
+        count=1,
+    )
+    return (
+        block[:marker_run_match.start()]
+        + marker_run
+        + block[marker_run_match.end():]
+    )
+
+
+def replace_multiline(
+    text: str,
+    marker: str,
+    value: str,
+    outline_styles: dict[tuple[str, str], dict[str, str]] | None = None,
+    outline_lines: list[str] | None = None,
+    next_paragraph_id: Callable[[], str] | None = None,
+) -> tuple[str, int, str | None]:
     count = 0
     while marker in text:
         marker_at = text.find(marker)
@@ -127,12 +491,29 @@ def replace_multiline(text: str, marker: str, value: str) -> tuple[str, int, str
         block = text[p_start:p_end]
         if visible_text(block) != marker:
             return text, count, "여러 줄 값의 플레이스홀더는 문단에 단독으로 있어야 합니다."
+        if next_paragraph_id is None:
+            return text, count, "결정적 문단 ID allocator가 없습니다."
 
-        lines = value.splitlines() or [""]
+        lines = outline_lines if outline_lines is not None else (value.splitlines() or [""])
         clones = []
         for line in lines:
-            clone = block.replace(marker, escape(line), 1)
-            clones.append(reset_paragraph_id(clone))
+            clone = block
+            if outline_lines is not None:
+                role = outline_role(line)
+                if role is None or outline_styles is None:
+                    return text, count, "개조식 문단 역할 또는 스타일 매핑이 없습니다."
+                try:
+                    clone = apply_outline_style(
+                        clone,
+                        marker,
+                        role,
+                        outline_styles,
+                    )
+                except ValueError as exc:
+                    return text, count, str(exc)
+            clone = clone.replace(marker, escape(line), 1)
+            clone = reset_paragraph_id(clone, next_paragraph_id())
+            clones.append(clone)
         text = text[:p_start] + "".join(clones) + text[p_end:]
         count += 1
     return text, count, None
@@ -168,6 +549,108 @@ def load_values(path: Path, allow_unapproved: bool = False) -> dict[str, str]:
     return values
 
 
+def load_claim_free(path: Path, values: dict[str, str]) -> set[str]:
+    raw = json.loads(path.read_text(encoding="utf-8-sig"))
+    claim_free = raw.get("_claim_free", {})
+    if not isinstance(claim_free, dict):
+        raise ValueError("_claim_free는 플레이스홀더와 비주장 사유의 객체여야 합니다.")
+    result = set()
+    for marker, reason in claim_free.items():
+        if marker not in values:
+            raise ValueError(f"_claim_free에 values에 없는 키가 있습니다: {marker}")
+        if not isinstance(reason, str) or not reason.strip():
+            raise ValueError(f"_claim_free 사유가 필요합니다: {marker}")
+        result.add(marker)
+    return result
+
+
+def validate_evidence_registry(
+    values: dict[str, str],
+    registry_path: Path | None,
+) -> set[str]:
+    claimed_labels: dict[str, set[str]] = {}
+    for value in values.values():
+        for paragraph in value.splitlines() or [value]:
+            for evidence_id, label in claim_markers_at_end(paragraph):
+                claimed_labels.setdefault(evidence_id, set()).add(label)
+    claimed_ids = set(claimed_labels)
+    if not claimed_ids:
+        return set()
+    if registry_path is None:
+        raise ValueError(
+            "주장 ID가 있는 값에는 --evidence-registry 근거목록.csv가 필요합니다."
+        )
+    if not registry_path.is_file():
+        raise FileNotFoundError(f"근거목록.csv를 찾을 수 없습니다: {registry_path}")
+
+    with registry_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        required = {
+            "evidence_id",
+            "evidence_type",
+            "inline_citation",
+            "statement",
+            "source_name",
+            "source_path_or_url",
+            "checked_on",
+            "status",
+        }
+        missing_columns = required.difference(reader.fieldnames or [])
+        if missing_columns:
+            raise ValueError(
+                "근거목록.csv 필수 열 누락: " + ", ".join(sorted(missing_columns))
+            )
+        rows: dict[str, dict[str, str]] = {}
+        for row in reader:
+            evidence_id = (row.get("evidence_id") or "").strip()
+            if not evidence_id:
+                continue
+            if not re.fullmatch(r"[EUHP]\d{3}", evidence_id):
+                raise ValueError(f"잘못된 evidence_id: {evidence_id}")
+            if evidence_id in rows:
+                raise ValueError(f"중복 evidence_id: {evidence_id}")
+            rows[evidence_id] = row
+
+    missing_ids = sorted(claimed_ids.difference(rows))
+    if missing_ids:
+        raise ValueError(
+            "근거목록.csv에 없는 주장 ID: " + ", ".join(missing_ids)
+        )
+    for evidence_id in sorted(claimed_ids):
+        row = rows[evidence_id]
+        expected_type = EVIDENCE_TYPE_BY_PREFIX[evidence_id[0]]
+        actual_type = (row.get("evidence_type") or "").strip().lower()
+        if actual_type != expected_type:
+            raise ValueError(
+                f"{evidence_id} evidence_type은 {expected_type}이어야 합니다."
+            )
+        inline_citation = row.get("inline_citation") or ""
+        if (
+            not inline_citation
+            or inline_citation != inline_citation.strip()
+            or any(
+                unicodedata.category(char).startswith("C")
+                for char in inline_citation
+            )
+        ):
+            raise ValueError(
+                f"{evidence_id} inline_citation은 앞뒤 공백·제어문자 없이 필요합니다."
+            )
+        if claimed_labels[evidence_id] != {inline_citation}:
+            raise ValueError(
+                f"{evidence_id} 보고서 표지는 근거목록.csv inline_citation "
+                f"{inline_citation!r}와 정확히 일치해야 합니다."
+            )
+        for field in ("statement", "status"):
+            if not (row.get(field) or "").strip():
+                raise ValueError(f"{evidence_id} {field} 값이 필요합니다.")
+        if evidence_id[0] in {"E", "U"}:
+            for field in ("source_name", "source_path_or_url", "checked_on"):
+                if not (row.get(field) or "").strip():
+                    raise ValueError(f"{evidence_id} {field} 값이 필요합니다.")
+    return claimed_ids
+
+
 def write_log(path: Path, rows: list[dict[str, str]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8-sig", newline="") as handle:
@@ -187,6 +670,8 @@ def fill_hwpx(
     overwrite: bool,
     allow_unapproved_values: bool = False,
     allow_empty: bool = False,
+    allow_prose_values: bool = False,
+    evidence_registry_path: Path | None = None,
 ) -> tuple[list[str], list[dict[str, str]]]:
     input_errors = validate_hwpx(source)
     if input_errors:
@@ -199,17 +684,96 @@ def fill_hwpx(
         raise FileNotFoundError(f"치환값 파일을 찾을 수 없습니다: {values_path}")
 
     values = load_values(values_path, allow_unapproved=allow_unapproved_values)
+    claim_free_markers = load_claim_free(values_path, values)
     if not values and not allow_empty:
         raise ValueError(
             "치환값이 0개입니다. 자동 치환을 중단합니다. "
             "빈 치환이 의도라면 --allow-empty를 명시하세요."
         )
+    outline_lines_by_marker: dict[str, list[str]] = {}
+    prose_markers = []
+    for marker, value in values.items():
+        if not value:
+            continue
+        try:
+            outline_lines = parse_outline_value(value)
+        except ValueError as exc:
+            raise ValueError(f"{marker}: {exc}") from exc
+        if outline_lines is not None:
+            outline_lines_by_marker[marker] = outline_lines
+        else:
+            prose_paragraphs = [
+                line.strip()
+                for line in value.splitlines()
+                if line.strip()
+            ] or [value.strip()]
+            if marker not in claim_free_markers:
+                for paragraph in prose_paragraphs:
+                    try:
+                        markers = claim_markers_at_end(paragraph)
+                    except ValueError as exc:
+                        raise ValueError(f"{marker}: {exc}") from exc
+                    if not markers:
+                        raise ValueError(
+                            f"{marker}: 주장 문단 끝에 "
+                            "[E001 | 기관·연도]·[U001 | 사용자 자료]·"
+                            "[H001 | 검증가설]·[P001 | 실행계획] "
+                            "근거 또는 상태 표지가 필요합니다."
+                        )
+            if (
+                len(value.strip()) >= LONG_PROSE_THRESHOLD
+                and not allow_prose_values
+            ):
+                prose_markers.append(marker)
+    if prose_markers:
+        raise ValueError(
+            "장문 HWPX 답변은 기본 개조식이어야 합니다. "
+            "`o 핵심항목`과 `- 세부내용` 문단으로 나누세요: "
+            + ", ".join(prose_markers)
+            + ". 공식 양식이 서술형을 요구할 때만 --allow-prose-values를 사용하세요."
+        )
+    validate_evidence_registry(values, evidence_registry_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, str]] = []
     modified: dict[str, bytes] = {}
     totals = {marker: 0 for marker in values}
 
     with ZipFile(source, "r") as archive:
+        section_texts = {
+            name: archive.read(name).decode("utf-8")
+            for name in archive.namelist()
+            if re.fullmatch(r"Contents/section\d+\.xml", name)
+        }
+        existing_paragraph_ids = []
+        for section_text in section_texts.values():
+            for match in P_ID_RE.finditer(section_text):
+                try:
+                    existing_paragraph_ids.append(int(match.group(2)))
+                except (IndexError, ValueError):
+                    continue
+        next_paragraph_number = max(existing_paragraph_ids, default=0) + 1
+
+        def allocate_paragraph_id() -> str:
+            nonlocal next_paragraph_number
+            allocated = str(next_paragraph_number)
+            next_paragraph_number += 1
+            return allocated
+
+        outline_styles: (
+            dict[tuple[str, str], dict[str, str]] | None
+        ) = None
+        if outline_lines_by_marker:
+            base_pairs: set[tuple[str, str]] = set()
+            for section_text in section_texts.values():
+                for marker in sorted(outline_lines_by_marker):
+                    base_pairs.update(find_marker_style_refs(section_text, marker))
+            if base_pairs:
+                header_text = archive.read("Contents/header.xml").decode("utf-8")
+                updated_header, outline_styles = ensure_outline_styles(
+                    header_text,
+                    base_pairs,
+                )
+                modified["Contents/header.xml"] = updated_header.encode("utf-8")
         for name in archive.namelist():
             data = archive.read(name)
             if not name.endswith((".xml", ".hpf")):
@@ -234,8 +798,21 @@ def fill_hwpx(
                         )
                     continue
 
-                if "\n" in value or "\r" in value:
-                    text, replacements, error = replace_multiline(text, marker, value)
+                outline_lines = outline_lines_by_marker.get(marker)
+                if (
+                    "\n" in value
+                    or "\r" in value
+                    or outline_lines is not None
+                    or marker not in claim_free_markers
+                ):
+                    text, replacements, error = replace_multiline(
+                        text,
+                        marker,
+                        value,
+                        outline_styles,
+                        outline_lines,
+                        allocate_paragraph_id,
+                    )
                     if error:
                         rows.append(
                             {
@@ -253,7 +830,7 @@ def fill_hwpx(
                                 "file": name,
                                 "replacements": str(replacements),
                                 "status": "REPLACED",
-                                "message": "여러 줄 문단 치환",
+                                "message": "주장·여러 줄·개조식 문단 치환",
                             }
                         )
                     totals[marker] += replacements
@@ -340,6 +917,7 @@ def command_scan(args: argparse.Namespace) -> int:
                 "approved_at": "",
                 "source_draft": "",
             },
+            "_claim_free": {},
             "values": mapping,
         }
         target.write_text(
@@ -380,6 +958,12 @@ def command_fill(args: argparse.Namespace) -> int:
         args.overwrite,
         allow_unapproved_values=args.allow_unapproved_values,
         allow_empty=args.allow_empty,
+        allow_prose_values=args.allow_prose_values,
+        evidence_registry_path=(
+            Path(args.evidence_registry).expanduser().resolve()
+            if args.evidence_registry
+            else None
+        ),
     )
     blocks = [row for row in rows if row["status"] in BLOCK_LOG_STATUSES]
     print(f"OUTPUT: {output}")
@@ -437,6 +1021,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--allow-unapproved-values",
         action="store_true",
         help="레거시 평면 JSON 또는 미승인 값을 명시적으로 허용",
+    )
+    fill.add_argument(
+        "--allow-prose-values",
+        action="store_true",
+        help="공식 양식이 장문 서술형을 요구할 때 개조식 기본 gate를 명시적으로 해제",
+    )
+    fill.add_argument(
+        "--evidence-registry",
+        help="주장 ID와 실제 출처·가설·계획을 대조할 근거목록.csv",
     )
     fill.set_defaults(func=command_fill)
 

@@ -114,7 +114,7 @@ TEMPLATES = {
 - 사용할 근거: {확인필요}
 - HWPX 사용: {확인필요: 사용 안 함 / 자동 치환 / 수동 반영}
 """,
-    "00. 시작하기/근거목록.csv": "evidence_id,related_section,statement,source_name,source_path_or_url,published_or_recorded_date,base_date,unit,checked_on,status,limitations,notes\n",
+    "00. 시작하기/근거목록.csv": "evidence_id,evidence_type,inline_citation,related_section,statement,source_name,source_path_or_url,published_or_recorded_date,base_date,unit,checked_on,status,limitations,notes\n",
     "00. 시작하기/요구사항추적표.csv": "requirement_id,official_or_internal_requirement,source_location,required_or_optional,length_limit,draft_file,evidence_ids,status\n",
     "00. 시작하기/단계상태.json": STAGE_STATE_TEMPLATE,
     "00. 시작하기/사용자협업상태.json": """{

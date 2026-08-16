@@ -15,6 +15,12 @@ description: "승인된 내용을 원본 보존 작업용 HWPX에 반영하고, 
 - 공식 고정 구조·고정 문구와 사용자가 지정하지 않은 문단·글자·목록·표 스타일은 유지한다. 공식 지시, 사용자 지시, 디자인 결정표가 지정한 속성만 작업용 복사본에서 변경하고 변경 속성을 로그에 남긴다.
 - 시각자료가 있으면 `references/visual-design-system.md`와 승인된 `앞 문단 / 뒤 문단 / 짧은 캡션` 명세를 먼저 확인한다.
 - 원본의 섹션 순서, 공식 질문·제목·안내문, 최상위 표 topology, 고정 셀 텍스트를 source integrity receipt로 잠근다. 승인된 답변 셀·치환값·디자인 삽입영역 밖의 변경은 BLOCK이다.
+- 장문 답변은 공식 서술형 요구가 없는 한 `o 핵심항목`과 `- 세부내용` 개조식이어야 한다. filler는 각 플레이스홀더 답변 셀의 글꼴·크기·자간 등 기준 글자 스타일을 별도로 복제한 뒤 `o` 문단에 1,200/-1,200 HWPUNIT, `-` 문단에 2,400/-1,200 HWPUNIT의 실제 내어쓰기 `paraPr`을 만들고 제목은 굵게, 세부내용은 일반 굵기로 연결한다.
+- 공백·탭으로 들여쓰기를 흉내 내거나 장문 산문을 한 문단으로 넣으면 BLOCK이다. 공식 양식이 장문 서술형을 요구할 때만 근거를 기록하고 `--allow-prose-values`를 사용한다.
+- 각 `- 세부내용` 주장 끝에는 보고서 안에서 출처·상태가 보이고 `근거목록.csv`로 연결되는 `[E001 | 기관·연도]`·`[U001 | 사용자 자료]`·`[H001 | 검증가설]`·`[P001 | 실행계획]` 표지가 있어야 한다. 장문 서술형 예외도 각 문단 끝에 표지가 없으면 BLOCK한다.
+- 비어 있지 않은 플레이스홀더 값은 길이와 무관하게 기본적으로 주장 문단이다. 회사명·성명·날짜 같은 식별 라벨만 승인 JSON의 `_claim_free` 객체에 `"{회사명}": "회사명 식별값"`처럼 키와 사유를 명시해 제외한다.
+- 주장 표지의 `|` 뒤 짧은 출처·상태는 `--evidence-registry 근거목록.csv`의 동일 ID `inline_citation`과 정확히 같아야 한다. E/U 행은 출처명·경로 또는 URL·확인일도 없으면 BLOCK한다.
+- 주장 플레이스홀더는 한 개의 문단과 한 개의 텍스트 run을 단독 점유해야 한다. 뒤에 고정 문구가 붙거나 여러 run으로 쪼개졌으면 최종 문단 끝 표지를 보장할 수 없으므로 BLOCK한다.
 
 ## `알아서 보기 좋게` 실행 계약
 
@@ -80,7 +86,7 @@ python3 "<이 SKILL.md가 있는 폴더>/scripts/hwpx_placeholders.py" scan "03.
 ### 2. 사용자 승인값으로 새 파일 만들기
 
 ```powershell
-python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_placeholders.py" fill "03. 사업계획서양식\작업용 HWPX\양식.hwpx" --values "03. 사업계획서양식\placeholder-values.approved.json" --output "07. 최종본\사업계획서_v01.hwpx"
+python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_placeholders.py" fill "03. 사업계획서양식\작업용 HWPX\양식.hwpx" --values "03. 사업계획서양식\placeholder-values.approved.json" --evidence-registry "00. 시작하기\근거목록.csv" --output "07. 최종본\사업계획서_v01.hwpx"
 ```
 
 macOS/Linux에서는 `python3`와 `/` 경로 구분자를 사용한다.

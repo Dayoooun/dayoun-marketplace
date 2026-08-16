@@ -15,7 +15,7 @@ PLUGIN = ROOT / "plugins" / "business-plan-writer"
 SKILLS = PLUGIN / "skills"
 STARTER_SKILLS = ROOT / "course" / "starter-project" / ".agents" / "skills"
 CLAUDE_STARTER_SKILLS = ROOT / "course" / "starter-project" / ".claude" / "skills"
-VERSION = "0.12.0"
+VERSION = "0.12.1"
 CORE_SKILLS = {
     "complete-business-plan",
     "draft-business-plan",
@@ -176,6 +176,15 @@ class BusinessPlanPluginTests(unittest.TestCase):
             / "references"
             / "writing-style.md"
         )
+        source_policy = (
+            SKILLS
+            / "research-business-evidence"
+            / "references"
+            / "source-policy.md"
+        ).read_text(encoding="utf-8")
+        complete = (SKILLS / "complete-business-plan" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
 
         self.assertTrue(guide_path.is_file())
         guide = guide_path.read_text(encoding="utf-8")
@@ -188,11 +197,28 @@ class BusinessPlanPluginTests(unittest.TestCase):
             "번호 체계",
             "표",
             "공식 양식",
+            "개조식",
+            "내어쓰기",
+            "o 핵심항목",
+            "- 세부내용",
+            "주장과 출처 추적",
+            "근거목록.csv",
+            "[E001 |",
         ):
             self.assertIn(requirement, guide)
         self.assertIn("| 서식 |", rubric)
         self.assertIn("들여쓰기", rubric)
         self.assertIn("번호 체계", rubric)
+        self.assertIn("o 핵심항목", rubric)
+        self.assertIn("실제 내어쓰기", rubric)
+        for content in (draft, review, source_policy, complete):
+            self.assertIn("[E001 |", content)
+            self.assertIn("[U001 |", content)
+            self.assertIn("[H001 |", content)
+            self.assertIn("[P001 |", content)
+            self.assertIn("근거목록.csv", content)
+        self.assertIn("출처 추적률 100%", draft)
+        self.assertIn("출처 추적률이 100%", review)
 
     def test_script_skills_explain_windows_and_mac_linux_launchers(self) -> None:
         for skill_name in ("complete-business-plan", "setup-business-plan-project", "fill-hwpx-template"):
@@ -347,6 +373,10 @@ class BusinessPlanPluginTests(unittest.TestCase):
             actions,
         )
         self.assertIn(
+            "assign-inline-source-status-markers-and-evidence-registry",
+            actions,
+        )
+        self.assertIn(
             "render-pdf-and-page-pngs-for-full-page-100-percent-and-zoom-qa",
             actions,
         )
@@ -360,6 +390,9 @@ class BusinessPlanPluginTests(unittest.TestCase):
         self.assertTrue(brief["approvalGates"]["publicationApproval"])
         self.assertTrue(
             brief["completionRequirements"]["sourceStructureIntegrityRequired"]
+        )
+        self.assertTrue(
+            brief["completionRequirements"]["claimSourceTraceabilityRequired"]
         )
         self.assertTrue(
             brief["completionRequirements"]["pdfAndPagePngRenderReceiptRequired"]
@@ -670,6 +703,8 @@ class BusinessPlanPluginTests(unittest.TestCase):
                 str(demo / "demo-business-plan.hwpx"),
                 "--values",
                 str(demo / "demo-values.json"),
+                "--evidence-registry",
+                str(demo / "demo-evidence.csv"),
                 "--output",
                 str(temp / "filled.hwpx"),
             )

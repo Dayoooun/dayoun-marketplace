@@ -10,7 +10,7 @@
       "name": "business-plan-writer",
       "source": "./plugins/business-plan-writer",
       "description": "Lead business planning from natural-language instructions through evidence, decisions, autonomous HWPX information design, render QA, and optional dual-mode PPT outputs.",
-      "version": "0.12.0"
+      "version": "0.12.1"
     },
     {
       "name": "business-documents",
