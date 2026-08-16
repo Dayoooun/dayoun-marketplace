@@ -18,6 +18,12 @@ class BuildError(ValueError):
     pass
 
 
+def configure_utf8_output(stream) -> None:
+    reconfigure = getattr(stream, "reconfigure", None)
+    if callable(reconfigure):
+        reconfigure(encoding="utf-8")
+
+
 def sha256_bytes(data: bytes) -> str:
     return "sha256:" + hashlib.sha256(data).hexdigest()
 
@@ -187,6 +193,7 @@ def build_target(
 
 
 def main() -> int:
+    configure_utf8_output(sys.stdout)
     parser = argparse.ArgumentParser(description="Build deterministic, target-scoped Dayoun artifacts")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--target", choices=TARGETS)

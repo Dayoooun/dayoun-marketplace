@@ -1,4 +1,5 @@
 from __future__ import annotations
+import io
 import hashlib
 
 import json
@@ -11,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from build_release_artifacts import build_target  # noqa: E402
+from build_release_artifacts import build_target, configure_utf8_output  # noqa: E402
 from compare_release_builds import digest  # noqa: E402
 from release_dry_run import (  # noqa: E402
     ReleaseGateError,
@@ -23,6 +24,16 @@ from test_release_independence import evaluate  # noqa: E402
 
 
 class ReleaseBoundaryTests(unittest.TestCase):
+    def test_windows_console_output_is_reconfigured_to_utf8(self) -> None:
+        buffer = io.BytesIO()
+        stream = io.TextIOWrapper(buffer, encoding="cp1252")
+        configure_utf8_output(stream)
+
+        self.assertEqual(stream.encoding.lower().replace("-", ""), "utf8")
+        stream.write("한글 파일")
+        stream.flush()
+        self.assertEqual(buffer.getvalue().decode("utf-8"), "한글 파일")
+        stream.detach()
     def test_writer_build_is_reproducible_and_excludes_documents_and_tests(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             left = Path(directory) / "left"
