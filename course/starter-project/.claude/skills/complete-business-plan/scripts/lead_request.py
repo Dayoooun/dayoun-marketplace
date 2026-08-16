@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,13 @@ DESIGN_DELEGATION = ("알아서", "전문적으로", "보기 좋게", "보기좋
 def _contains(text: str, values: tuple[str, ...]) -> bool:
     lowered = text.lower()
     return any(value.lower() in lowered for value in values)
+
+
+def configure_utf8_output() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8")
 
 
 def build_brief(request: str, *, mode: str = "REAL") -> dict[str, Any]:
@@ -138,6 +146,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    configure_utf8_output()
     args = parse_args()
     request = (
         args.request_file.read_text(encoding="utf-8")
