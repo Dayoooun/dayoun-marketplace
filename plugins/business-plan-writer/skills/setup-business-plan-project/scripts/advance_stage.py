@@ -14,6 +14,19 @@ COLLABORATION_PATH = Path("00. 시작하기") / "사용자협업상태.json"
 INTERACTION_MODES = {"DEMO", "PARTIAL", "REAL"}
 TERMINAL = {"PASS", "NOT_REQUESTED"}
 ALLOWED = {"NOT_STARTED", "IN_PROGRESS", "PASS", "BLOCK", "NOT_REQUESTED"}
+ALLOWED_METADATA_DIRS = {".agents", ".claude", ".dayoun", ".git"}
+STAGE_EVIDENCE_PREFIXES = {
+    1: ("02. 목적 및 요구사항", "03. 사업계획서양식"),
+    2: ("01. 사업정보",),
+    3: ("02. 목적 및 요구사항", "04. 조사자료"),
+    4: ("04. 조사자료",),
+    5: ("05. 작성초안",),
+    6: ("05. 작성초안",),
+    7: ("05. 작성초안", "06. 검토결과"),
+    8: ("03. 사업계획서양식/작업용 HWPX", "07. 최종본"),
+    9: ("06. 검토결과", "07. 최종본"),
+    10: ("08. 발표덱",),
+}
 
 
 class StageGateError(RuntimeError):
@@ -58,6 +71,13 @@ def validate_structure(project: Path, state: dict[str, Any]) -> None:
     missing = [name for name in required_top_level() if not (project / name).is_dir()]
     if missing:
         raise StageGateError(f"missing required project folders: {', '.join(missing)}")
+    expected = set(required_top_level())
+    actual = {path.name for path in project.iterdir() if path.is_dir()}
+    unexpected = sorted(actual - expected - ALLOWED_METADATA_DIRS)
+    if unexpected:
+        raise StageGateError(
+            f"unexpected top-level project folders: {', '.join(unexpected)}"
+        )
     if state.get("interactionMode") not in INTERACTION_MODES:
         raise StageGateError(
             f"interactionMode must be one of {', '.join(sorted(INTERACTION_MODES))}"
@@ -86,10 +106,39 @@ def normalized_evidence(project: Path, values: list[str]) -> list[str]:
             relative = resolved.relative_to(root)
         except ValueError as error:
             raise StageGateError(f"evidence escapes project root: {value}") from error
-        if not resolved.exists():
-            raise StageGateError(f"evidence does not exist: {relative.as_posix()}")
+        if not resolved.is_file():
+            raise StageGateError(
+                f"evidence must be an existing file: {relative.as_posix()}"
+            )
         result.append(relative.as_posix())
     return sorted(dict.fromkeys(result))
+
+
+def validate_stage_evidence(
+    state: dict[str, Any],
+    stage: int,
+    evidence: list[str],
+) -> None:
+    prefixes = STAGE_EVIDENCE_PREFIXES[stage]
+    invalid = [
+        item
+        for item in evidence
+        if not any(item == prefix or item.startswith(prefix + "/") for prefix in prefixes)
+    ]
+    if invalid:
+        raise StageGateError(
+            f"stage {stage} evidence is outside its output folders: {', '.join(invalid)}"
+        )
+    prior = {
+        item
+        for record in state["stages"][: stage - 1]
+        for item in record.get("evidence", [])
+    }
+    reused = sorted(set(evidence) & prior)
+    if reused:
+        raise StageGateError(
+            f"stage {stage} evidence was already used by a prior stage: {', '.join(reused)}"
+        )
 
 
 def first_open_stage(state: dict[str, Any]) -> int | None:
@@ -225,6 +274,14 @@ def complete_stage(
         raise StageGateError("completion status must be PASS, BLOCK, or NOT_REQUESTED")
     if stage <= 7 and status == "NOT_REQUESTED":
         raise StageGateError("stages 1-7 are mandatory and cannot be NOT_REQUESTED")
+    if (
+        state.get("interactionMode") in {"DEMO", "PARTIAL"}
+        and stage >= 7
+        and status != "BLOCK"
+    ):
+        raise StageGateError(
+            f"{state['interactionMode']} mode cannot approve or select stages 7-10"
+        )
     assert_prior_terminal(state, stage)
     record = state["stages"][stage - 1]
     if record["status"] != "IN_PROGRESS":
@@ -232,8 +289,12 @@ def complete_stage(
     if stage == 9 and state["stages"][7]["status"] == "NOT_REQUESTED" and status != "NOT_REQUESTED":
         raise StageGateError("stage 9 must be NOT_REQUESTED when stage 8 is NOT_REQUESTED")
     normalized = normalized_evidence(project, evidence)
-    if status == "PASS" and not normalized:
-        raise StageGateError("PASS requires at least one existing evidence path")
+    if status in {"PASS", "BLOCK"} and not normalized:
+        raise StageGateError(f"{status} requires at least one existing evidence file")
+    if status == "NOT_REQUESTED" and normalized:
+        raise StageGateError("NOT_REQUESTED must not claim output evidence")
+    if normalized:
+        validate_stage_evidence(state, stage, normalized)
     enforce_real_collaboration(project, state, stage, status)
     record["status"] = status
     record["evidence"] = normalized

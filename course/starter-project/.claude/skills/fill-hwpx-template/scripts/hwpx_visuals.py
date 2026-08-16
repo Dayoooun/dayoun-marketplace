@@ -143,17 +143,14 @@ def manifest_items(archive: zipfile.ZipFile) -> tuple[dict[str, str], list[str]]
 
 
 def visual_tables(root: ET.Element) -> list[ET.Element]:
+    parents = parent_map(root)
     candidates: list[ET.Element] = []
-    for table in descendants(root, "tbl"):
-        rows = direct_children(table, "tr")
-        cells = [direct_children(row, "tc") for row in rows]
-        if (
-            len(rows) == 2
-            and all(len(row) == 1 for row in cells)
-            and first_descendant(rows[0], "img") is not None
-            and bool(text_of(cells[1][0]))
-        ):
+    seen: set[int] = set()
+    for image in descendants(root, "img"):
+        table = ancestor(image, parents, "tbl")
+        if table is not None and id(table) not in seen:
             candidates.append(table)
+            seen.add(id(table))
     return candidates
 
 

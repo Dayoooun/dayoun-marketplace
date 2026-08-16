@@ -41,6 +41,7 @@ for path in (HERE, SCRIPTS):
 
 from presets import preset, style_block          # noqa: E402
 import layout_engine as LE                        # noqa: E402
+from codex_parallel_gen import scene_safe_zone_receipt  # noqa: E402
 from approved_inputs import (  # noqa: E402
     ApprovalError,
     SCENE_RENDERER_VERSION,
@@ -70,21 +71,26 @@ def _safe_receipt_valid(path, margin=0.18):
     sidecar = Path(str(path) + ".safe.json")
     try:
         receipt = json.loads(sidecar.read_text(encoding="utf-8"))
-        digest = sha256_file(Path(path))
-        receipt_margin = float(receipt.get("margin", -1))
+        current = scene_safe_zone_receipt(path, margin)
     except (OSError, ValueError, TypeError, json.JSONDecodeError):
         return False
-    return (
-        receipt.get("status") == "PASS"
-        and receipt_margin == margin
-        and receipt.get("sha256") == digest
-    )
+    return receipt == current
 
 
 def _load_safe_receipt(path, margin=0.18):
     if not _safe_receipt_valid(path, margin):
         raise ApprovalError(f"scene safe-zone receipt is missing or stale: {path}")
     return json.loads(Path(str(path) + ".safe.json").read_text(encoding="utf-8"))
+
+
+def _prepare_slide_outputs(directory, count):
+    root = Path(directory)
+    root.mkdir(parents=True, exist_ok=True)
+    expected = {f"slide_{index:02d}.png" for index in range(1, count + 1)}
+    for path in root.glob("slide_*.png"):
+        generated_index = path.stem.removeprefix("slide_")
+        if generated_index.isdigit() and path.name not in expected:
+            path.unlink()
 
 
 class Deck:
@@ -456,6 +462,7 @@ class Deck:
         out = os.path.join(self.dir, "out")
         os.makedirs(out, exist_ok=True)
         n = len(self.slides)
+        _prepare_slide_outputs(out, n)
         for i, s in enumerate(self.slides, 1):
             im = Image.new("RGB", (LE.W, LE.H), LE.WHITE)
             d = ImageDraw.Draw(im)

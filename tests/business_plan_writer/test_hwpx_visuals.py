@@ -49,8 +49,13 @@ def paragraph(text: str, para_ref: str = "0", char_ref: str = "0") -> ET.Element
     return node
 
 
-def visual_table(caption: str) -> ET.Element:
-    table = element("tbl", {"rowCnt": "2", "colCnt": "1"})
+def visual_table(
+    caption: str,
+    *,
+    row_count: int = 2,
+    column_count: int = 1,
+) -> ET.Element:
+    table = element("tbl", {"rowCnt": str(row_count), "colCnt": str(column_count)})
     table.append(element("sz", {"width": "45900", "height": "26000"}))
 
     image_row = element("tr")
@@ -75,6 +80,8 @@ def visual_table(caption: str) -> ET.Element:
         ]
     )
     image_row.append(image_cell)
+    if column_count > 1:
+        image_row.append(element("tc"))
     table.append(image_row)
 
     caption_row = element("tr")
@@ -92,7 +99,13 @@ def visual_table(caption: str) -> ET.Element:
         ]
     )
     caption_row.append(caption_cell)
+    if column_count > 1:
+        caption_row.append(element("tc"))
     table.append(caption_row)
+    if row_count > 2:
+        extra_row = element("tr")
+        extra_row.append(element("tc"))
+        table.append(extra_row)
     return table
 
 
@@ -121,6 +134,7 @@ def section_xml(
     left_margin: str = "5669",
     caption: str = "그림 1. 지역순환 사업모델",
     duplicate_visual: bool = False,
+    extra_malformed_visual: str | None = None,
 ) -> bytes:
     root = element("section")
     secpr = element("secPr")
@@ -148,8 +162,8 @@ def section_xml(
     sublist = element("subList")
     before = paragraph("시각자료가 설명하는 문단")
     after = paragraph("o 다음 핵심항목")
-    def wrapped_visual() -> ET.Element:
-        visual = visual_table(caption)
+    def wrapped_visual(visual: ET.Element | None = None) -> ET.Element:
+        visual = visual if visual is not None else visual_table(caption)
         if not hierarchy_ok:
             return visual
         visual_p = element("p", {"paraPrIDRef": "0"})
@@ -161,6 +175,12 @@ def section_xml(
     visual_nodes = [wrapped_visual()]
     if duplicate_visual:
         visual_nodes.append(wrapped_visual())
+    if extra_malformed_visual == "rows":
+        visual_nodes.append(wrapped_visual(visual_table("", row_count=3)))
+    elif extra_malformed_visual == "columns":
+        visual_nodes.append(wrapped_visual(visual_table("", column_count=2)))
+    elif extra_malformed_visual == "caption":
+        visual_nodes.append(wrapped_visual(visual_table("")))
 
     if semantic_position_ok:
         sublist.extend([before, *visual_nodes, after])
@@ -222,6 +242,7 @@ def make_hwpx(
     duplicate_manifest_id: bool = False,
     duplicate_zip_member: bool = False,
     duplicate_visual: bool = False,
+    extra_malformed_visual: str | None = None,
 ) -> None:
     with zipfile.ZipFile(path, "w") as archive:
         archive.writestr(
@@ -238,6 +259,7 @@ def make_hwpx(
                 left_margin=left_margin,
                 caption=caption,
                 duplicate_visual=duplicate_visual,
+                extra_malformed_visual=extra_malformed_visual,
             ),
         )
         archive.writestr(
@@ -345,6 +367,18 @@ class HwpxVisualRegressionTests(unittest.TestCase):
             "duplicate visual caption": (
                 {"duplicate_visual": True},
                 "duplicate visual",
+            ),
+            "extra three-row visual": (
+                {"extra_malformed_visual": "rows"},
+                "visual table must be exactly 1 column × 2 rows",
+            ),
+            "extra two-column visual": (
+                {"extra_malformed_visual": "columns"},
+                "visual table must be exactly 1 column × 2 rows",
+            ),
+            "extra empty-caption visual": (
+                {"extra_malformed_visual": "caption"},
+                "caption must use",
             ),
         }
         with tempfile.TemporaryDirectory() as directory:

@@ -230,9 +230,27 @@ def lay_TABLE(im, d, s):
     d.rounded_rectangle((x0, ytop, x1, ytop + hh), radius=14, fill=LE.BLUE)
     d.rectangle((x0, ytop + hh - 16, x1, ytop + hh), fill=LE.BLUE)
     fh = LE.f("label", size=min(31, fn.size + 2))
+    header_lh = int(fh.size * 1.15)
     for c, col in enumerate(cols):
-        _block(d, xs[c] + cpad, ytop + (hh - int(fh.size * 1.1)) // 2,
-               xs[c + 1] - xs[c] - cpad * 2, [str(col)], fh, LE.WHITE, lh, align[c])
+        width = xs[c + 1] - xs[c] - cpad * 2
+        lines = _lines(d, str(col), width, fh)
+        _assert_lines_fit(d, lines, width, fh, "TABLE header")
+        if len(lines) * header_lh > hh - 16:
+            raise ValueError(
+                "TABLE header exceeds the header row at the minimum projection font; "
+                "shorten the header or split the table"
+            )
+        _block(
+            d,
+            xs[c] + cpad,
+            ytop + (hh - len(lines) * header_lh) // 2,
+            width,
+            lines,
+            fh,
+            LE.WHITE,
+            header_lh,
+            align[c],
+        )
 
     for r, row in enumerate(wrapped):
         yy = ytop + hh + r * rh
@@ -478,9 +496,16 @@ def lay_FLOW(im, d, s):
             )
 
     note = s.get("footer_note")
+    if note and s.get("source"):
+        raise ValueError("FLOW footer note and source need separate vertical rows")
     if note:
         fn = LE.f("chrome", size=24)
-        d.text((LE.M, limit + 22), str(note), font=fn, fill=LE.GREY)
+        note_width = LE.W - 2 * LE.M
+        note_lines = _lines(d, str(note), note_width, fn)
+        _assert_lines_fit(d, note_lines, note_width, fn, "FLOW footer note")
+        if len(note_lines) != 1:
+            raise ValueError("FLOW footer note must fit on one projected line")
+        d.text((LE.M, limit + 22), note_lines[0], font=fn, fill=LE.GREY)
     _source(d, s, limit + 54)
 
 
@@ -578,9 +603,16 @@ def lay_GENEALOGY(im, d, s):
             )
 
     note = s.get("note")
+    if note and s.get("source"):
+        raise ValueError("GENEALOGY note and source need separate vertical rows")
     if note:
         note_font = LE.f("chrome", size=24)
-        d.text((LE.M, limit + 22), str(note), font=note_font, fill=LE.GREY)
+        note_width = LE.W - 2 * LE.M
+        note_lines = _lines(d, str(note), note_width, note_font)
+        _assert_lines_fit(d, note_lines, note_width, note_font, "GENEALOGY note")
+        if len(note_lines) != 1:
+            raise ValueError("GENEALOGY note must fit on one projected line")
+        d.text((LE.M, limit + 22), note_lines[0], font=note_font, fill=LE.GREY)
     _source(d, s, limit + 54)
 
 

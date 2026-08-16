@@ -73,6 +73,25 @@ def create(project: Path, mode: str = "DEMO") -> None:
         raise AssertionError(result.stdout + result.stderr)
 
 
+
+def stage_evidence(project: Path, stage: int) -> str:
+    locations = {
+        1: "02. 목적 및 요구사항/stage1.md",
+        2: "01. 사업정보/stage2.md",
+        3: "04. 조사자료/stage3.md",
+        4: "04. 조사자료/stage4.md",
+        5: "05. 작성초안/stage5.md",
+        6: "05. 작성초안/stage6.md",
+        7: "06. 검토결과/stage7.md",
+        8: "07. 최종본/stage8.hwpx",
+        9: "06. 검토결과/stage9.json",
+        10: "08. 발표덱/stage10.md",
+    }
+    relative = locations[stage]
+    target = project / relative
+    target.write_text(f"stage {stage} evidence\n", encoding="utf-8")
+    return relative
+
 class StageWorkflowTests(unittest.TestCase):
     def test_generator_creates_exact_required_top_level_and_stage_contract(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -124,15 +143,12 @@ class StageWorkflowTests(unittest.TestCase):
             stage_two = run(ADVANCE, "start", str(project), "2")
             self.assertEqual(stage_two.returncode, 0, stage_two.stdout + stage_two.stderr)
 
-    def test_mandatory_stages_cannot_be_skipped_and_optional_sequence_is_explicit(self) -> None:
+    def test_demo_mode_stops_at_review_block_and_never_simulates_approval(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             project = Path(directory) / "project"
             create(project)
-            evidence = project / "00. 시작하기" / "evidence.md"
-            evidence.write_text("verified\n", encoding="utf-8")
-            relative = evidence.relative_to(project).as_posix()
 
-            for stage in range(1, 8):
+            for stage in range(1, 7):
                 started = run(ADVANCE, "start", str(project), str(stage))
                 self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
                 if stage == 1:
@@ -154,38 +170,38 @@ class StageWorkflowTests(unittest.TestCase):
                     "--status",
                     "PASS",
                     "--evidence",
-                    relative,
+                    stage_evidence(project, stage),
                 )
                 self.assertEqual(passed.returncode, 0, passed.stdout + passed.stderr)
 
-            for stage in (8, 9):
-                self.assertEqual(run(ADVANCE, "start", str(project), str(stage)).returncode, 0)
-                skipped = run(
-                    ADVANCE,
-                    "complete",
-                    str(project),
-                    str(stage),
-                    "--status",
-                    "NOT_REQUESTED",
-                )
-                self.assertEqual(skipped.returncode, 0, skipped.stdout + skipped.stderr)
-
-            self.assertEqual(run(ADVANCE, "start", str(project), "10").returncode, 0)
-            presentation = project / "08. 발표덱" / "deck-receipt.md"
-            presentation.write_text("pptx pdf script q&a\n", encoding="utf-8")
-            finished = run(
+            self.assertEqual(run(ADVANCE, "start", str(project), "7").returncode, 0)
+            simulated = run(
                 ADVANCE,
                 "complete",
                 str(project),
-                "10",
+                "7",
                 "--status",
                 "PASS",
                 "--evidence",
-                presentation.relative_to(project).as_posix(),
+                stage_evidence(project, 7),
             )
-            self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
-            receipt = json.loads(finished.stdout)
-            self.assertIsNone(receipt["currentStage"])
+            self.assertNotEqual(simulated.returncode, 0)
+            self.assertIn("DEMO mode cannot approve", simulated.stdout)
+
+            blocked = run(
+                ADVANCE,
+                "complete",
+                str(project),
+                "7",
+                "--status",
+                "BLOCK",
+                "--evidence",
+                stage_evidence(project, 7),
+            )
+            self.assertEqual(blocked.returncode, 0, blocked.stdout + blocked.stderr)
+            next_stage = run(ADVANCE, "start", str(project), "8")
+            self.assertNotEqual(next_stage.returncode, 0)
+            self.assertIn("stage 7 status BLOCK", next_stage.stdout)
 
     def test_missing_required_folder_blocks_check(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -197,30 +213,130 @@ class StageWorkflowTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("missing required project folders", result.stdout)
 
+    def test_unexpected_top_level_folder_blocks_but_metadata_is_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory) / "project"
+            create(project)
+            (project / ".dayoun").mkdir()
+            allowed = run(ADVANCE, "check", str(project))
+            self.assertEqual(allowed.returncode, 0, allowed.stdout + allowed.stderr)
+            (project / "09. 임의폴더").mkdir()
+            blocked = run(ADVANCE, "check", str(project))
+            self.assertNotEqual(blocked.returncode, 0)
+            self.assertIn("unexpected top-level project folders", blocked.stdout)
+
+    def test_evidence_must_be_stage_local_file_and_cannot_be_reused(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory) / "project"
+            create(project)
+            self.assertEqual(run(ADVANCE, "start", str(project), "1").returncode, 0)
+
+            directory_evidence = run(
+                ADVANCE,
+                "complete",
+                str(project),
+                "1",
+                "--status",
+                "PASS",
+                "--evidence",
+                "02. 목적 및 요구사항",
+            )
+            self.assertNotEqual(directory_evidence.returncode, 0)
+            self.assertIn("existing file", directory_evidence.stdout)
+
+            wrong = project / "01. 사업정보" / "wrong-stage.md"
+            wrong.write_text("wrong\n", encoding="utf-8")
+            wrong_folder = run(
+                ADVANCE,
+                "complete",
+                str(project),
+                "1",
+                "--status",
+                "PASS",
+                "--evidence",
+                wrong.relative_to(project).as_posix(),
+            )
+            self.assertNotEqual(wrong_folder.returncode, 0)
+            self.assertIn("outside its output folders", wrong_folder.stdout)
+
+            passed = run(
+                ADVANCE,
+                "complete",
+                str(project),
+                "1",
+                "--status",
+                "PASS",
+                "--evidence",
+                stage_evidence(project, 1),
+            )
+            self.assertEqual(passed.returncode, 0, passed.stdout + passed.stderr)
+            self.assertEqual(run(ADVANCE, "start", str(project), "2").returncode, 0)
+            passed = run(
+                ADVANCE,
+                "complete",
+                str(project),
+                "2",
+                "--status",
+                "PASS",
+                "--evidence",
+                stage_evidence(project, 2),
+            )
+            self.assertEqual(passed.returncode, 0, passed.stdout + passed.stderr)
+
+            self.assertEqual(run(ADVANCE, "start", str(project), "3").returncode, 0)
+            shared = project / "04. 조사자료" / "shared.md"
+            shared.write_text("stage 3\n", encoding="utf-8")
+            relative = shared.relative_to(project).as_posix()
+            passed = run(
+                ADVANCE,
+                "complete",
+                str(project),
+                "3",
+                "--status",
+                "PASS",
+                "--evidence",
+                relative,
+            )
+            self.assertEqual(passed.returncode, 0, passed.stdout + passed.stderr)
+
+            self.assertEqual(run(ADVANCE, "start", str(project), "4").returncode, 0)
+            reused = run(
+                ADVANCE,
+                "complete",
+                str(project),
+                "4",
+                "--status",
+                "PASS",
+                "--evidence",
+                relative,
+            )
+            self.assertNotEqual(reused.returncode, 0)
+            self.assertIn("already used by a prior stage", reused.stdout)
+
     def test_real_mode_requires_recorded_user_collaboration_gates(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             project = Path(directory) / "project"
             create(project, mode="REAL")
-            evidence = project / "00. 시작하기" / "evidence.md"
-            evidence.write_text("verified\n", encoding="utf-8")
-            relative = evidence.relative_to(project).as_posix()
             collaboration_path = project / "00. 시작하기" / "사용자협업상태.json"
 
             def start(stage: int) -> None:
                 result = run(ADVANCE, "start", str(project), str(stage))
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-            def complete(stage: int) -> subprocess.CompletedProcess[str]:
-                return run(
-                    ADVANCE,
+            def complete(
+                stage: int,
+                status: str = "PASS",
+            ) -> subprocess.CompletedProcess[str]:
+                args = [
                     "complete",
                     str(project),
                     str(stage),
                     "--status",
-                    "PASS",
-                    "--evidence",
-                    relative,
-                )
+                    status,
+                ]
+                if status != "NOT_REQUESTED":
+                    args.extend(["--evidence", stage_evidence(project, stage)])
+                return run(ADVANCE, *args)
 
             for stage in (1, 2):
                 start(stage)
@@ -288,6 +404,44 @@ class StageWorkflowTests(unittest.TestCase):
                 encoding="utf-8",
             )
             self.assertEqual(complete(7).returncode, 0)
+
+            start(8)
+            blocked = complete(8, "NOT_REQUESTED")
+            self.assertNotEqual(blocked.returncode, 0)
+            self.assertIn("HWPX choice status NOT_REQUESTED", blocked.stdout)
+            collaboration = json.loads(collaboration_path.read_text(encoding="utf-8"))
+            collaboration["hwpxChoice"] = {
+                "status": "NOT_REQUESTED",
+                "confirmedBy": "owner",
+                "confirmedAt": "2026-08-16T12:30:00+09:00",
+                "sourceQuote": "HWPX는 이번 범위에서 만들지 마",
+            }
+            collaboration_path.write_text(
+                json.dumps(collaboration, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(complete(8, "NOT_REQUESTED").returncode, 0)
+
+            start(9)
+            self.assertEqual(complete(9, "NOT_REQUESTED").returncode, 0)
+            start(10)
+            blocked = complete(10)
+            self.assertNotEqual(blocked.returncode, 0)
+            self.assertIn("presentation choice status REQUESTED", blocked.stdout)
+            collaboration = json.loads(collaboration_path.read_text(encoding="utf-8"))
+            collaboration["presentationChoice"] = {
+                "status": "REQUESTED",
+                "confirmedBy": "owner",
+                "confirmedAt": "2026-08-16T12:40:00+09:00",
+                "sourceQuote": "PPT와 대본, 예상 Q&A를 만들어",
+            }
+            collaboration_path.write_text(
+                json.dumps(collaboration, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            finished = complete(10)
+            self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+            self.assertIsNone(json.loads(finished.stdout)["currentStage"])
 
 
 if __name__ == "__main__":

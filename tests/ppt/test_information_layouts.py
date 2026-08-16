@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import json
 import sys
 import tempfile
 import unittest
@@ -19,7 +20,7 @@ for path in (str(SCRIPTS), str(SCENE)):
 import info_layouts as IL  # noqa: E402
 import codex_parallel_gen as CG  # noqa: E402
 import layout_engine as LE  # noqa: E402
-from deck import Deck  # noqa: E402
+from deck import Deck, _prepare_slide_outputs, _safe_receipt_valid  # noqa: E402
 
 
 class InformationLayoutTests(unittest.TestCase):
@@ -165,6 +166,55 @@ class InformationLayoutTests(unittest.TestCase):
                 },
             ),
             (
+                "TABLE",
+                {
+                    "head": ["긴 표 헤더"],
+                    "sub": ["분할 필요"],
+                    "columns": ["끊김없는매우긴헤더" * 40, "내용"],
+                    "rows": [["구분", "검증"]],
+                    "font_sizes": [24],
+                },
+            ),
+            (
+                "FLOW",
+                {
+                    "head": ["긴 흐름 주석"],
+                    "sub": ["분할 필요"],
+                    "modules": [("01", "입력", "근거")],
+                    "cols": 1,
+                    "footer_note": "투사용 하단 주석 " * 100,
+                },
+            ),
+            (
+                "GENEALOGY",
+                {
+                    "head": ["긴 계보 주석"],
+                    "sub": ["분할 필요"],
+                    "modules": [("Prompt", "요청", "지시")],
+                    "note": "투사용 하단 주석 " * 100,
+                },
+            ),
+            (
+                "FLOW",
+                {
+                    "head": ["주석과 출처"],
+                    "sub": ["세로 충돌 차단"],
+                    "modules": [("01", "입력", "근거")],
+                    "footer_note": "짧은 주석",
+                    "source": "공식 출처",
+                },
+            ),
+            (
+                "GENEALOGY",
+                {
+                    "head": ["주석과 출처"],
+                    "sub": ["세로 충돌 차단"],
+                    "modules": [("Prompt", "요청", "지시")],
+                    "note": "짧은 주석",
+                    "source": "공식 출처",
+                },
+            ),
+            (
                 "PROMPT",
                 {
                     "head": ["긴 프롬프트"],
@@ -196,6 +246,37 @@ class InformationLayoutTests(unittest.TestCase):
             self.assertEqual(after["status"], "PASS")
             self.assertTrue(all(value >= 0.175 for value in after["margins"].values()))
             self.assertRegex(after["sha256"], r"^sha256:[0-9a-f]{64}$")
+            CG.write_scene_safe_receipt(path, after)
+            sidecar = Path(str(path) + ".safe.json")
+            tampered = json.loads(sidecar.read_text(encoding="utf-8"))
+            tampered["margins"] = {
+                "left": 0.18,
+                "top": 0.18,
+                "right": 0.18,
+                "bottom": 0.18,
+            }
+            tampered["foregroundBox"] = [180, 180, 820, 820]
+            sidecar.write_text(json.dumps(tampered), encoding="utf-8")
+            self.assertFalse(_safe_receipt_valid(path, 0.18))
+
+    def test_shorter_rebuild_removes_only_stale_slide_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for index in range(1, 5):
+                (root / f"slide_{index:02d}.png").write_bytes(b"slide")
+            unrelated = root / "contact-sheet.png"
+            unrelated.write_bytes(b"keep")
+            slide_reference = root / "slide_reference.png"
+            slide_reference.write_bytes(b"keep")
+
+            _prepare_slide_outputs(root, 3)
+
+            self.assertEqual(
+                sorted(path.name for path in root.glob("slide_*.png")),
+                ["slide_01.png", "slide_02.png", "slide_03.png", "slide_reference.png"],
+            )
+            self.assertTrue(unrelated.is_file())
+            self.assertTrue(slide_reference.is_file())
 
 
 if __name__ == "__main__":
