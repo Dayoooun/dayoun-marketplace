@@ -16,7 +16,7 @@ ima2 서버·OAuth 로그인 없이, 이미 인증된 codex(GPT Image)로 여러
   python codex_parallel_gen.py jobs.json --cap 10 --retry 1 --loop 4 --effort high
   jobs.json = [{"label","refs":[...],"out","prompt"}]  (경로는 jobs.json 기준 상대/절대)
 """
-import sys, os, json, shutil, subprocess, argparse
+import sys, os, json, shutil, subprocess, argparse, hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from platform_support import (
     process_group_kwargs,
@@ -58,6 +58,86 @@ def _ascii_id(job, idx):
     stem = os.path.splitext(os.path.basename(job.get("out", f"job{idx}")))[0]
     slug = "".join(c if (c.isascii() and (c.isalnum() or c in "_-")) else "" for c in stem)
     return slug or f"job{idx}"
+
+
+def _scene_background(image):
+    from PIL import ImageStat
+
+    width, height = image.size
+    patch = max(2, min(width, height) // 50)
+    corners = (
+        image.crop((0, 0, patch, patch)),
+        image.crop((width - patch, 0, width, patch)),
+        image.crop((0, height - patch, patch, height)),
+        image.crop((width - patch, height - patch, width, height)),
+    )
+    channels = list(zip(*(ImageStat.Stat(corner).median for corner in corners)))
+    return tuple(int(sum(values) / len(values)) for values in channels)
+
+
+def scene_safe_zone_receipt(path, margin=0.18):
+    from PIL import Image, ImageChops
+
+    if not 0 < margin < 0.5:
+        raise ValueError("scene safe-zone margin must be between 0 and 0.5")
+    image = Image.open(path).convert("RGB")
+    background = _scene_background(image)
+    background_image = Image.new("RGB", image.size, background)
+    difference = ImageChops.difference(image, background_image).convert("L")
+    mask = difference.point(lambda value: 255 if value > 14 else 0)
+    box = mask.getbbox()
+    if box is None:
+        return {
+            "status": "BLOCK",
+            "margin": margin,
+            "error": "scene contains no detectable foreground",
+        }
+    left, top, right, bottom = box
+    width, height = image.size
+    margins = {
+        "left": left / width,
+        "top": top / height,
+        "right": (width - right) / width,
+        "bottom": (height - bottom) / height,
+    }
+    passed = all(value >= margin - 0.005 for value in margins.values())
+    with open(path, "rb") as handle:
+        digest = hashlib.sha256(handle.read()).hexdigest()
+    return {
+        "status": "PASS" if passed else "BLOCK",
+        "margin": margin,
+        "foregroundBox": [left, top, right, bottom],
+        "margins": margins,
+        "sha256": "sha256:" + digest,
+    }
+
+
+def frame_scene_safe_zone(path, margin=0.18):
+    from PIL import Image
+
+    image = Image.open(path).convert("RGB")
+    width, height = image.size
+    scale = 1.0 - 2.0 * margin
+    target = (
+        max(1, int(round(width * scale))),
+        max(1, int(round(height * scale))),
+    )
+    resized = image.resize(target, Image.Resampling.LANCZOS)
+    canvas = Image.new("RGB", image.size, _scene_background(image))
+    offset = ((width - target[0]) // 2, (height - target[1]) // 2)
+    canvas.paste(resized, offset)
+    canvas.save(path, format="PNG", optimize=True)
+    receipt = scene_safe_zone_receipt(path, margin)
+    if receipt["status"] != "PASS":
+        raise ValueError(f"scene safe-zone framing failed: {receipt}")
+    return receipt
+
+
+def write_scene_safe_receipt(path, receipt):
+    sidecar = str(path) + ".safe.json"
+    with open(sidecar, "w", encoding="utf-8", newline="\n") as handle:
+        json.dump(receipt, handle, ensure_ascii=False, indent=2)
+        handle.write("\n")
 
 
 def _iso_home(work):
@@ -166,6 +246,17 @@ def _run_one(job, base_dir, retry, idx=0, effort=None, model=None, timeout=590):
                     produced = max(cache, key=os.path.getmtime)
             if os.path.exists(produced):
                 shutil.copy(produced, out)
+                safe_receipt = None
+                safe_zone = job.get("safe_zone")
+                if safe_zone is not None:
+                    margin = float(safe_zone)
+                    if job.get("safe_frame", False):
+                        safe_receipt = frame_scene_safe_zone(out, margin)
+                    else:
+                        safe_receipt = scene_safe_zone_receipt(out, margin)
+                    if safe_receipt["status"] != "PASS":
+                        raise ValueError(f"scene violates the safe zone: {safe_receipt}")
+                    write_scene_safe_receipt(out, safe_receipt)
                 size_kb = os.path.getsize(out) // 1024
                 # 30KB 미만만 PIL폴백/한글깨짐 의심 (표지·클로징 등 여백 많은 정상 슬라이드는 50~90KB로 정상)
                 status = "WARN(PIL폴백의심<30KB)" if size_kb < 30 else "OK"
@@ -173,7 +264,14 @@ def _run_one(job, base_dir, retry, idx=0, effort=None, model=None, timeout=590):
                 # 남은 시도가 있으면 다시 뽑는다 — 어차피 verify가 30KB 미만을 불합격 처리한다.
                 if size_kb < 30 and attempt < retry:
                     continue
-                return {"label": label, "status": status, "out": out, "size_kb": size_kb, "attempt": attempt + 1}
+                return {
+                    "label": label,
+                    "status": status,
+                    "out": out,
+                    "size_kb": size_kb,
+                    "attempt": attempt + 1,
+                    "safeZone": safe_receipt,
+                }
         except subprocess.TimeoutExpired:
             if attempt == retry:
                 return {"label": label, "status": "FAIL(timeout)", "out": out}
@@ -223,6 +321,16 @@ def verify(jobs, base_dir, dup_check=False):
             bad[lbl] = "missing"; continue
         if os.path.getsize(out) < 30 * 1024:
             bad[lbl] = "small(<30KB)"; continue
+        safe_zone = j.get("safe_zone")
+        if safe_zone is not None:
+            try:
+                receipt = scene_safe_zone_receipt(out, float(safe_zone))
+            except Exception as error:
+                bad[lbl] = f"safe-zone-error({type(error).__name__})"
+                continue
+            if receipt["status"] != "PASS":
+                bad[lbl] = "safe-zone-violation"
+                continue
         hashes[lbl] = _ahash_head(out)
     if dup_check:
         labels = list(hashes)
@@ -232,6 +340,25 @@ def verify(jobs, base_dir, dup_check=False):
                     bad.setdefault(labels[i], "dup-headline(오염)")
                     bad.setdefault(labels[k], "dup-headline(오염)")
     return bad
+
+
+def collect_safe_zone_receipts(jobs, base_dir):
+    receipts = {}
+    for job in jobs:
+        margin = job.get("safe_zone")
+        if margin is None:
+            continue
+        out = job["out"] if os.path.isabs(job["out"]) else os.path.join(base_dir, job["out"])
+        label = str(job.get("label", job["out"]))
+        receipts[label] = scene_safe_zone_receipt(out, float(margin))
+    return receipts
+
+
+def write_generation_receipt(base_dir, payload):
+    path = os.path.join(base_dir, "_gen_result.json")
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+        json.dump(payload, handle, ensure_ascii=False, indent=2)
+        handle.write("\n")
 
 
 def run_round(jobs, base_dir, cap, retry, effort, model, timeout=590):
@@ -339,7 +466,14 @@ def main():
     pre = verify(all_jobs, base_dir, args.dup_check)
     if not pre:
         print(f"[선검증] 전 {len(all_jobs)}장 이미 정상 — 생성 생략", flush=True)
-        json.dump({"rounds": 0, "clean": True}, open(os.path.join(base_dir, "_gen_result.json"), "w"))
+        write_generation_receipt(
+            base_dir,
+            {
+                "rounds": 0,
+                "clean": True,
+                "safeZones": collect_safe_zone_receipts(all_jobs, base_dir),
+            },
+        )
         return
     if pre and len(pre) < len(all_jobs):
         pending = [j for j in all_jobs if j.get("label") in pre]
@@ -353,7 +487,14 @@ def main():
         bad = verify(all_jobs, base_dir, args.dup_check)
         if not bad:
             print(f"\n결과: 전 {len(all_jobs)}장 통과 (크기·중복 검증 clean) — 라운드 {rnd}에서 완료", flush=True)
-            json.dump({"rounds": rnd, "clean": True}, open(os.path.join(base_dir, "_gen_result.json"), "w"))
+            write_generation_receipt(
+                base_dir,
+                {
+                    "rounds": rnd,
+                    "clean": True,
+                    "safeZones": collect_safe_zone_receipts(all_jobs, base_dir),
+                },
+            )
             _sweep(base_dir, args.keep_work)
             return
         print(f"  재생성 대상 {len(bad)}: " + ", ".join(f"{k}[{v}]" for k, v in bad.items()), flush=True)
@@ -361,8 +502,10 @@ def main():
     # 루프 소진
     bad = verify(all_jobs, base_dir)
     print(f"\n결과: 루프 {args.loop}회 소진, 잔여 {len(bad)}장: " + ", ".join(bad), flush=True)
-    json.dump({"rounds": args.loop, "clean": False, "remaining": list(bad)},
-              open(os.path.join(base_dir, "_gen_result.json"), "w"), ensure_ascii=False)
+    write_generation_receipt(
+        base_dir,
+        {"rounds": args.loop, "clean": False, "remaining": list(bad)},
+    )
     _sweep(base_dir, args.keep_work)
     sys.exit(1 if bad else 0)
 

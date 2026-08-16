@@ -96,7 +96,7 @@ def _layouts():
     import layout_engine as LE
     import info_layouts as IL
     import inspect
-    IL.register()          # 정보 구도 4종도 검사 대상에 넣는다
+    IL.register()          # 정보 구도 7종도 검사 대상에 넣는다
     bad = []
     for name, fn in LE.LAY.items():
         params = list(inspect.signature(fn).parameters)
@@ -106,7 +106,7 @@ def _layouts():
     if bad:
         raise AssertionError("시그니처 불일치: %s" % bad)
     for need in ("L", "S", "W", "C", "A", "F", "T", "COVER", "AGENDA", "CLOSING",
-                 "TABLE", "EXAMPLE", "MATRIX", "BAR"):
+                 "TABLE", "EXAMPLE", "MATRIX", "BAR", "FLOW", "GENEALOGY", "PROMPT"):
         if need not in LE.LAY:
             raise AssertionError("구도 %s 누락" % need)
     return "%d종" % len(LE.LAY)
@@ -179,17 +179,22 @@ def _deck():
         d = Deck(domain="it", foot="스모크", title="smoke", out_dir=tmp)
         d.cover("SMOKE", ["표지"], ["서브"], issuer="테스트", scene="a test cover")
         d.slide("L", "TEST", ["헤드라인"], ["서브"], scene="a simple test scene")
+        d.flow("FLOW", ["순서"], ["모듈"], [("01", "입력", "근거"), ("02", "검증", "통과")])
+        d.genealogy("GENEALOGY", ["계보"], ["실행"], [("Prompt", "요청", "지시"), ("Harness", "실행", "도구")])
+        d.prompt("PROMPT", ["복사문"], ["그대로 입력"], ["저장소를 확인해줘"], checks=["결과"])
         d.save()
         sp = os.path.join(tmp, "spec.json")
         if not os.path.exists(sp):
             raise AssertionError("spec.json 미생성")
         d2 = Deck.load(sp)
-        if len(d2.slides) != 2:
-            raise AssertionError("load 후 슬라이드 %d개 (2 기대)" % len(d2.slides))
+        if len(d2.slides) != 5:
+            raise AssertionError("load 후 슬라이드 %d개 (5 기대)" % len(d2.slides))
         # jobs 생성까지 — 프롬프트 조립 경로 확인
         jobs = d2.jobs()
         if len(jobs) != 2 or not jobs[0].get("prompt"):
             raise AssertionError("jobs 생성 실패")
+        if "LEFT, and RIGHT 18%" not in jobs[0]["prompt"]:
+            raise AssertionError("씬 네 방향 18% 안전여백 규칙 누락")
         return "save/load/jobs OK"
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

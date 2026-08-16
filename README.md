@@ -12,8 +12,8 @@
 
 | 사용하는 AI | 설치 방식 | 설치 후 보이는 버전 |
 |---|---|---|
-| Codex CLI | 터미널에서 marketplace 추가 | `business-plan-writer 0.10.0`, `business-documents 0.1.0` |
-| Claude Code | Claude Code의 `/plugin` 명령 | `business-plan-writer 0.10.0`, `business-documents 0.1.0` |
+| Codex CLI | 터미널에서 marketplace 추가 | `business-plan-writer 0.11.0`, `business-documents 0.1.0` |
+| Claude Code | Claude Code의 `/plugin` 명령 | `business-plan-writer 0.11.0`, `business-documents 0.1.0` |
 | Antigravity | `course/starter-project` 폴더를 작업공간으로 열기 | `.agents/skills`의 일곱 사업계획서 스킬 |
 | 일반 채팅형 AI | 자동 설치 없음 | [참가자 빠른 시작](course/06-participant-quick-start.md)의 질문·출력 형식만 사용 |
 
@@ -46,7 +46,7 @@ codex plugin list
 마지막 명령에서 아래 두 항목이 `installed, enabled`이면 끝입니다.
 
 ```text
-business-plan-writer@dayoun  0.10.0
+business-plan-writer@dayoun  0.11.0
 business-documents@dayoun    0.1.0
 ```
 
@@ -63,7 +63,7 @@ Claude Code를 연 뒤 대화 입력창에 한 줄씩 실행합니다.
 /plugin list
 ```
 
-목록에서 두 플러그인이 `enabled`이고 버전이 `0.10.0`, `0.1.0`이면 설치가 끝난 것입니다. 새 스킬이 바로 보이지 않으면 Claude Code를 한 번 다시 시작합니다.
+목록에서 두 플러그인이 `enabled`이고 버전이 `0.11.0`, `0.1.0`이면 설치가 끝난 것입니다. 새 스킬이 바로 보이지 않으면 Claude Code를 한 번 다시 시작합니다.
 
 터미널 명령을 선호하면 같은 작업을 다음처럼 실행할 수 있습니다.
 
@@ -199,6 +199,8 @@ complete-business-plan 스킬을 사용해 공고문·평가지표·작성지침
 HWPX 안에서 초안을 쓰지 않으며, HWPX 페이지를 PPT로 그대로 변환하지도 않습니다.
 승인된 텍스트를 발표 목적과 시간에 맞춰 압축·재구성해 PPTX를 만듭니다.
 
+시각자료를 선택하면 초안 단계에서 종류·핵심 메시지·근거·표 셀·앞 문단·뒤 문단·짧은 캡션을 먼저 승인합니다. HWPX에서는 답변 셀 마지막이 아니라 설명 문단 직후에 배치하고, 중첩표 계층·이미지 참조·원본 쪽 설정을 `hwpx_visuals.py`로 재현 검증합니다.
+
 ## 제공하는 7개 핵심 스킬
 
 | 스킬 | 하는 일 |
@@ -207,9 +209,9 @@ HWPX 안에서 초안을 쓰지 않으며, HWPX 페이지를 PPT로 그대로 �
 | `setup-business-plan-project` | 원본을 보존하는 범용 폴더와 기본 작업표 생성 |
 | `research-business-evidence` | 확인할 내용 하나를 공식 출처 또는 기존 고객 근거로 조사 |
 | `draft-business-plan` | 목적·요구사항과 확인된 근거로 선택 항목 초안 작성 |
-| `fill-hwpx-template` | 조건부 HWPX 중괄호 치환 또는 수동 매핑 |
+| `fill-hwpx-template` | 조건부 HWPX 치환·수동 매핑, 의미상 시각자료 배치와 `secPr`·이미지 참조 검증 |
 | `review-business-plan` | 콘텐츠와 선택 HWPX 산출물을 분리해 검토 |
-| `ppt-editorial` | 발표 덱 제작 — 자료 정리 후 씬 덱(텍스트는 코드 렌더) 또는 이미지 퍼스트 중 선택 |
+| `ppt-editorial` | 씬 덱·이미지 퍼스트, FLOW·GENEALOGY·PROMPT 포함 정보 구도 7종, 대본·Q&A |
 
 ## 독립 `business-documents` 플러그인
 
@@ -267,6 +269,8 @@ runtime contract fetch, 저장소 상대경로 조회, 예전 이름 compatibili
 | 어울리는 곳 | 제안서·결과보고·IR·강의 | 콘셉트 제안·비주얼 우선 |
 
 **고르는 기준 한 줄** — 자주 편집할 텍스트·표가 중심이면 **A**, 전달 pixels 자체가 최종 디자인이고 재생성을 감수할 수 있으면 **B**입니다.
+
+씬 덱의 정보 구도는 `TABLE`, `EXAMPLE`, `MATRIX`, `BAR`, `FLOW`, `GENEALOGY`, `PROMPT` 7종입니다. 복잡한 순서는 FLOW, 개념 계보는 GENEALOGY, 복사용 요청문은 PROMPT로 렌더합니다. 긴 표는 footer와 겹치기 전에 나누고 투사용 본문 크기를 고정할 수 있습니다. 생성 장면의 모든 화면·카드·버튼·연결선은 상하좌우 18%를 비운 중앙 64% 안에 들어와야 합니다.
 
 두 방식 모두 같은 이미지 생성 엔진을 쓰지만 지원·완료 기준은 같습니다. 이미지 퍼스트도 한글 깨짐을 허용하지 않습니다. 생성 전 canonical payload·ordered deck briefs·stable `text_id`와 normalized region·relation geometry를 가진 visible-text manifest를 한 approval digest에 묶습니다. 렌더 직후 ordered PNG digest receipt를 고정하고, 전달 PPTX와 PDF pixels의 source artifact/page raster digest가 일치하는 OCR만 받아 label/value·evidence/claim 관계까지 검사합니다. 한 글자·수치·날짜·고유명사·clip·tofu·ambiguous region·stale OCR이 다르면 자동 BLOCK입니다.
 
@@ -330,6 +334,8 @@ codex CLI는 **Claude Code에서 써도 따로 설치해야 합니다.** 배경 
 ```
 
 `setup-business-plan-project` 스킬이 계획프로필과 위 폴더·작업표를 자동으로 만듭니다. `--force`를 사용해도 사용자 수정 파일은 덮어쓰지 않습니다.
+`00. 시작하기/단계상태.json`과 `advance_stage.py`가 10단계를 순서대로 강제합니다. 앞 단계가 PASS 또는 선택 단계의 NOT_REQUESTED가 아니면 다음 단계가 BLOCK되고, PASS에는 프로젝트 내부의 실제 evidence 파일이 필요합니다. 업로드·강의시연·고객 원본 폴더는 읽기 전용으로 두고 그 안에 파일이나 폴더를 만들지 않습니다.
+검증·강의시연은 `DEMO`, 실제 신청서는 `REAL`로 시작합니다. REAL 모드에서는 질문 확인, 전략 선택, 문안 승인, HWPX/PPT 선택을 사용자와 함께 결정하고 `사용자협업상태.json`에 사용자 원문을 기록해야만 다음 gate가 열립니다. 에이전트가 스스로 답을 만들어 승인으로 대체할 수 없습니다.
 
 ## HWPX 선택 트랙 전 확인
 
@@ -338,7 +344,12 @@ codex CLI는 **Claude Code에서 써도 따로 설치해야 합니다.** 배경 
 - 원본 문서는 그대로 보관하고 복사본만 치환합니다.
 - 일반 양식에 중괄호가 0개이면 자동치환을 중단하고 `template-field-map.csv`로 수동 매핑합니다.
 - 콘텐츠 검토와 사용자 승인이 끝난 값만 HWPX에 반영합니다.
-- 자동 검사는 문서 구조와 미치환 항목을 확인합니다. 실제 페이지 배치와 글자 넘침은 한컴오피스에서 마지막으로 확인합니다.
+- 시각자료는 승인된 `앞 문단 / 뒤 문단` 사이에 놓고 답변 셀 마지막 일괄 배치를 금지합니다.
+- 한글 호환 구조는 `tc → subList → p → run → tbl`의 1열 2행 중첩표입니다.
+- 캡션은 `그림 N. 핵심 그림명`으로 짧게 쓰고 가운데 정렬합니다.
+- 이미지 `binaryItemIDRef`, `Contents/content.hpf`, 실제 `BinData` 파일이 일치해야 합니다.
+- 원본과 결과의 `secPr` canonical digest를 비교해 쪽 크기와 여백을 보존합니다.
+- 자동 검사는 문서 구조·미치환 항목·시각자료 위치·중첩표·이미지 참조·쪽 설정을 확인합니다. 실제 문맥 위치·비율·페이지 배치는 한컴오피스에서 마지막으로 확인합니다.
 - 데모 파일은 실습용이며 실제 제출 양식이 아닙니다. 출처는 [`PROVENANCE.md`](plugins/business-plan-writer/assets/demo/PROVENANCE.md)에 기록했습니다.
 
 ## 직접 내려받아 설치
@@ -371,7 +382,7 @@ codex plugin add business-plan-writer@dayoun
 
 ## 버전
 
-현재 `main` marketplace의 공개 RC는 `business-plan-writer 0.10.0`, `business-documents 0.1.0`입니다. Codex와 Claude Code의 원격 설치를 실제 검증했습니다. stable `1.0`은 10개 fixture × 3개 실제 프로바이더, 선택 문서의 자동·외부 화면검수, N≥10 강의 검증, 10명 외부 베타, 중대 결함 0건을 모두 만족하기 전에는 태그하지 않습니다.
+현재 `main` marketplace의 공개 RC는 `business-plan-writer 0.11.0`, `business-documents 0.1.0`입니다. Codex와 Claude Code의 원격 설치를 실제 검증했습니다. stable `1.0`은 10개 fixture × 3개 실제 프로바이더, 선택 문서의 자동·외부 화면검수, N≥10 강의 검증, 10명 외부 베타, 중대 결함 0건을 모두 만족하기 전에는 태그하지 않습니다.
 
 ## 기여와 문의
 

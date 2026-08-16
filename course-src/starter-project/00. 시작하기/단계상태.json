@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.0.0",
+  "interactionMode": "DEMO",
+  "currentStage": 1,
+  "stages": [
+    {
+      "id": 1,
+      "name": "공고문·평가지표·작성지침·사업계획서 양식 분석",
+      "status": "NOT_STARTED",
+      "evidence": []
+    },
+    {
+      "id": 2,
+      "name": "회사·사업 현황·아이디어 분석",
+      "status": "NOT_STARTED",
+      "evidence": []
+    },
+    {
+      "id": 3,
+      "name": "부족한 근거와 확인 질문 도출",
+      "status": "NOT_STARTED",
+      "evidence": []
+    },
+    {
+      "id": 4,
+      "name": "시장·고객·경쟁·가격·규제 조사",
+      "status": "NOT_STARTED",
+      "evidence": []
+    },
+    {
+      "id": 5,
+      "name": "사업전략·실행계획·수익구조 설계",
+      "status": "NOT_STARTED",
+      "evidence": []
+    },
+    {
+      "id": 6,
+      "name": "평가지표와 양식에 맞춰 텍스트 초안 작성",
+      "status": "NOT_STARTED",
+      "evidence": []
+    },
+    {
+      "id": 7,
+      "name": "검토·수정·사용자 승인",
+      "status": "NOT_STARTED",
+      "evidence": []
+    },
+    {
+      "id": 8,
+      "name": "선택한 경우 승인 내용을 HWPX 양식에 반영",
+      "status": "NOT_STARTED",
+      "evidence": []
+    },
+    {
+      "id": 9,
+      "name": "선택한 HWPX 구조·화면검사",
+      "status": "NOT_STARTED",
+      "evidence": []
+    },
+    {
+      "id": 10,
+      "name": "선택한 PPT·대본·예상 Q&A 제작",
+      "status": "NOT_STARTED",
+      "evidence": []
+    }
+  ]
+}

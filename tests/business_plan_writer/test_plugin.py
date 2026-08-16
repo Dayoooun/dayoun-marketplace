@@ -15,7 +15,7 @@ PLUGIN = ROOT / "plugins" / "business-plan-writer"
 SKILLS = PLUGIN / "skills"
 STARTER_SKILLS = ROOT / "course" / "starter-project" / ".agents" / "skills"
 CLAUDE_STARTER_SKILLS = ROOT / "course" / "starter-project" / ".claude" / "skills"
-VERSION = "0.10.0"
+VERSION = "0.11.0"
 CORE_SKILLS = {
     "complete-business-plan",
     "draft-business-plan",
@@ -225,13 +225,12 @@ class BusinessPlanPluginTests(unittest.TestCase):
             self.assertEqual(target.read_text(encoding="utf-8-sig"), expected, relative)
 
         expected_paths = {Path(relative).as_posix() for relative in module.TEMPLATES}
+        expected_roots = {Path(relative).parts[0] for relative in module.TEMPLATES}
         actual_paths = {
             path.relative_to(starter).as_posix()
             for path in starter.rglob("*")
             if path.is_file()
-            and path.relative_to(starter).parts[0].startswith(
-                tuple(f"{index:02d}." for index in range(8))
-            )
+            and path.relative_to(starter).parts[0] in expected_roots
         }
         self.assertEqual(actual_paths, expected_paths)
 
@@ -411,6 +410,59 @@ class BusinessPlanPluginTests(unittest.TestCase):
             )
             self.assertEqual(profile["official_program"]["track"], track)
 
+    def test_visual_design_defaults_and_hwpx_invariants_are_shared(self) -> None:
+        complete = (SKILLS / "complete-business-plan" / "SKILL.md").read_text(encoding="utf-8")
+        draft = (SKILLS / "draft-business-plan" / "SKILL.md").read_text(encoding="utf-8")
+        fill_root = SKILLS / "fill-hwpx-template"
+        fill = (fill_root / "SKILL.md").read_text(encoding="utf-8")
+        review = (SKILLS / "review-business-plan" / "SKILL.md").read_text(encoding="utf-8")
+        ppt_root = SKILLS / "ppt-editorial"
+        ppt = (ppt_root / "SKILL.md").read_text(encoding="utf-8")
+        style = (ppt_root / "references" / "style-system.md").read_text(encoding="utf-8")
+        fonts = (ppt_root / "scripts" / "scene-deck" / "fonts.py").read_text(encoding="utf-8")
+        visual = (fill_root / "references" / "visual-design-system.md").read_text(encoding="utf-8")
+        css = (fill_root / "assets" / "visual-default.css").read_text(encoding="utf-8")
+
+        self.assertTrue((fill_root / "scripts" / "hwpx_visuals.py").is_file())
+        for content in (complete, draft, fill, review):
+            self.assertIn("visual-design-system.md", content)
+        for content in (style, fonts, ppt, visual, css):
+            self.assertIn("Pretendard", content)
+
+        for field in (
+            "시각자료 종류",
+            "핵심 메시지",
+            "근거",
+            "삽입할 표 셀",
+            "앞 문단",
+            "뒤 문단",
+            "짧은 캡션",
+        ):
+            self.assertIn(field, draft)
+        for invariant in (
+            "tc → subList → p → run → tbl",
+            "45,900 HWPUNIT",
+            "43,900 HWPUNIT",
+            "510 HWPUNIT",
+            "220 HWPUNIT",
+            "1,200 HWPUNIT",
+            "#F2F2F2",
+            "binaryItemIDRef",
+            "content.hpf",
+            "BinData",
+            "secPr",
+            "그림 N. 핵심 그림명",
+        ):
+            self.assertIn(invariant, visual)
+        self.assertIn("답변 셀 마지막 일괄 배치는 금지", complete)
+        self.assertIn("답변 셀 마지막에 일괄 배치하지 않는다", fill)
+        self.assertIn("원본 쪽 여백", complete)
+        self.assertIn("다른 양식에 강제로 덮어쓰지 않는다", visual)
+        self.assertIn("user direction, brand system, or official template", style)
+        self.assertIn("장식 이미지보다", ppt)
+        for weight in range(100, 1000, 100):
+            self.assertIn(f"font-weight: {weight}", css)
+        self.assertIn("--visual-accent: #3182f6", css)
     def test_hwpx_demo_scan_fill_and_validate(self) -> None:
         script = SKILLS / "fill-hwpx-template" / "scripts" / "hwpx_placeholders.py"
         demo = PLUGIN / "assets" / "demo"

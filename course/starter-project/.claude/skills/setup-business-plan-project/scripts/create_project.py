@@ -18,7 +18,43 @@ FOLDERS = (
     "05. 작성초안",
     "06. 검토결과",
     "07. 최종본",
+    "08. 발표덱",
     "99. 원본백업",
+)
+
+STAGES = (
+    "공고문·평가지표·작성지침·사업계획서 양식 분석",
+    "회사·사업 현황·아이디어 분석",
+    "부족한 근거와 확인 질문 도출",
+    "시장·고객·경쟁·가격·규제 조사",
+    "사업전략·실행계획·수익구조 설계",
+    "평가지표와 양식에 맞춰 텍스트 초안 작성",
+    "검토·수정·사용자 승인",
+    "선택한 경우 승인 내용을 HWPX 양식에 반영",
+    "선택한 HWPX 구조·화면검사",
+    "선택한 PPT·대본·예상 Q&A 제작",
+)
+
+STAGE_STATE_TEMPLATE = (
+    json.dumps(
+        {
+            "schemaVersion": "1.0.0",
+            "interactionMode": "{mode}",
+            "currentStage": 1,
+            "stages": [
+                {
+                    "id": index,
+                    "name": name,
+                    "status": "NOT_STARTED",
+                    "evidence": [],
+                }
+                for index, name in enumerate(STAGES, 1)
+            ],
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
+    + "\n"
 )
 
 
@@ -80,6 +116,61 @@ TEMPLATES = {
 """,
     "00. 시작하기/근거목록.csv": "evidence_id,related_section,statement,source_name,source_path_or_url,published_or_recorded_date,base_date,unit,checked_on,status,limitations,notes\n",
     "00. 시작하기/요구사항추적표.csv": "requirement_id,official_or_internal_requirement,source_location,required_or_optional,length_limit,draft_file,evidence_ids,status\n",
+    "00. 시작하기/단계상태.json": STAGE_STATE_TEMPLATE,
+    "00. 시작하기/사용자협업상태.json": """{
+  "schemaVersion": "1.0.0",
+  "interactionMode": "{mode}",
+  "questionRound": {
+    "status": "NOT_CONFIRMED",
+    "answers": [],
+    "confirmedBy": "",
+    "confirmedAt": "",
+    "sourceQuote": ""
+  },
+  "strategyDecision": {
+    "status": "NOT_CONFIRMED",
+    "selectedOption": "",
+    "confirmedBy": "",
+    "confirmedAt": "",
+    "sourceQuote": ""
+  },
+  "contentApproval": {
+    "status": "NOT_APPROVED",
+    "approvedFile": "",
+    "approvedBy": "",
+    "approvedAt": "",
+    "sourceQuote": ""
+  },
+  "hwpxChoice": {
+    "status": "NOT_CONFIRMED",
+    "confirmedBy": "",
+    "confirmedAt": "",
+    "sourceQuote": ""
+  },
+  "presentationChoice": {
+    "status": "NOT_CONFIRMED",
+    "confirmedBy": "",
+    "confirmedAt": "",
+    "sourceQuote": ""
+  }
+}
+""",
+    "00. 시작하기/단계체크리스트.md": """# 10단계 진행 체크리스트
+
+각 단계는 앞 단계가 PASS 또는 선택 단계의 NOT_REQUESTED로 끝난 뒤 시작합니다.
+산출물 경로를 `단계상태.json`에 evidence로 기록하지 않으면 PASS로 완료할 수 없습니다.
+
+1. [ ] 공고문·평가지표·작성지침·사업계획서 양식 분석
+2. [ ] 회사·사업 현황·아이디어 분석
+3. [ ] 부족한 근거와 확인 질문 도출
+4. [ ] 시장·고객·경쟁·가격·규제 조사
+5. [ ] 사업전략·실행계획·수익구조 설계
+6. [ ] 평가지표와 양식에 맞춰 텍스트 초안 작성
+7. [ ] 검토·수정·사용자 승인
+8. [ ] 선택한 경우 승인 내용을 HWPX 양식에 반영
+9. [ ] 선택한 HWPX 구조·화면검사
+10. [ ] 선택한 PPT·대본·예상 Q&A 제작
+""",
     "01. 사업정보/사업정보표.md": """# 사업정보표
 
 사용자가 제공한 내용도 아직 확인하지 않았다면 `사용자 제공·미확인`으로 표시합니다. 사실, 가정, 앞으로 할 계획을 구분합니다.
@@ -181,7 +272,7 @@ TEMPLATES = {
 
 {확인필요}
 """,
-    "05. 작성초안/문안승인.md": """# 문안 승인
+    "06. 검토결과/문안승인.md": """# 문안 승인
 
 - 승인 상태: NOT_APPROVED
 - 승인 대상 파일·버전: {확인필요}
@@ -245,6 +336,22 @@ TEMPLATES = {
 - 내용 검토 상태: NOT_RUN
 - HWPX 검토 상태: NOT_RUN
 - 한글 화면 확인: NOT_RUN
+""",
+    "08. 발표덱/발표자료상태.md": """# 발표자료 상태
+
+- 선택 상태: {확인필요: REQUESTED / NOT_REQUESTED}
+- 승인 canonical: {확인필요}
+- PPTX: {확인필요}
+- PDF: {확인필요}
+- 대본: {확인필요}
+- 예상 Q&A: {확인필요}
+- fact·structure·contract 검증: NOT_RUN
+- PPTX/PDF 화면검수: NOT_RUN
+""",
+    "99. 원본백업/README.md": """# 원본백업
+
+사용자가 제공한 원본을 읽기 전용으로 보관합니다.
+작업용 복사본과 생성 파일을 이 폴더에서 직접 수정하지 않습니다.
 """,
 }
 

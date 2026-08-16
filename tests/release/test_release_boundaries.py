@@ -51,8 +51,8 @@ class ReleaseBoundaryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             left = Path(directory) / "left"
             right = Path(directory) / "right"
-            build_target("business-plan-writer", "0.10.0", left)
-            build_target("business-plan-writer", "0.10.0", right)
+            build_target("business-plan-writer", "0.11.0", left)
+            build_target("business-plan-writer", "0.11.0", right)
             left_zip = next(left.glob("*.zip"))
             right_zip = next(right.glob("*.zip"))
             self.assertEqual(digest(left_zip), digest(right_zip))
@@ -124,7 +124,7 @@ class ReleaseBoundaryTests(unittest.TestCase):
             root = Path(directory)
             artifacts = root / "artifacts"
             evidence = root / "evidence"
-            build_target("business-plan-writer", "0.10.0", artifacts)
+            build_target("business-plan-writer", "0.11.0", artifacts)
             evidence.mkdir()
             lock_path = ROOT / "release" / "toolchains.lock.json"
             lock_digest = "sha256:" + hashlib.sha256(lock_path.read_bytes()).hexdigest()

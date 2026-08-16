@@ -53,8 +53,9 @@ from approved_inputs import (  # noqa: E402
 GEN = os.path.join(SCRIPTS, "codex_parallel_gen.py")
 
 SAFE = ("\n★★ SAFE ZONES — OVERRIDES EVERYTHING:\n"
-        "1) TOP 15% COMPLETELY EMPTY.  2) BOTTOM 15% COMPLETELY EMPTY.\n"
-        "3) All content strictly between 15% and 85% of slide height.\n")
+        "1) Keep TOP, BOTTOM, LEFT, and RIGHT 18% completely empty.\n"
+        "2) Every screen, card, button, connector, label, shadow, and module must fit inside the central 64%.\n"
+        "3) Scale down and center the entire object group; no touching, cropping, or edge exits.\n")
 
 TAIL = ("\nUse ONLY the image-generation capability - ABSOLUTELY NO Python/PIL/code drawing.\n"
         "Korean text inside the image must render perfectly — no '?', no broken glyphs.\n"
@@ -63,6 +64,27 @@ TAIL = ("\nUse ONLY the image-generation capability - ABSOLUTELY NO Python/PIL/c
 # 구도별 권장 씬 비율
 RATIO = {"W": "16:9 wide", "F": "16:9 wide"}
 DEFAULT_RATIO = "4:3 landscape"
+
+
+def _safe_receipt_valid(path, margin=0.18):
+    sidecar = Path(str(path) + ".safe.json")
+    try:
+        receipt = json.loads(sidecar.read_text(encoding="utf-8"))
+        digest = sha256_file(Path(path))
+        receipt_margin = float(receipt.get("margin", -1))
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return False
+    return (
+        receipt.get("status") == "PASS"
+        and receipt_margin == margin
+        and receipt.get("sha256") == digest
+    )
+
+
+def _load_safe_receipt(path, margin=0.18):
+    if not _safe_receipt_valid(path, margin):
+        raise ApprovalError(f"scene safe-zone receipt is missing or stale: {path}")
+    return json.loads(Path(str(path) + ".safe.json").read_text(encoding="utf-8"))
 
 
 class Deck:
@@ -178,6 +200,24 @@ class Deck:
         IL.register()
         return IL.bar(self, eyebrow, head, sub, bars, **kw)
 
+    def flow(self, eyebrow, head, sub, modules, **kw):
+        """순서형 모듈 그래프. modules=[(step, title, detail), ...]."""
+        import info_layouts as IL
+        IL.register()
+        return IL.flow(self, eyebrow, head, sub, modules, **kw)
+
+    def genealogy(self, eyebrow, head, sub, modules, **kw):
+        """개념 계보. modules=[(name, description, group), ...]."""
+        import info_layouts as IL
+        IL.register()
+        return IL.genealogy(self, eyebrow, head, sub, modules, **kw)
+
+    def prompt(self, eyebrow, head, sub, prompt_lines, **kw):
+        """복사용 프롬프트 코드 블록."""
+        import info_layouts as IL
+        IL.register()
+        return IL.prompt(self, eyebrow, head, sub, prompt_lines, **kw)
+
     # ══════ 씬 생성 ══════
     def jobs(self, only_missing=True):
         """씬 생성 잡 목록. 이미 있는 씬은 건너뛴다."""
@@ -190,7 +230,12 @@ class Deck:
                 continue
             sid = s["scene"]
             path = os.path.join(scn, "%s.png" % sid)
-            if only_missing and os.path.exists(path) and os.path.getsize(path) > 100_000:
+            if (
+                only_missing
+                and os.path.exists(path)
+                and os.path.getsize(path) > 100_000
+                and _safe_receipt_valid(path)
+            ):
                 continue
             p = style_block(self.domain) + "\nCOMPOSITION: " + s["scene_body"]
             if sid in self._photo_refs:
@@ -204,8 +249,16 @@ class Deck:
                           "(bold Korean gothic, ink colour, small):\n  "
                           + "  ".join('"%s"' % x for x in s["scene_labels"]))
             p += SAFE + "\nOutput %s framing.\n" % s.get("scene_ratio", DEFAULT_RATIO) + TAIL
-            out.append({"label": sid, "refs": refs,
-                        "out": os.path.join("scenes", "%s.png" % sid), "prompt": p})
+            out.append(
+                {
+                    "label": sid,
+                    "refs": refs,
+                    "out": os.path.join("scenes", "%s.png" % sid),
+                    "prompt": p,
+                    "safe_zone": 0.18,
+                    "safe_frame": True,
+                }
+            )
         return out
 
     def approval_config(self):
@@ -237,6 +290,7 @@ class Deck:
                 for relative in job.get("refs", [])
             ],
             "outputDigest": sha256_file(output),
+            "safeZone": _load_safe_receipt(output, float(job["safe_zone"])),
         }
 
     def _verify_scene_receipt(self, approval_digest, all_jobs):
@@ -245,7 +299,7 @@ class Deck:
             raise ApprovalError("scene receipt is missing")
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         if (
-            receipt.get("receiptVersion") != "dayoun-scene-render-receipt-v1"
+            receipt.get("receiptVersion") != "dayoun-scene-render-receipt-v2"
             or receipt.get("approvalEnvelopeDigest") != approval_digest
             or receipt.get("rendererVersion") != SCENE_RENDERER_VERSION
         ):
@@ -357,7 +411,7 @@ class Deck:
             )
         receipt = {
             "schemaVersion": "1.0.0",
-            "receiptVersion": "dayoun-scene-render-receipt-v1",
+            "receiptVersion": "dayoun-scene-render-receipt-v2",
             "approvalEnvelopeDigest": approval_digest,
             "rendererVersion": SCENE_RENDERER_VERSION,
             "scenes": [self._scene_job_record(job) for job in all_jobs],
@@ -377,7 +431,10 @@ class Deck:
         LE.BLUE, LE.INK, LE.GREY, LE.LINE = p["hero"], p["ink"], p["grey"], p["line"]
         LE.FOOT = self.foot
         # 정보 구도가 스펙에 있으면 LAY 에 얹는다 — revise/재로드 경로에서도 안전하게
-        if any(s["lay"] in ("TABLE", "EXAMPLE", "MATRIX", "BAR") for s in self.slides):
+        if any(
+            s["lay"] in ("TABLE", "EXAMPLE", "MATRIX", "BAR", "FLOW", "GENEALOGY", "PROMPT")
+            for s in self.slides
+        ):
             import info_layouts as IL
             IL.register()
 
@@ -537,7 +594,8 @@ class Deck:
             # 씬이 필요한 구도인데 씬이 없을 때만 경고 — 정보 구도는 원래 씬이 없다
             if (not s.get("scene_body")
                     and s["lay"] not in ("COVER", "CLOSING", "AGENDA",
-                                         "TABLE", "EXAMPLE", "MATRIX", "BAR")):
+                                         "TABLE", "EXAMPLE", "MATRIX", "BAR",
+                                         "FLOW", "GENEALOGY", "PROMPT")):
                 ex.append("씬없음")
             print("  %02d [%s] %-30s %s" % (i, s["lay"], s["head"][0][:30],
                                             "+".join(ex) or ""))
