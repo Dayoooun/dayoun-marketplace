@@ -9,6 +9,9 @@ import warnings
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+import fitz
+from PIL import Image
+
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = (
@@ -20,6 +23,8 @@ SCRIPT = (
     / "scripts"
     / "hwpx_visuals.py"
 )
+INTEGRITY_SCRIPT = SCRIPT.with_name("hwpx_source_integrity.py")
+RENDER_SCRIPT = SCRIPT.with_name("verify_hwpx_render.py")
 
 
 def load_module():
@@ -32,6 +37,36 @@ def load_module():
 
 
 MODULE = load_module()
+
+
+def load_integrity_module():
+    spec = importlib.util.spec_from_file_location(
+        "hwpx_source_integrity",
+        INTEGRITY_SCRIPT,
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load {INTEGRITY_SCRIPT}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+INTEGRITY = load_integrity_module()
+
+
+def load_render_module():
+    spec = importlib.util.spec_from_file_location(
+        "verify_hwpx_render",
+        RENDER_SCRIPT,
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load {RENDER_SCRIPT}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+RENDER = load_render_module()
 
 
 def element(name: str, attributes: dict[str, str] | None = None, text: str | None = None) -> ET.Element:
@@ -135,6 +170,10 @@ def section_xml(
     caption: str = "그림 1. 지역순환 사업모델",
     duplicate_visual: bool = False,
     extra_malformed_visual: str | None = None,
+    before_text: str = "시각자료가 설명하는 문단",
+    after_text: str = "o 다음 핵심항목",
+    outer_row_count: str = "1",
+    include_visual: bool = True,
 ) -> bytes:
     root = element("section")
     secpr = element("secPr")
@@ -156,12 +195,12 @@ def section_xml(
     secpr.append(page)
     root.append(secpr)
 
-    outer = element("tbl", {"rowCnt": "1", "colCnt": "1"})
+    outer = element("tbl", {"rowCnt": outer_row_count, "colCnt": "1"})
     row = element("tr")
     cell = element("tc")
     sublist = element("subList")
-    before = paragraph("시각자료가 설명하는 문단")
-    after = paragraph("o 다음 핵심항목")
+    before = paragraph(before_text)
+    after = paragraph(after_text)
     def wrapped_visual(visual: ET.Element | None = None) -> ET.Element:
         visual = visual if visual is not None else visual_table(caption)
         if not hierarchy_ok:
@@ -172,7 +211,7 @@ def section_xml(
         visual_p.append(visual_run)
         return visual_p
 
-    visual_nodes = [wrapped_visual()]
+    visual_nodes = [wrapped_visual()] if include_visual else []
     if duplicate_visual:
         visual_nodes.append(wrapped_visual())
     if extra_malformed_visual == "rows":
@@ -243,6 +282,10 @@ def make_hwpx(
     duplicate_zip_member: bool = False,
     duplicate_visual: bool = False,
     extra_malformed_visual: str | None = None,
+    before_text: str = "시각자료가 설명하는 문단",
+    after_text: str = "o 다음 핵심항목",
+    outer_row_count: str = "1",
+    include_visual: bool = True,
 ) -> None:
     with zipfile.ZipFile(path, "w") as archive:
         archive.writestr(
@@ -260,6 +303,10 @@ def make_hwpx(
                 caption=caption,
                 duplicate_visual=duplicate_visual,
                 extra_malformed_visual=extra_malformed_visual,
+                before_text=before_text,
+                after_text=after_text,
+                outer_row_count=outer_row_count,
+                include_visual=include_visual,
             ),
         )
         archive.writestr(
@@ -421,6 +468,380 @@ class HwpxVisualRegressionTests(unittest.TestCase):
             self.assertIn(
                 "source HWPX is required for secPr preservation validation",
                 report["errors"],
+            )
+
+    def test_source_integrity_allows_placeholder_fill_and_nested_visual(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source.hwpx"
+            result = root / "result.hwpx"
+            make_hwpx(source, before_text="{답변}", include_visual=False)
+            make_hwpx(result, before_text="승인된 답변", include_visual=True)
+
+            report = INTEGRITY.validate(source, result)
+
+            self.assertEqual(report["status"], "PASS", report["errors"])
+            self.assertTrue(report["sourceSectionOrderPreserved"])
+            self.assertTrue(report["sections"][0]["fixedParagraphsPreserved"])
+            self.assertTrue(
+                report["sections"][0]["topLevelTableTopologyPreserved"]
+            )
+            self.assertTrue(report["sections"][0]["secPrPreserved"])
+
+    def test_source_integrity_blocks_fixed_text_and_topology_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source.hwpx"
+            make_hwpx(source, include_visual=False)
+
+            changed_text = root / "changed-text.hwpx"
+            make_hwpx(
+                changed_text,
+                before_text="공식 질문을 바꾼 문장",
+                include_visual=False,
+            )
+            report = INTEGRITY.validate(source, changed_text)
+            self.assertEqual(report["status"], "BLOCK")
+            self.assertIn(
+                "fixed source paragraphs changed or reordered",
+                "\n".join(report["errors"]),
+            )
+
+            changed_topology = root / "changed-topology.hwpx"
+            make_hwpx(
+                changed_topology,
+                outer_row_count="2",
+                include_visual=False,
+            )
+            report = INTEGRITY.validate(source, changed_topology)
+            self.assertEqual(report["status"], "BLOCK")
+            self.assertIn(
+                "top-level table topology changed",
+                "\n".join(report["errors"]),
+            )
+
+    def test_source_integrity_uses_exact_editable_anchors_and_fixed_literals(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+
+            source = root / "placeholder-source.hwpx"
+            result = root / "placeholder-result.hwpx"
+            make_hwpx(
+                source,
+                before_text="사업명: {사업명}",
+                include_visual=False,
+            )
+            make_hwpx(
+                result,
+                before_text="고객명: 김다윤",
+                include_visual=False,
+            )
+            report = INTEGRITY.validate(source, result)
+            self.assertEqual(report["status"], "BLOCK")
+            self.assertIn(
+                "fixed source paragraphs changed or reordered",
+                "\n".join(report["errors"]),
+            )
+
+            suffix_source = root / "suffix-source.hwpx"
+            suffix_result = root / "suffix-result.hwpx"
+            make_hwpx(
+                suffix_source,
+                before_text="사업명: {사업명} (필수)",
+                include_visual=False,
+            )
+            make_hwpx(
+                suffix_result,
+                before_text="사업명: 김다윤 (선택)",
+                include_visual=False,
+            )
+            report = INTEGRITY.validate(suffix_source, suffix_result)
+            self.assertEqual(report["status"], "BLOCK")
+            self.assertIn(
+                "fixed source paragraphs changed or reordered",
+                "\n".join(report["errors"]),
+            )
+
+            exact_source = root / "exact-source.hwpx"
+            exact_result = root / "exact-result.hwpx"
+            exact_spec = root / "editable.json"
+            make_hwpx(
+                exact_source,
+                before_text="그림 1. 긴 승인 전 캡션",
+                include_visual=False,
+            )
+            make_hwpx(
+                exact_result,
+                before_text="그림 1. 짧은 캡션",
+                include_visual=False,
+            )
+            exact_spec.write_text(
+                json.dumps(
+                    {
+                        "editableParagraphExact": [
+                            "그림 1. 긴 승인 전 캡션"
+                        ]
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            report = INTEGRITY.validate(exact_source, exact_result, exact_spec)
+            self.assertEqual(report["status"], "PASS", report["errors"])
+
+            ambiguous_source = root / "ambiguous-source.hwpx"
+            ambiguous_result = root / "ambiguous-result.hwpx"
+            ambiguous_spec = root / "ambiguous.json"
+            make_hwpx(
+                ambiguous_source,
+                caption="중복 캡션",
+                duplicate_visual=True,
+            )
+            make_hwpx(
+                ambiguous_result,
+                caption="중복 캡션",
+                duplicate_visual=True,
+            )
+            ambiguous_spec.write_text(
+                json.dumps(
+                    {"editableParagraphExact": ["중복 캡션"]},
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            report = INTEGRITY.validate(
+                ambiguous_source,
+                ambiguous_result,
+                ambiguous_spec,
+            )
+            self.assertEqual(report["status"], "BLOCK")
+            self.assertIn(
+                "editable paragraph anchor must match exactly once",
+                "\n".join(report["errors"]),
+            )
+
+            missing_spec = root / "missing.json"
+            missing_spec.write_text(
+                json.dumps(
+                    {"editableParagraphExact": ["원본에 없는 문단"]},
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            report = INTEGRITY.validate(
+                exact_source,
+                exact_result,
+                missing_spec,
+            )
+            self.assertEqual(report["status"], "BLOCK")
+            self.assertIn(
+                "editable paragraph anchor must match exactly once, got 0",
+                "\n".join(report["errors"]),
+            )
+
+            reordered = root / "reordered.hwpx"
+            make_hwpx(
+                source,
+                before_text="첫 번째 고정 문단",
+                after_text="두 번째 고정 문단",
+                include_visual=False,
+            )
+            make_hwpx(
+                reordered,
+                before_text="두 번째 고정 문단",
+                after_text="첫 번째 고정 문단",
+                include_visual=False,
+            )
+            report = INTEGRITY.validate(source, reordered)
+            self.assertEqual(report["status"], "BLOCK")
+            self.assertIn(
+                "fixed source paragraphs changed or reordered",
+                "\n".join(report["errors"]),
+            )
+
+            changed_secpr = root / "changed-secpr.hwpx"
+            make_hwpx(
+                changed_secpr,
+                before_text="첫 번째 고정 문단",
+                after_text="두 번째 고정 문단",
+                left_margin="5000",
+                include_visual=False,
+            )
+            report = INTEGRITY.validate(source, changed_secpr)
+            self.assertEqual(report["status"], "BLOCK")
+            self.assertIn(
+                "secPr changed from source",
+                "\n".join(report["errors"]),
+            )
+
+    def test_render_receipt_requires_bound_pdf_png_and_zoom_qa(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            hwpx = root / "result.hwpx"
+            pdf = root / "result.pdf"
+            png = root / "page-01.png"
+            receipt_path = root / "render-qa.json"
+            make_hwpx(hwpx)
+
+            document = fitz.open()
+            document.new_page(width=595, height=842)
+            document.save(pdf)
+            document.close()
+            Image.new("RGB", (595, 842), "white").save(png)
+
+            receipt = {
+                "schemaVersion": "1.0.0",
+                "status": "PASS",
+                "hwpxSha256": RENDER.sha256(hwpx),
+                "renderer": {"name": "test-renderer", "version": "1.0"},
+                "pdf": {
+                    "path": pdf.name,
+                    "sha256": RENDER.sha256(pdf),
+                },
+                "pages": [
+                    {
+                        "index": 1,
+                        "png": png.name,
+                        "sha256": RENDER.sha256(png),
+                        "width": 595,
+                        "height": 842,
+                        "zoomReviewed": True,
+                        "checks": {
+                            "clipping": False,
+                            "overlap": False,
+                            "blankPage": False,
+                            "lowContrast": False,
+                            "orphanParagraph": False,
+                            "captionSplit": False,
+                        },
+                    }
+                ],
+            }
+            receipt_path.write_text(
+                json.dumps(receipt, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            report = RENDER.validate(hwpx, receipt_path)
+            self.assertEqual(report["status"], "PASS", report["errors"])
+            self.assertEqual(report["pdfPageCount"], 1)
+
+            def assert_block(mutator, expected: str) -> None:
+                changed = json.loads(json.dumps(receipt))
+                mutator(changed)
+                receipt_path.write_text(
+                    json.dumps(changed, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                report = RENDER.validate(hwpx, receipt_path)
+                self.assertEqual(report["status"], "BLOCK")
+                self.assertIn(expected, "\n".join(report["errors"]))
+
+            cases = [
+                (
+                    lambda payload: payload.__setitem__(
+                        "hwpxSha256",
+                        "sha256:" + "0" * 64,
+                    ),
+                    "HWPX digest is missing or stale",
+                ),
+                (
+                    lambda payload: payload["pdf"].__setitem__(
+                        "sha256",
+                        "sha256:" + "0" * 64,
+                    ),
+                    "PDF digest is missing or stale",
+                ),
+                (
+                    lambda payload: payload["pages"][0].__setitem__(
+                        "sha256",
+                        "sha256:" + "0" * 64,
+                    ),
+                    "PNG digest is missing or stale",
+                ),
+                (
+                    lambda payload: payload["renderer"].pop("version"),
+                    "renderer name and version are required",
+                ),
+                (
+                    lambda payload: payload["pages"][0].__setitem__("width", 1),
+                    "PNG dimensions are missing or stale",
+                ),
+                (
+                    lambda payload: payload["pages"][0].__setitem__(
+                        "zoomReviewed",
+                        False,
+                    ),
+                    "requires 100-percent and zoom review",
+                ),
+                (
+                    lambda payload: payload["pages"][0]["checks"].pop(
+                        "captionSplit"
+                    ),
+                    "checks must contain exactly",
+                ),
+                (
+                    lambda payload: payload["pages"][0].__setitem__("index", 2),
+                    "indexes must be consecutive from 1",
+                ),
+                (
+                    lambda payload: payload["pages"][0]["checks"].__setitem__(
+                        "clipping",
+                        True,
+                    ),
+                    "visual QA has a reported defect",
+                ),
+                (
+                    lambda payload: payload["pages"].append(
+                        {
+                            **payload["pages"][0],
+                            "index": 2,
+                        }
+                    ),
+                    "PDF page count and page PNG count differ",
+                ),
+            ]
+            for mutator, expected in cases:
+                with self.subTest(expected=expected):
+                    assert_block(mutator, expected)
+
+            zero_pdf = root / "zero-page.pdf"
+            payload = bytearray(b"%PDF-1.4\n")
+            offsets = []
+            for number, body in (
+                (1, b"<< /Type /Catalog /Pages 2 0 R >>"),
+                (2, b"<< /Type /Pages /Count 0 /Kids [] >>"),
+            ):
+                offsets.append(len(payload))
+                payload.extend(
+                    f"{number} 0 obj\n".encode("ascii")
+                    + body
+                    + b"\nendobj\n"
+                )
+            xref_offset = len(payload)
+            payload.extend(b"xref\n0 3\n0000000000 65535 f \n")
+            for offset in offsets:
+                payload.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+            payload.extend(
+                b"trailer\n<< /Size 3 /Root 1 0 R >>\nstartxref\n"
+                + str(xref_offset).encode("ascii")
+                + b"\n%%EOF\n"
+            )
+            zero_pdf.write_bytes(payload)
+            zero_receipt = json.loads(json.dumps(receipt))
+            zero_receipt["pdf"] = {
+                "path": zero_pdf.name,
+                "sha256": RENDER.sha256(zero_pdf),
+            }
+            receipt_path.write_text(
+                json.dumps(zero_receipt, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            report = RENDER.validate(hwpx, receipt_path)
+            self.assertEqual(report["status"], "BLOCK")
+            self.assertIn(
+                "rendered PDF must contain at least one page",
+                "\n".join(report["errors"]),
             )
 
 

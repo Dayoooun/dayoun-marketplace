@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 import tempfile
 import zipfile
@@ -53,6 +54,53 @@ def smoke(
             )
             if not all(path.is_file() for path in required_validators):
                 raise SmokeError("writer artifact is missing independent validators")
+            lead_script = (
+                root
+                / "skills"
+                / "complete-business-plan"
+                / "scripts"
+                / "lead_request.py"
+            )
+            if not lead_script.is_file():
+                raise SmokeError("writer artifact is missing the natural-language lead entrypoint")
+            lead = subprocess.run(
+                [
+                    sys.executable,
+                    str(lead_script),
+                    "--request",
+                    "이 HWPX 내용은 바꾸지 말고 #0057B8로 알아서 보기 좋게 디자인해줘.",
+                ],
+                cwd=root,
+                text=True,
+                encoding="utf-8",
+                capture_output=True,
+                check=False,
+            )
+            if lead.returncode != 0:
+                raise SmokeError("writer artifact natural-language lead entrypoint failed")
+            try:
+                lead_brief = json.loads(lead.stdout)
+            except json.JSONDecodeError as error:
+                raise SmokeError("writer artifact lead entrypoint returned invalid JSON") from error
+            if (
+                lead_brief.get("entrySkill") != "complete-business-plan"
+                or lead_brief.get("interactionMode") != "REAL"
+                or lead_brief.get("designDelegated") is not True
+                or "create-hwpx-design-decision-table"
+                not in lead_brief.get("autonomousActions", [])
+                or lead_brief.get("approvalGates", {}).get("contentApproval") is not True
+                or lead_brief.get("approvalGates", {}).get("designChoice") is not False
+                or lead_brief.get("approvalGates", {}).get("publicationApproval") is not True
+                or lead_brief.get("completionRequirements", {}).get(
+                    "sourceStructureIntegrityRequired"
+                )
+                is not True
+                or lead_brief.get("completionRequirements", {}).get(
+                    "pdfAndPagePngRenderReceiptRequired"
+                )
+                is not True
+            ):
+                raise SmokeError("writer artifact natural-language lead contract is incomplete")
             ppt_root = root / "skills" / "ppt-editorial"
             skill_text = (ppt_root / "SKILL.md").read_text(encoding="utf-8")
             if ppt_modes and not all(mode in skill_text for mode in ppt_modes):

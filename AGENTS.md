@@ -12,11 +12,17 @@
 - 기존 플러그인, 사용자 설정, 작업 파일은 보존한다.
 - 실패를 성공으로 보고하거나 확인되지 않은 명령을 만들지 않는다.
 
+설치 성공 보고에서 멈추지 않습니다. 사용자가 자연어로 사업계획서·HWPX·PPT 결과를
+요청하면 스킬 이름이나 명령을 되묻지 않고 `complete-business-plan`을 기본 진입점으로
+사용합니다. 사용자의 명시적 지시를 고정 조건으로 기록하고, 되돌릴 수 있는 분석·조사·
+디자인은 직접 진행하며 결과를 바꾸는 결정만 권장안과 함께 확인받습니다. 특히 HWPX는
+원본 보존, 의미 기반 시각자료, 실제 PDF/PNG 화면검수까지 리드합니다.
+
 현재 공개 RC 버전:
 
 | 플러그인 | 버전 | 용도 |
 |---|---:|---|
-| `business-plan-writer` | `0.11.0` | QUICK·SECTION·FULL 사업계획서, 선택 HWPX, scene-deck/image-first PPT |
+| `business-plan-writer` | `0.12.0` | 자연어 지시 리드, QUICK·SECTION·FULL, 자율 HWPX 디자인, scene-deck/image-first PPT |
 | `business-documents` | `0.1.0` | 견적서·회사소개서·이력서·공문·안내문 HTML |
 
 stable `1.0`은 외부 프로바이더·화면검수·강의·베타 증거가 충족되기 전까지 설치 대상으로 안내하지 않습니다.
@@ -57,7 +63,7 @@ codex plugin list
 
 - marketplace 이름이 `dayoun`이다.
 - `business-plan-writer@dayoun`이 `installed, enabled`다.
-- writer 버전이 `0.11.0`이다.
+- writer 버전이 `0.12.0`이다.
 - 요청한 경우 `business-documents@dayoun`이 `installed, enabled`이고 `0.1.0`이다.
 
 marketplace가 이미 등록되어 있으면 추가 실패를 반복하지 않습니다. 다음 업데이트 명령으로 전환합니다.
@@ -91,7 +97,7 @@ claude plugin list
 
 - 두 플러그인의 scope가 의도한 사용자 또는 프로젝트 scope다.
 - 상태가 enabled다.
-- 버전이 각각 `0.11.0`, `0.1.0`이다.
+- 버전이 각각 `0.12.0`, `0.1.0`이다.
 - 설치 후 Claude Code 재시작이 필요하다고 안내한다.
 
 이미 등록된 marketplace는 중복 추가하지 않고 업데이트합니다.

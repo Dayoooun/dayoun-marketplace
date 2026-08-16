@@ -15,7 +15,7 @@ PLUGIN = ROOT / "plugins" / "business-plan-writer"
 SKILLS = PLUGIN / "skills"
 STARTER_SKILLS = ROOT / "course" / "starter-project" / ".agents" / "skills"
 CLAUDE_STARTER_SKILLS = ROOT / "course" / "starter-project" / ".claude" / "skills"
-VERSION = "0.11.0"
+VERSION = "0.12.0"
 CORE_SKILLS = {
     "complete-business-plan",
     "draft-business-plan",
@@ -195,7 +195,7 @@ class BusinessPlanPluginTests(unittest.TestCase):
         self.assertIn("번호 체계", rubric)
 
     def test_script_skills_explain_windows_and_mac_linux_launchers(self) -> None:
-        for skill_name in ("setup-business-plan-project", "fill-hwpx-template"):
+        for skill_name in ("complete-business-plan", "setup-business-plan-project", "fill-hwpx-template"):
             content = (SKILLS / skill_name / "SKILL.md").read_text(encoding="utf-8")
             self.assertIn("Windows", content)
             self.assertIn("macOS/Linux", content)
@@ -245,6 +245,193 @@ class BusinessPlanPluginTests(unittest.TestCase):
         self.assertLess(intake_at, setup_at)
         self.assertIn("질문 하나만", content)
         self.assertIn("답을 기다린다", content)
+
+    def test_installed_agent_leads_natural_language_and_hwpx_design(self) -> None:
+        complete = (SKILLS / "complete-business-plan" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        fill = (SKILLS / "fill-hwpx-template" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        design = (
+            SKILLS
+            / "fill-hwpx-template"
+            / "references"
+            / "visual-design-system.md"
+        ).read_text(encoding="utf-8")
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+        self.assertLess(
+            complete.index("설치 후 기본 리드 계약"),
+            complete.index("먼저 공식 입력을 잠근다"),
+        )
+        for requirement in (
+            "스킬 이름",
+            "고정 조건",
+            "되돌릴 수 있는 일은 질문을 기다리지 않고 진행",
+            "권장안과 대안",
+            "사용자의 명시적 지시는 공통 기본값보다 항상 우선",
+            "`알아서 보기 좋게`",
+            "PDF/PNG 렌더",
+        ):
+            self.assertIn(requirement, complete)
+
+        for requirement in (
+            "`알아서 보기 좋게` 실행 계약",
+            "디자인 결정표",
+            "사용자가 지정한 브랜드·폰트·색·톤·참고 이미지",
+            "결과 HWPX와",
+            "검증 기록까지 만든다",
+        ):
+            self.assertIn(requirement, fill)
+
+        for requirement in (
+            "에이전트 자동 선택표",
+            "문서 디자인 품질 gate",
+            "본문만으로 판단이 가능하면 0개가 정답",
+            "구조검사 PASS는 디자인 PASS가 아니다",
+        ):
+            self.assertIn(requirement, design)
+
+        self.assertIn("설치 후에는 자연어로 지시합니다", readme)
+        self.assertIn("스킬 이름이나 10단계를 외울 필요가 없습니다", readme)
+
+    def test_natural_language_lead_brief_is_behavioral_and_fail_closed(self) -> None:
+        script = (
+            SKILLS
+            / "complete-business-plan"
+            / "scripts"
+            / "lead_request.py"
+        )
+        request = (
+            "이 HWPX 내용은 바꾸지 말고 브랜드 색 #0057B8로 알아서 보기 좋게 "
+            "디자인해줘. 원본은 보존하고 PDF 확대검수까지 해줘."
+        )
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(script),
+                "--request",
+                request,
+            ],
+            cwd=ROOT,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+        brief = json.loads(completed.stdout)
+
+        self.assertEqual(brief["entrySkill"], "complete-business-plan")
+        self.assertEqual(brief["interactionMode"], "REAL")
+        self.assertEqual(brief["status"], "READY_FOR_REVERSIBLE_WORK")
+        self.assertIn("HWPX", brief["requestedOutputs"])
+        self.assertTrue(brief["designDelegated"])
+        constraints = {
+            item["constraint"] for item in brief["fixedConstraints"]
+        }
+        self.assertIn("preserve-approved-content", constraints)
+        self.assertIn("preserve-source-file", constraints)
+        self.assertIn("brand-color:#0057B8", constraints)
+        self.assertIn("design-delegated-within-evidence", constraints)
+
+        actions = brief["autonomousActions"]
+        self.assertEqual(
+            brief["nextAction"],
+            "inventory-provided-files-and-existing-project",
+        )
+        self.assertIn("create-hwpx-design-decision-table", actions)
+        self.assertIn(
+            "apply-approved-content-and-delegated-design-to-working-copy",
+            actions,
+        )
+        self.assertIn(
+            "render-pdf-and-page-pngs-for-full-page-100-percent-and-zoom-qa",
+            actions,
+        )
+        self.assertTrue(brief["approvalGates"]["contentApproval"])
+        self.assertEqual(
+            brief["materialDecisions"][2]["agentBehavior"],
+            "never-infer-or-self-approve",
+        )
+        self.assertFalse(brief["approvalGates"]["designChoice"])
+        self.assertFalse(brief["approvalGates"]["hwpxChoice"])
+        self.assertTrue(brief["approvalGates"]["publicationApproval"])
+        self.assertTrue(
+            brief["completionRequirements"]["sourceStructureIntegrityRequired"]
+        )
+        self.assertTrue(
+            brief["completionRequirements"]["pdfAndPagePngRenderReceiptRequired"]
+        )
+
+        demo_day = subprocess.run(
+            [
+                sys.executable,
+                str(script),
+                "--request",
+                "데모데이 제출용 HWPX를 전문적으로 디자인해줘.",
+            ],
+            cwd=ROOT,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(demo_day.returncode, 0, demo_day.stdout + demo_day.stderr)
+        demo_day_brief = json.loads(demo_day.stdout)
+        self.assertEqual(demo_day_brief["interactionMode"], "REAL")
+        self.assertTrue(demo_day_brief["approvalGates"]["contentApproval"])
+        self.assertTrue(demo_day_brief["approvalGates"]["publicationApproval"])
+
+        explicit_demo = subprocess.run(
+            [
+                sys.executable,
+                str(script),
+                "--request",
+                "강의시연용 HWPX 흐름을 검증해줘.",
+                "--mode",
+                "DEMO",
+            ],
+            cwd=ROOT,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(
+            explicit_demo.returncode,
+            0,
+            explicit_demo.stdout + explicit_demo.stderr,
+        )
+        explicit_demo_brief = json.loads(explicit_demo.stdout)
+        self.assertEqual(explicit_demo_brief["interactionMode"], "DEMO")
+        self.assertFalse(explicit_demo_brief["approvalGates"]["contentApproval"])
+        self.assertFalse(
+            explicit_demo_brief["approvalGates"]["publicationApproval"]
+        )
+
+        nondelegated = subprocess.run(
+            [
+                sys.executable,
+                str(script),
+                "--request",
+                "이 HWPX 양식을 승인 문안으로 채워줘.",
+            ],
+            cwd=ROOT,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(
+            nondelegated.returncode,
+            0,
+            nondelegated.stdout + nondelegated.stderr,
+        )
+        nondelegated_brief = json.loads(nondelegated.stdout)
+        self.assertFalse(nondelegated_brief["designDelegated"])
+        self.assertTrue(nondelegated_brief["approvalGates"]["designChoice"])
 
     def test_end_to_end_pipeline_and_skill_handoffs_are_documented(self) -> None:
         complete = (SKILLS / "complete-business-plan" / "SKILL.md").read_text(
