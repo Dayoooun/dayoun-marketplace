@@ -146,6 +146,21 @@ class Deck:
         self._rec("SCENE", n, "씬 교체" if body is not None else "씬 재생성")
         return self
 
+    def scene_mode(self, n, mode, target=None, transparent=False):
+        """씬 조립 방식을 cutout 또는 canvas로 명시한다."""
+        if mode not in {"cutout", "canvas"}:
+            raise ValueError("scene mode는 cutout/canvas 중 하나")
+        if transparent and mode != "cutout":
+            raise ValueError("transparent는 cutout scene에서만 쓸 수 있습니다")
+        slide = self._slide(n)
+        slide["sceneMode"] = mode
+        if target is not None:
+            slide["sceneTarget"] = dict(target)
+        slide["sceneTransparent"] = bool(transparent)
+        self.dirty_scenes.add(slide.get("scene") or "s%02d" % n)
+        self._rec("SCENE", n, "씬 모드→%s" % mode)
+        return self
+
     def label(self, n, *labels):
         """씬 안 라벨 교체 → 재생성 필요"""
         s = self._slide(n)
@@ -195,6 +210,11 @@ class Deck:
                 "refs": [],
                 "out": os.path.join(base_dir, "%s.png" % sid),
                 "prompt": style_fn(self.spec.get("domain")) + s.get("scene_body", ""),
+                "scene_mode": s.get("sceneMode", "canvas"),
+                "scene_target": s.get("sceneTarget", {}),
+                "requested_transparent": bool(s.get("sceneTransparent", False)),
+                "safe_zone": 0.18,
+                "safe_frame": True,
             })
         return jobs
 

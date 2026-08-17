@@ -4,6 +4,7 @@
    C: 중앙정렬 대형    |   S: 좌씬/우텍스트 (반전)
 """
 import os
+import math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
@@ -29,10 +30,21 @@ WHITE = (255, 255, 255)
 import sys as _sys
 _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fonts import font as TF, metrics as TM, draw_tracked   # noqa: E402
+from cutout import cutout_scene, load_scene_receipt, sha256 as scene_sha256  # noqa: E402
 
 FAMILY = "pretendard"      # 프로젝트별로 덮어쓴다 (presets.py의 fonts.head)
 
 FOOT = ""                  # 발신주체. Deck(foot=...) 로 넘긴다 — 하드코딩 금지
+PLACEMENT_RECEIPTS = []
+DEFAULT_CUTOUT_LAYOUTS = {"COVER", "L", "S", "A", "CLOSING"}
+DEFAULT_SCENE_TARGETS = {
+    "COVER": {"slot": "right", "minOccupancy": 0.70, "maxOccupancy": 0.88, "allowAspectAdjusted": True},
+    "L": {"slot": "right", "minOccupancy": 0.68, "maxOccupancy": 0.88, "allowAspectAdjusted": True},
+    "S": {"slot": "left", "minOccupancy": 0.68, "maxOccupancy": 0.88, "allowAspectAdjusted": True},
+    "W": {"slot": "bottom", "minOccupancy": 0.72, "maxOccupancy": 0.92, "allowAspectAdjusted": True},
+    "A": {"slot": "right-large", "minOccupancy": 0.72, "maxOccupancy": 0.90, "allowAspectAdjusted": True},
+    "CLOSING": {"slot": "center", "minOccupancy": 0.65, "maxOccupancy": 0.85, "allowAspectAdjusted": True},
+}
 
 
 def f(role, size=None, weight=None):
@@ -45,23 +57,54 @@ def _legacy_f(sz, p=None):
 
 
 def trim(im, thr=248):
+    """Legacy white-background crop retained for callers outside scene specs."""
     a = np.array(im.convert("L"))
     ys, xs = np.nonzero(a < thr)
     if not len(xs):
         return im
     p = 8
-    return im.crop((max(0, xs.min() - p), max(0, ys.min() - p),
-                    min(im.width, xs.max() + p), min(im.height, ys.max() + p)))
+    return im.crop(
+        (
+            max(0, xs.min() - p),
+            max(0, ys.min() - p),
+            min(im.width, xs.max() + p),
+            min(im.height, ys.max() + p),
+        )
+    )
 
 
-def scene(name):
+def _scene_mode(slide, layout):
+    return slide.get("sceneMode") or (
+        "cutout" if layout in DEFAULT_CUTOUT_LAYOUTS else "canvas"
+    )
+
+
+def scene(name, mode="cutout", requested_transparent=False):
     path = os.path.join(SCN, "%s.png" % name)
     if not os.path.exists(path):
-        return None
-    image = Image.open(path).convert("RGB")
-    if os.path.isfile(path + ".safe.json"):
-        return image
-    return trim(image)
+        return None, None
+    if mode == "canvas":
+        with Image.open(path) as opened:
+            prepared = opened.convert("RGB")
+        return prepared, {
+            "status": "PASS",
+            "sceneMode": "canvas",
+            "contentBBox": [0, 0, prepared.width, prepared.height],
+            "sha256": scene_sha256(path),
+        }
+    if mode != "cutout":
+        raise ValueError("scene mode must be cutout or canvas")
+    prepared, report = cutout_scene(
+        path,
+        requested_transparent=requested_transparent,
+    )
+    receipt = load_scene_receipt(path)
+    if receipt is not None:
+        if receipt.get("sha256") != report.get("sha256"):
+            raise ValueError("scene safe receipt digest is stale")
+        if receipt.get("contentBBox") != report.get("contentBBox"):
+            raise ValueError("scene safe receipt contentBBox is stale")
+    return prepared, report
 
 
 def chrome(im, d, eyebrow, num, total):
@@ -158,15 +201,154 @@ def fit(sc, bw, bh):
     return sc.resize((max(1, int(sc.width * r)), max(1, int(sc.height * r))), Image.LANCZOS)
 
 
-def place_right(im, sc, right_x, top):
-    """씬을 우측 기준으로 붙이되 콘텐츠가 여백을 넘지 않게 보정.
+def paste_scene(image, scene_image, position):
+    if scene_image.mode == "RGBA":
+        image.paste(scene_image, position, scene_image.getchannel("A"))
+    else:
+        image.paste(scene_image, position)
 
-    trim()으로 흰 여백을 걷어낸 씬은 콘텐츠가 가장자리에 딱 붙어 있다.
-    그대로 우변에 맞추면 안티에일리어싱 픽셀이 여백선을 넘어 QC가 위반을 잡는다.
-    (실측: A 구도에서 우측 0.990 — 씬이 캔버스 91%를 채운 경우)
-    """
-    pad = max(2, int(sc.width * 0.012))
-    im.paste(sc, (right_x - sc.width - pad, top))
+
+def clear_placement_receipts():
+    PLACEMENT_RECEIPTS.clear()
+
+
+def placement_receipts():
+    return list(PLACEMENT_RECEIPTS)
+
+
+def _intersects(first, second):
+    return not (
+        first[2] <= second[0]
+        or second[2] <= first[0]
+        or first[3] <= second[1]
+        or second[3] <= first[1]
+    )
+
+
+def _forbidden_rectangles(layout):
+    if layout == "COVER":
+        return [(M, int(H * 0.12), int(W * 0.50), int(H * 0.90), "text")]
+    if layout == "L":
+        return [(M, BODY_TOP, int(W * 0.53), BODY_BOT, "text")]
+    if layout == "S":
+        return [(int(W * 0.52), BODY_TOP, W - M, BODY_BOT, "text")]
+    if layout == "A":
+        return [(M, BODY_TOP, int(W * 0.40), BODY_BOT, "text")]
+    if layout == "T":
+        return [
+            (M, BODY_TOP, int(W * 0.33), BODY_BOT, "left-text"),
+            (int(W * 0.69), BODY_TOP, W - M, BODY_BOT, "right-cards"),
+        ]
+    if layout == "AGENDA":
+        return [(M, BODY_TOP, int(W * 0.68), BODY_BOT, "agenda")]
+    return []
+
+
+def place_scene_in_slot(
+    image,
+    slide,
+    layout,
+    slot,
+    *,
+    horizontal="center",
+    vertical="center",
+):
+    mode = _scene_mode(slide, layout)
+    scene_image, content_report = scene(
+        slide["scene"],
+        mode=mode,
+        requested_transparent=bool(slide.get("sceneTransparent", False)),
+    )
+    if scene_image is None:
+        return None
+    x, y, width, height = (int(value) for value in slot)
+    if width <= 0 or height <= 0:
+        raise ValueError(f"scene slot must have positive size: {slot}")
+    target = dict(DEFAULT_SCENE_TARGETS.get(layout, {}))
+    target.update(slide.get("sceneTarget") or {})
+    minimum = float(target.get("minOccupancy", 0.0))
+    maximum = float(target.get("maxOccupancy", 1.0))
+    allow_aspect_adjusted = bool(target.get("allowAspectAdjusted", False))
+    if not 0 <= minimum <= maximum <= 1:
+        raise ValueError(f"invalid scene occupancy target: {target}")
+
+    prepared = fit(scene_image, width, height)
+    occupancy = prepared.width * prepared.height / float(width * height)
+    if maximum < 1 and occupancy > maximum:
+        scale = math.sqrt(maximum / occupancy)
+        prepared = prepared.resize(
+            (
+                max(1, int(round(prepared.width * scale))),
+                max(1, int(round(prepared.height * scale))),
+            ),
+            Image.Resampling.LANCZOS,
+        )
+    width_occupancy = prepared.width / width
+    height_occupancy = prepared.height / height
+    occupancy = prepared.width * prepared.height / float(width * height)
+    aspect_adjusted = (
+        allow_aspect_adjusted
+        and max(width_occupancy, height_occupancy) >= 0.90
+        and min(width_occupancy, height_occupancy) >= 0.30
+    )
+    if minimum > 0 and occupancy < minimum and not aspect_adjusted:
+        raise ValueError(
+            f"scene foreground occupancy {occupancy:.3f} is below "
+            f"{minimum:.3f} for layout {layout}"
+        )
+
+    px = {
+        "left": x,
+        "center": x + (width - prepared.width) // 2,
+        "right": x + width - prepared.width,
+    }[horizontal]
+    py = {
+        "top": y,
+        "center": y + (height - prepared.height) // 2,
+        "bottom": y + height - prepared.height,
+    }[vertical]
+    placed = (px, py, px + prepared.width, py + prepared.height)
+    collisions = []
+    if layout != "COVER":
+        if placed[1] < BODY_TOP:
+            collisions.append("top-chrome")
+        if placed[3] > BODY_BOT:
+            collisions.append("footer-rule")
+    if placed[0] < M or placed[2] > W - M:
+        collisions.append("horizontal-safe-margin")
+    for left, top, right, bottom, label in _forbidden_rectangles(layout):
+        if _intersects(placed, (left, top, right, bottom)):
+            collisions.append(label)
+    if collisions:
+        raise ValueError(
+            f"scene placement collides with {','.join(collisions)}: {placed}"
+        )
+    paste_scene(image, prepared, (px, py))
+    PLACEMENT_RECEIPTS.append(
+        {
+            "slideId": slide.get("_sid"),
+            "scene": slide.get("scene"),
+            "layout": layout,
+            "sceneMode": mode,
+            "slot": [x, y, x + width, y + height],
+            "placedBBox": list(placed),
+            "contentBBox": (
+                content_report.get("contentBBox") if content_report else None
+            ),
+            "sourceSha256": (
+                content_report.get("sha256") if content_report else None
+            ),
+            "areaOccupancy": round(occupancy, 6),
+            "widthOccupancy": round(width_occupancy, 6),
+            "heightOccupancy": round(height_occupancy, 6),
+            "minOccupancy": minimum,
+            "maxOccupancy": maximum,
+            "aspectAdjusted": aspect_adjusted,
+            "allowAspectAdjusted": allow_aspect_adjusted,
+            "collisions": [],
+        }
+    )
+    return prepared
 
 
 # ══════════ 구도별 빌더 ══════════
@@ -193,25 +375,26 @@ def _pale():
 
 def lay_L(im, d, s):
     """좌 텍스트 / 우 씬 — 개념 설명용"""
-    sc = scene(s["scene"])
-    if sc:
-        bw, bh = int(W * 0.42), int(H * 0.60)
-        r = min(bw / sc.width, bh / sc.height)
-        sc = sc.resize((int(sc.width * r), int(sc.height * r)), Image.LANCZOS)
-        place_right(im, sc, W - M - int(W * 0.02),
-                    int(H * 0.20) + (bh - sc.height) // 2)
+    place_scene_in_slot(
+        im,
+        s,
+        "L",
+        (int(W * 0.54), int(H * 0.20), int(W * 0.41), int(H * 0.60)),
+        horizontal="right",
+    )
     _y = typo(d, M, int(H * 0.245), s["head"], s["sub"], maxw=int(W * 0.50))
     _emphasis(im, d, s, M, _y + 18)
 
 
 def lay_S(im, d, s):
     """좌 씬 / 우 텍스트 — 리듬 전환용(반전)"""
-    sc = scene(s["scene"])
-    if sc:
-        bw, bh = int(W * 0.40), int(H * 0.60)
-        r = min(bw / sc.width, bh / sc.height)
-        sc = sc.resize((int(sc.width * r), int(sc.height * r)), Image.LANCZOS)
-        im.paste(sc, (M + int(W * 0.02), int(H * 0.20) + (bh - sc.height) // 2))
+    place_scene_in_slot(
+        im,
+        s,
+        "S",
+        (M + int(W * 0.02), int(H * 0.20), int(W * 0.40), int(H * 0.60)),
+        horizontal="left",
+    )
     _y = typo(d, int(W * 0.52), int(H * 0.245), s["head"], s["sub"], maxw=int(W * 0.42))
     _emphasis(im, d, s, int(W * 0.52), _y + 18)
 
@@ -222,13 +405,18 @@ def lay_W(im, d, s):
     (고정 H*0.40이면 텍스트가 짧을 때 상단이 비고 씬이 하단으로 쏠린다 — 실측)"""
     y = typo(d, M, int(H * 0.16), s["head"], s["sub"], role="title")
     y = _emphasis(im, d, s, M, y + 10)
-    sc = scene(s["scene"])
-    if sc:
-        top = y + 28
-        bw = W - M * 2 - int(W * 0.04)
-        bh = max(int(H * 0.28), BODY_BOT - top)
-        sc = fit(sc, bw, bh)
-        im.paste(sc, ((W - sc.width) // 2, top + (bh - sc.height) // 2))
+    top = y + 28
+    place_scene_in_slot(
+        im,
+        s,
+        "W",
+        (
+            M + int(W * 0.02),
+            top,
+            W - M * 2 - int(W * 0.04),
+            max(int(H * 0.28), BODY_BOT - top),
+        ),
+    )
 
 
 def lay_C(im, d, s):
@@ -237,12 +425,18 @@ def lay_C(im, d, s):
     y = typo(d, W // 2, int(H * 0.155), s["head"], s["sub"],
              role="title", center=True, maxw=int(W * 0.78))
     y = _emphasis(im, d, s, W // 2, y + 12)
-    sc = scene(s["scene"])
-    if sc:
-        top = y + 24
-        bh = max(int(H * 0.30), BODY_BOT - top)
-        sc = fit(sc, int(W * 0.56), bh)
-        im.paste(sc, ((W - sc.width) // 2, top + (bh - sc.height) // 2))
+    top = y + 24
+    place_scene_in_slot(
+        im,
+        s,
+        "C",
+        (
+            int(W * 0.22),
+            top,
+            int(W * 0.56),
+            max(int(H * 0.30), BODY_BOT - top),
+        ),
+    )
 
 
 
@@ -253,10 +447,13 @@ def lay_A(im, d, s):
     임팩트가 필요한 장(오프닝·핵심 주장)에 쓴다.
     ★ 씬 우변은 반드시 M(=W*0.030) 안쪽에 둔다. 예전엔 W*0.01 오프셋이라
       여백을 침범해 deck_qc가 우측 위반을 잡았다(실측 0.979)."""
-    sc = scene(s["scene"])
-    if sc:
-        sc = fit(sc, int(W * 0.58), int(H * 0.70))
-        place_right(im, sc, W - M, int(H * 0.17))
+    place_scene_in_slot(
+        im,
+        s,
+        "A",
+        (int(W * 0.40), int(H * 0.17), W - M - int(W * 0.40), int(H * 0.68)),
+        horizontal="right",
+    )
     _y = typo(d, M, int(H * 0.22), s["head"], s["sub"], maxw=int(W * 0.36))
     _emphasis(im, d, s, M, _y + 18)
 
@@ -264,20 +461,24 @@ def lay_A(im, d, s):
 def lay_F(im, d, s):
     """F — 전면(full-bleed): 씬을 화면 폭 전체로 깔고 텍스트를 좌측 상단에 얹는다.
     분위기·규모를 보여줄 때. 씬 하단이 크롬과 겹치지 않게 상단 정렬."""
-    sc = scene(s["scene"])
-    if sc:
-        sc = fit(sc, int(W * 0.98), int(H * 0.66))
-        im.paste(sc, ((W - sc.width) // 2, int(H * 0.24)))
+    place_scene_in_slot(
+        im,
+        s,
+        "F",
+        (M, int(H * 0.24), W - M * 2, int(H * 0.61)),
+    )
     typo(d, M, int(H * 0.165), s["head"], s["sub"], role="title")
 
 
 def lay_T(im, d, s):
     """T — 3분할: 좌 텍스트 / 중앙 씬 / 우 보조 리스트.
     항목 나열이 있는 장. s["items"] = [(제목, 설명), ...] 최대 3개."""
-    sc = scene(s["scene"])
-    if sc:
-        sc = fit(sc, int(W * 0.30), int(H * 0.52))
-        im.paste(sc, (int(W * 0.355), int(H * 0.24) + (int(H * 0.52) - sc.height) // 2))
+    place_scene_in_slot(
+        im,
+        s,
+        "T",
+        (int(W * 0.355), int(H * 0.24), int(W * 0.30), int(H * 0.52)),
+    )
     y = typo(d, M, int(H * 0.245), s["head"], s["sub"], maxw=int(W * 0.30))
     _emphasis(im, d, s, M, y + 18)
     items = s.get("items") or []
@@ -348,10 +549,13 @@ def align_axis(d, x, top, bottom, hero):
 def lay_COVER(im, d, s):
     """표지 — 좌 대형타이포 + 발신 정보 / 우 씬. 크롬은 최소화.
     기준 덱 실측: eyebrow(영문) → 초대형 헤드 2줄 → 서브 → 발신주체."""
-    sc = scene(s["scene"])
-    if sc:
-        sc = fit(sc, int(W * 0.46), int(H * 0.72))
-        place_right(im, sc, W - M, (H - sc.height) // 2)
+    place_scene_in_slot(
+        im,
+        s,
+        "COVER",
+        (int(W * 0.51), int(H * 0.14), int(W * 0.46), int(H * 0.72)),
+        horizontal="right",
+    )
     # 텍스트 블록 높이를 먼저 재서 세로 중앙에 놓는다.
     # 고정 y(0.26)면 짧은 표지에서 하단이 크게 비고 상단으로 쏠린다(실측).
     x = M
@@ -399,26 +603,35 @@ def lay_AGENDA(im, d, s):
         if i < len(items):
             d.line([(x, yy), (W - M - int(W * 0.20), yy)], fill=LINE, width=2)
         y = yy + 18
-    sc = scene(s["scene"])
-    if sc:
-        sc = fit(sc, int(W * 0.30), int(H * 0.50))
-        place_right(im, sc, W - M, int(H * 0.30))
+    place_scene_in_slot(
+        im,
+        s,
+        "AGENDA",
+        (int(W * 0.70), int(H * 0.30), W - M - int(W * 0.70), int(H * 0.50)),
+        horizontal="right",
+    )
 
 
 def lay_CLOSING(im, d, s):
     """클로징 — 중앙 엠블럼 씬 + 감사 문구 + 연락 정보(선택)."""
     y = typo(d, W // 2, int(H * 0.20), s["head"], s.get("sub") or [],
              role="title", center=True, maxw=int(W * 0.72))
-    sc = scene(s["scene"])
-    if sc:
-        top = y + 30
-        bh = max(int(H * 0.26), int(H * 0.80) - top)
-        sc = fit(sc, int(W * 0.42), bh)
-        im.paste(sc, ((W - sc.width) // 2, top + (bh - sc.height) // 2))
+    top = y + 30
+    place_scene_in_slot(
+        im,
+        s,
+        "CLOSING",
+        (
+            int(W * 0.325),
+            top,
+            int(W * 0.35),
+            max(int(H * 0.22), int(H * 0.78) - top),
+        ),
+    )
     if s.get("issuer"):
         fi = f("label", 38)
         tw_ = d.textlength(s["issuer"], font=fi)
-        d.text(((W - tw_) / 2, int(H * 0.80)), s["issuer"], font=fi, fill=INK)
+        d.text(((W - tw_) / 2, int(H * 0.81)), s["issuer"], font=fi, fill=INK)
 
 
 LAY = {"L": lay_L, "S": lay_S, "W": lay_W, "C": lay_C,

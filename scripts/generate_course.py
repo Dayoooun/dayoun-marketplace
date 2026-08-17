@@ -47,6 +47,9 @@ def build_course(target: Path) -> dict[str, object]:
     plugin_skills = REPO_ROOT / "plugins" / "business-plan-writer" / "skills"
     copy_tree(plugin_skills, target / "starter-project" / ".agents" / "skills")
     copy_tree(plugin_skills, target / "starter-project" / ".claude" / "skills")
+    plugin_fonts = REPO_ROOT / "plugins" / "business-plan-writer" / "assets" / "fonts"
+    copy_tree(plugin_fonts, target / "starter-project" / ".agents" / "assets" / "fonts")
+    copy_tree(plugin_fonts, target / "starter-project" / ".claude" / "assets" / "fonts")
     plugin_validators = REPO_ROOT / "plugins" / "business-plan-writer" / "validators"
     copy_tree(plugin_validators, target / "starter-project" / ".dayoun" / "validators")
     copy_tree(

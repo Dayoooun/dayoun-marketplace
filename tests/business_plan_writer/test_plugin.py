@@ -15,7 +15,7 @@ PLUGIN = ROOT / "plugins" / "business-plan-writer"
 SKILLS = PLUGIN / "skills"
 STARTER_SKILLS = ROOT / "course" / "starter-project" / ".agents" / "skills"
 CLAUDE_STARTER_SKILLS = ROOT / "course" / "starter-project" / ".claude" / "skills"
-VERSION = "0.12.1"
+VERSION = "0.12.2"
 CORE_SKILLS = {
     "complete-business-plan",
     "draft-business-plan",
@@ -398,6 +398,64 @@ class BusinessPlanPluginTests(unittest.TestCase):
             brief["completionRequirements"]["pdfAndPagePngRenderReceiptRequired"]
         )
 
+        for phrase in (
+            "PPT",
+            "PPTX",
+            "PowerPoint",
+            "파워포인트",
+            "슬라이드",
+            "발표자료",
+            "발표 덱",
+            "피치덱",
+            "IR 덱",
+            "제안서",
+            "강의자료",
+            "교육자료",
+        ):
+            with self.subTest(ppt_trigger=phrase):
+                routed = subprocess.run(
+                    [
+                        sys.executable,
+                        str(script),
+                        "--request",
+                        f"{phrase} 만들어줘",
+                    ],
+                    cwd=ROOT,
+                    text=True,
+                    encoding="utf-8",
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(
+                    routed.returncode,
+                    0,
+                    routed.stdout + routed.stderr,
+                )
+                routed_brief = json.loads(routed.stdout)
+                self.assertEqual(
+                    routed_brief["entrySkill"],
+                    "ppt-editorial",
+                )
+                self.assertEqual(
+                    routed_brief["nextAction"],
+                    "invoke-ppt-editorial-immediately",
+                )
+                self.assertTrue(
+                    routed_brief["completionRequirements"][
+                        "presentationHumanizationRequired"
+                    ]
+                )
+                self.assertEqual(
+                    routed_brief["completionRequirements"][
+                        "presentationHumanizationScope"
+                    ],
+                    "titles-body-captions-script-and-qa",
+                )
+                self.assertIn(
+                    "protect-facts-and-humanize-all-presentation-prose",
+                    routed_brief["autonomousActions"],
+                )
+
         demo_day = subprocess.run(
             [
                 sys.executable,
@@ -517,6 +575,50 @@ class BusinessPlanPluginTests(unittest.TestCase):
         self.assertIn("요구사항 확인 게이트", skill)
         self.assertIn("Windows와 macOS", skill)
         self.assertIn("PowerPoint 내부 텍스트 편집", skill)
+        frontmatter = skill.split("---", 2)[1]
+        for trigger in (
+            "PPT",
+            "PPTX",
+            "파워포인트",
+            "슬라이드",
+            "발표자료",
+            "피치덱",
+            "IR덱",
+            "제안서",
+            "강의자료",
+            "리디자인",
+            "대본",
+            "예상 Q&A",
+        ):
+            self.assertIn(trigger, frontmatter)
+        self.assertIn("스킬명을 말하지 않아도 즉시", frontmatter)
+        self.assertIn("한국어 윤문을 반드시", frontmatter)
+        humanization = (
+            ppt / "references" / "korean-prose-humanization.md"
+        ).read_text(encoding="utf-8")
+        for contract in (
+            "Document prose mode",
+            "보호 목록",
+            "kill-ai-slop",
+            "humanize-korean",
+            "대본과 예상 Q&A 작성 뒤 다시 윤문",
+        ):
+            self.assertIn(contract, humanization)
+        self.assertIn("필수 한국어 윤문 gate", skill)
+        self.assertIn("윤문: PASS", skill)
+        for contract in (
+            'sceneMode: "cutout"',
+            'sceneMode: "canvas"',
+            "contentBBox",
+            "alpha 0~255",
+            "체크무늬",
+            "minOccupancy",
+            "scene-placement-receipt.json",
+            "원본 16:9 크기",
+        ):
+            self.assertIn(contract, skill)
+        self.assertTrue((ROOT / "tests" / "ppt" / "test_scene_cutout.py").is_file())
+        self.assertTrue((ROOT / "tests" / "ppt" / "test_scene_occupancy.py").is_file())
 
         for relative in (
             "scripts/intake.py",
@@ -526,8 +628,12 @@ class BusinessPlanPluginTests(unittest.TestCase):
             "scripts/ocr/map_ocr_regions.py",
             "scripts/ocr/validate_visible_text.py",
             "scripts/scene-deck/info_layouts.py",
+            "scripts/scene-deck/cutout.py",
         ):
             self.assertTrue((ppt / relative).is_file(), relative)
+        self.assertTrue(
+            (ppt / "references" / "korean-prose-humanization.md").is_file()
+        )
         self.assertTrue((ROOT / "tests" / "ppt" / "test_harness.py").is_file())
 
         brief = (ppt / "templates" / "deck_brief.md").read_text(encoding="utf-8")
@@ -644,6 +750,28 @@ class BusinessPlanPluginTests(unittest.TestCase):
         css = (fill_root / "assets" / "visual-default.css").read_text(encoding="utf-8")
 
         self.assertTrue((fill_root / "scripts" / "hwpx_visuals.py").is_file())
+        for script_name in (
+            "hwpx_revision.py",
+            "hwpx_style_integrity.py",
+            "hwpx_preview_sync.py",
+            "install_bundled_fonts.py",
+        ):
+            self.assertTrue((fill_root / "scripts" / script_name).is_file())
+        font_roots = (
+            PLUGIN / "assets" / "fonts" / "pretendard",
+            STARTER_SKILLS.parent / "assets" / "fonts" / "pretendard",
+            CLAUDE_STARTER_SKILLS.parent / "assets" / "fonts" / "pretendard",
+        )
+        for font_name in (
+            "Pretendard-Regular.otf",
+            "Pretendard-Medium.otf",
+            "Pretendard-SemiBold.otf",
+            "Pretendard-Bold.otf",
+            "LICENSE.txt",
+            "manifest.json",
+        ):
+            for font_root in font_roots:
+                self.assertTrue((font_root / font_name).is_file(), f"{font_root}: {font_name}")
         for content in (complete, draft, fill, review):
             self.assertIn("visual-design-system.md", content)
         for content in (style, fonts, ppt, visual, css):
@@ -662,10 +790,11 @@ class BusinessPlanPluginTests(unittest.TestCase):
         for invariant in (
             "tc → subList → p → run → tbl",
             "45,900 HWPUNIT",
-            "43,900 HWPUNIT",
+            "39,982 HWPUNIT",
             "510 HWPUNIT",
             "220 HWPUNIT",
             "1,200 HWPUNIT",
+            "borderFill",
             "#F2F2F2",
             "binaryItemIDRef",
             "content.hpf",

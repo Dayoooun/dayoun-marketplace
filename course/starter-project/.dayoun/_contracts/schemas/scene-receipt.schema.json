@@ -7,16 +7,16 @@
   "required": ["schemaVersion", "receiptVersion", "approvalEnvelopeDigest", "rendererVersion", "scenes"],
   "properties": {
     "schemaVersion": { "const": "1.0.0" },
-    "receiptVersion": { "const": "dayoun-scene-render-receipt-v2" },
+    "receiptVersion": { "const": "dayoun-scene-render-receipt-v3" },
     "approvalEnvelopeDigest": { "$ref": "#/$defs/digest" },
-    "rendererVersion": { "const": "scene-deck-v2" },
+    "rendererVersion": { "const": "scene-deck-v3" },
     "scenes": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["sceneId", "promptDigest", "referenceDigests", "outputDigest", "safeZone"],
+        "required": ["sceneId", "promptDigest", "referenceDigests", "outputDigest", "safeZoneReceiptDigest", "safeZone"],
         "properties": {
           "sceneId": {
             "type": "string",
@@ -25,40 +25,90 @@
           "promptDigest": { "$ref": "#/$defs/digest" },
           "referenceDigests": { "type": "array", "items": { "$ref": "#/$defs/digest" } },
           "outputDigest": { "$ref": "#/$defs/digest" },
-          "safeZone": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["status", "margin", "foregroundBox", "margins", "sha256"],
-            "properties": {
-              "status": { "const": "PASS" },
-              "margin": { "const": 0.18 },
-              "foregroundBox": {
-                "type": "array",
-                "prefixItems": [
-                  { "type": "integer", "minimum": 0 },
-                  { "type": "integer", "minimum": 0 },
-                  { "type": "integer", "minimum": 1 },
-                  { "type": "integer", "minimum": 1 }
-                ],
-                "items": false
-              },
-              "margins": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["left", "top", "right", "bottom"],
-                "properties": {
-                  "left": { "type": "number", "minimum": 0.175 },
-                  "top": { "type": "number", "minimum": 0.175 },
-                  "right": { "type": "number", "minimum": 0.175 },
-                  "bottom": { "type": "number", "minimum": 0.175 }
-                }
-              },
-              "sha256": { "$ref": "#/$defs/digest" }
-            }
-          }
+          "safeZoneReceiptDigest": { "$ref": "#/$defs/digest" },
+          "safeZone": { "$ref": "#/$defs/safeZone" }
         }
       }
     }
   },
-  "$defs": { "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" } }
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "bbox": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "integer", "minimum": 0 },
+        { "type": "integer", "minimum": 1 },
+        { "type": "integer", "minimum": 1 }
+      ],
+      "items": false
+    },
+    "alpha": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["present", "min", "max", "transparentBorderRatio"],
+      "properties": {
+        "present": { "type": "boolean" },
+        "min": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "max": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "transparentBorderRatio": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "safeZone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status", "margin", "safeMargin", "generatedCanvas", "foregroundBox",
+        "contentBBox", "contentCoverage", "backgroundMode", "alpha",
+        "checkerboardDetected", "analysisErrors", "margins", "sha256",
+        "sceneMode", "transparencyRequested", "contentErrors",
+        "preFrameContentBBox", "preFrameBackgroundMode",
+        "sourceArtifact", "sourceSha256", "jobPromptDigest"
+      ],
+      "properties": {
+        "status": { "const": "PASS" },
+        "margin": { "const": 0.18 },
+        "safeMargin": { "const": 0.18 },
+        "generatedCanvas": {
+          "type": "array",
+          "prefixItems": [
+            { "type": "integer", "minimum": 1 },
+            { "type": "integer", "minimum": 1 }
+          ],
+          "items": false
+        },
+        "foregroundBox": { "$ref": "#/$defs/bbox" },
+        "contentBBox": { "$ref": "#/$defs/bbox" },
+        "contentCoverage": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "backgroundMode": {
+          "enum": ["transparent-alpha", "opaque-uniform", "opaque-checkerboard", "opaque-nonuniform"]
+        },
+        "alpha": { "$ref": "#/$defs/alpha" },
+        "checkerboardDetected": { "type": "boolean" },
+        "analysisErrors": { "type": "array", "items": { "type": "string" } },
+        "margins": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["left", "top", "right", "bottom"],
+          "properties": {
+            "left": { "type": "number", "minimum": 0.175 },
+            "top": { "type": "number", "minimum": 0.175 },
+            "right": { "type": "number", "minimum": 0.175 },
+            "bottom": { "type": "number", "minimum": 0.175 }
+          }
+        },
+        "sha256": { "$ref": "#/$defs/digest" },
+        "sceneMode": { "enum": ["cutout", "canvas"] },
+        "transparencyRequested": { "type": "boolean" },
+        "contentErrors": { "type": "array", "items": { "type": "string" } },
+        "preFrameContentBBox": { "$ref": "#/$defs/bbox" },
+        "preFrameBackgroundMode": {
+          "enum": ["transparent-alpha", "opaque-uniform", "opaque-checkerboard", "opaque-nonuniform"]
+        },
+        "sourceArtifact": { "type": "string", "pattern": "^[A-Za-z0-9._-]+\\.source\\.png$" },
+        "sourceSha256": { "$ref": "#/$defs/digest" },
+        "jobPromptDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
 }

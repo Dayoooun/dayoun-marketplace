@@ -11,4 +11,4 @@
 /plugin list
 ```
 
-설치 후 실제 enabled 상태와 `business-plan-writer 0.12.1`, `business-documents 0.1.0`을 확인하기 전에는 완료라고 보고하지 않습니다. 기존 플러그인·사용자 설정·작업 파일을 삭제하거나 초기화하지 않습니다.
+설치 후 실제 enabled 상태와 `business-plan-writer 0.12.2`, `business-documents 0.1.0`을 확인하기 전에는 완료라고 보고하지 않습니다. 기존 플러그인·사용자 설정·작업 파일을 삭제하거나 초기화하지 않습니다.

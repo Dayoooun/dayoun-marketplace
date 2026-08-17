@@ -110,6 +110,19 @@ tc
 
 ## 재현 검증
 
+### 사용자 확정 profile
+
+사용자가 한글에서 시각자료 표를 수정해 다시 올린 경우 최신
+`user-edited-canonical`의 첫 확정 시각표를 skeleton으로 삼는다. 표·이미지 폭,
+두 셀의 `borderFillIDRef`와 border definition digest, 셀 여백, 캡션 행·글자·정렬·배경을
+profile에 기록한다. 사용자가 명시적으로 바꾸지 않는 한 이후 시각자료와 후속 버전에서
+이 profile을 유지한다. 아래 값은 기장 미역 1R 사용자 수정본 실측 예시이며 다른 양식의
+전역 기본값이 아니다.
+
+1R 확정 profile은 표 너비 45,900 HWPUNIT, 이미지 표시 폭 39,982 HWPUNIT,
+캡션 행 높이 1,200 HWPUNIT, 셀 여백 좌우 510 HWPUNIT·상하 220 HWPUNIT,
+캡션 10pt 굵게·가운데 정렬이다.
+
 먼저 시각자료 위치 명세 JSON을 만든다.
 
 ```json
@@ -120,10 +133,14 @@ tc
       "beforeParagraphContains": "향후 6주 동안",
       "afterParagraphContains": "o 사업 추진·수정·중단 기준",
       "tableWidth": 45900,
-      "imageWidth": 43900,
+      "imageWidth": 39982,
+      "imageCellBorderFillID": "15",
+      "captionCellBorderFillID": "16",
+      "imageCellBorderDigest": "00db419e05dee63951d503a8156400be6310fb92d96141ef7751ceeeb1250140",
+      "captionCellBorderDigest": "80f0bf3dc2530090f5961a4e3d7ff80b8594365768943fb0551a6086d0c410dc",
       "cellMargin": {"left": 510, "right": 510, "top": 220, "bottom": 220},
       "captionRowHeight": 1200,
-      "captionPointSize": 12,
+      "captionPointSize": 10,
       "captionBold": true,
       "captionAlign": "CENTER",
       "captionBackground": "#F2F2F2"
@@ -145,5 +162,6 @@ python "<스킬 루트>\scripts\hwpx_visuals.py" validate "결과.hwpx" --source
 3. 앞 문단과 뒤 문단이 명세와 일치한다.
 4. 이미지 참조·manifest·BinData가 일치한다.
 5. 캡션 형식·정렬·행 높이·배경이 명세와 일치한다.
-6. 원본과 결과의 `secPr` canonical digest가 같다.
-7. 한글에서 실제 위치, 비율, 해상도, 캡션, 표·페이지 넘김을 화면으로 확인한다.
+6. 사용자 확정 profile의 표·이미지 폭, 셀 여백, 두 borderFill ID·definition digest, 캡션 스타일이 보존된다.
+7. 원본과 결과의 `secPr` canonical digest가 같다.
+8. 한글에서 실제 위치, 비율, 해상도, 캡션, 표·페이지 넘김을 화면으로 확인한다.

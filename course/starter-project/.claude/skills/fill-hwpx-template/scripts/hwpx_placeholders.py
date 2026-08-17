@@ -38,6 +38,7 @@ RUN_CHAR_REF_RE = re.compile(r'(<hp:run\b[^>]*\bcharPrIDRef=")([^"]+)(")')
 RUN_BLOCK_RE = re.compile(r"<hp:run\b[^>]*>.*?</hp:run>", flags=re.DOTALL)
 OUTLINE_HEADING_PREFIXES = ("o ", "○ ", "□ ")
 OUTLINE_DETAIL_PREFIXES = ("- ", "• ", "▪ ")
+OUTLINE_SUBDETAIL_PREFIXES = ("· ",)
 LONG_PROSE_THRESHOLD = 200
 CLAIM_MARKER_START_RE = re.compile(r"\[[EUHP]\d{3}")
 CLAIM_MARKER_RE = re.compile(
@@ -149,6 +150,8 @@ def outline_role(line: str) -> str | None:
         return "heading"
     if stripped.startswith(OUTLINE_DETAIL_PREFIXES):
         return "detail"
+    if stripped.startswith(OUTLINE_SUBDETAIL_PREFIXES):
+        return "subdetail"
     return None
 
 
@@ -192,24 +195,31 @@ def parse_outline_value(value: str) -> list[str] | None:
     if any(role is None for role in roles):
         raise ValueError("개조식 값의 모든 일반 문단에는 허용된 항목 기호가 필요합니다.")
     if roles[0] != "heading":
-        raise ValueError("개조식 값은 `o`, `○`, `□` 핵심항목으로 시작해야 합니다.")
+        raise ValueError("개조식 값은 `o`, `○`, `□` 대항목으로 시작해야 합니다.")
     if "detail" not in roles:
-        raise ValueError("각 개조식 값에는 `-`, `•`, `▪` 세부내용이 필요합니다.")
+        raise ValueError("각 개조식 값에는 `-`, `•`, `▪` 핵심항목이 필요합니다.")
+    has_detail = False
     previous_role = None
     for role in roles:
-        if role == "heading" and previous_role == "heading":
-            raise ValueError("핵심항목 뒤에는 다음 핵심항목 전에 세부내용이 필요합니다.")
+        if role == "heading":
+            if previous_role is not None and not has_detail:
+                raise ValueError("각 대항목 뒤에는 다음 대항목 전에 핵심항목이 필요합니다.")
+            has_detail = False
+        elif role == "detail":
+            has_detail = True
+        elif role == "subdetail" and previous_role not in {"detail", "subdetail"}:
+            raise ValueError("`·` 세부내용은 `-`, `•`, `▪` 핵심항목 뒤에 와야 합니다.")
         previous_role = role
-    if roles[-1] == "heading":
-        raise ValueError("마지막 핵심항목에도 세부내용이 필요합니다.")
+    if not has_detail:
+        raise ValueError("마지막 대항목에도 핵심항목이 필요합니다.")
     untraced_details = [
         line
         for line, role in zip(lines, roles)
-        if role == "detail" and not claim_markers_at_end(line)
+        if role in {"detail", "subdetail"} and not claim_markers_at_end(line)
     ]
     if untraced_details:
         raise ValueError(
-            "각 세부내용 주장은 끝에 "
+            "각 핵심항목·세부내용 주장은 끝에 "
             "[E001 | 기관·연도]·[U001 | 사용자 자료]·"
             "[H001 | 검증가설]·[P001 | 실행계획] 형식의 "
             "근거 또는 상태 표지가 필요합니다."
@@ -320,6 +330,38 @@ def _clone_char_style(
     return str(new_id)
 
 
+def _sort_numeric_definitions(
+    container: ET.Element,
+    item_name: str,
+) -> None:
+    children = list(container)
+    definitions = [
+        child for child in children if local_name(child.tag) == item_name
+    ]
+    if not definitions:
+        raise ValueError(f"{item_name} 스타일 목록이 비어 있습니다.")
+    ids = [_numeric_id(node) for node in definitions]
+    if any(value < 0 for value in ids) or len(ids) != len(set(ids)):
+        raise ValueError(f"{item_name} 스타일 ID는 고유한 숫자여야 합니다.")
+    first_index = min(
+        index
+        for index, child in enumerate(children)
+        if local_name(child.tag) == item_name
+    )
+    prefix = [
+        child
+        for child in children[:first_index]
+        if local_name(child.tag) != item_name
+    ]
+    suffix = [
+        child
+        for child in children[first_index:]
+        if local_name(child.tag) != item_name
+    ]
+    ordered = sorted(definitions, key=_numeric_id)
+    container[:] = [*prefix, *ordered, *suffix]
+
+
 def ensure_outline_styles(
     header_text: str,
     base_pairs: set[tuple[str, str]],
@@ -391,6 +433,13 @@ def ensure_outline_styles(
         _set_outline_margin(detail_para, left=2400, intent=-1200)
         para_properties.append(detail_para)
 
+        subdetail_para_id = str(next_para_id)
+        next_para_id += 1
+        subdetail_para = deepcopy(base_para)
+        subdetail_para.set("id", subdetail_para_id)
+        _set_outline_margin(subdetail_para, left=3600, intent=-800)
+        para_properties.append(subdetail_para)
+
         heading_char_id = _clone_char_style(
             char_properties,
             base_char,
@@ -408,10 +457,14 @@ def ensure_outline_styles(
         styles_by_base[(base_para_id, base_char_id)] = {
             "headingParaPrIDRef": heading_para_id,
             "detailParaPrIDRef": detail_para_id,
+            "subdetailParaPrIDRef": subdetail_para_id,
             "headingCharPrIDRef": heading_char_id,
             "detailCharPrIDRef": detail_char_id,
+            "subdetailCharPrIDRef": detail_char_id,
         }
 
+    _sort_numeric_definitions(para_properties, "paraPr")
+    _sort_numeric_definitions(char_properties, "charPr")
     para_properties.set(
         "itemCnt",
         str(sum(local_name(node.tag) == "paraPr" for node in list(para_properties))),
@@ -443,7 +496,11 @@ def apply_outline_style(
     if styles is None:
         raise ValueError("플레이스홀더 기준 스타일의 개조식 매핑을 찾지 못했습니다.")
 
-    prefix = "heading" if role == "heading" else "detail"
+    prefix = {
+        "heading": "heading",
+        "detail": "detail",
+        "subdetail": "subdetail",
+    }[role]
     para_id = styles[f"{prefix}ParaPrIDRef"]
     char_id = styles[f"{prefix}CharPrIDRef"]
     block = PARA_REF_RE.sub(

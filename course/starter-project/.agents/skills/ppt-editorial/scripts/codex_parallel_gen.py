@@ -16,8 +16,13 @@ ima2 서버·OAuth 로그인 없이, 이미 인증된 codex(GPT Image)로 여러
   python codex_parallel_gen.py jobs.json --cap 10 --retry 1 --loop 4 --effort high
   jobs.json = [{"label","refs":[...],"out","prompt"}]  (경로는 jobs.json 기준 상대/절대)
 """
-import sys, os, json, shutil, subprocess, argparse, hashlib
+import sys, os, json, shutil, subprocess, argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+SCENE_DECK_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "scene-deck")
+if SCENE_DECK_DIR not in sys.path:
+    sys.path.insert(0, SCENE_DECK_DIR)
+from cutout import analyze_scene  # noqa: E402
+from approved_inputs import digest_value  # noqa: E402
 from platform_support import (
     process_group_kwargs,
     resolve_executable,
@@ -80,20 +85,28 @@ def scene_safe_zone_receipt(path, margin=0.18):
 
     if not 0 < margin < 0.5:
         raise ValueError("scene safe-zone margin must be between 0 and 0.5")
-    image = Image.open(path).convert("RGB")
-    background = _scene_background(image)
-    background_image = Image.new("RGB", image.size, background)
-    difference = ImageChops.difference(image, background_image).convert("L")
-    mask = difference.point(lambda value: 255 if value > 14 else 0)
-    box = mask.getbbox()
+    with Image.open(path) as opened:
+        original = opened.copy()
+    analysis = analyze_scene(path)
+    if analysis["backgroundMode"] == "transparent-alpha":
+        alpha = original.convert("RGBA").getchannel("A")
+        box = alpha.point(lambda value: 255 if value > 8 else 0).getbbox()
+    else:
+        image = original.convert("RGB")
+        background = _scene_background(image)
+        background_image = Image.new("RGB", image.size, background)
+        difference = ImageChops.difference(image, background_image).convert("L")
+        mask = difference.point(lambda value: 255 if value > 14 else 0)
+        box = mask.getbbox()
     if box is None:
         return {
             "status": "BLOCK",
             "margin": margin,
+            "safeMargin": margin,
             "error": "scene contains no detectable foreground",
         }
     left, top, right, bottom = box
-    width, height = image.size
+    width, height = original.size
     margins = {
         "left": left / width,
         "top": top / height,
@@ -101,21 +114,28 @@ def scene_safe_zone_receipt(path, margin=0.18):
         "bottom": (height - bottom) / height,
     }
     passed = all(value >= margin - 0.005 for value in margins.values())
-    with open(path, "rb") as handle:
-        digest = hashlib.sha256(handle.read()).hexdigest()
     return {
         "status": "PASS" if passed else "BLOCK",
         "margin": margin,
+        "safeMargin": margin,
+        "generatedCanvas": [width, height],
         "foregroundBox": [left, top, right, bottom],
+        "contentBBox": analysis["contentBBox"] or [left, top, right, bottom],
+        "contentCoverage": analysis["contentCoverage"],
+        "backgroundMode": analysis["backgroundMode"],
+        "alpha": analysis["alpha"],
+        "checkerboardDetected": analysis["checkerboardDetected"],
+        "analysisErrors": analysis["errors"],
         "margins": margins,
-        "sha256": "sha256:" + digest,
+        "sha256": analysis["sha256"],
     }
 
 
 def frame_scene_safe_zone(path, margin=0.18):
     from PIL import Image
 
-    image = Image.open(path).convert("RGB")
+    with Image.open(path) as opened:
+        image = opened.copy()
     width, height = image.size
     scale = 1.0 - 2.0 * margin
     target = (
@@ -123,9 +143,18 @@ def frame_scene_safe_zone(path, margin=0.18):
         max(1, int(round(height * scale))),
     )
     resized = image.resize(target, Image.Resampling.LANCZOS)
-    canvas = Image.new("RGB", image.size, _scene_background(image))
-    offset = ((width - target[0]) // 2, (height - target[1]) // 2)
-    canvas.paste(resized, offset)
+    alpha = image.convert("RGBA").getchannel("A")
+    has_transparency = alpha.getextrema()[0] < 255
+    if has_transparency:
+        resized = resized.convert("RGBA")
+        canvas = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        offset = ((width - target[0]) // 2, (height - target[1]) // 2)
+        canvas.alpha_composite(resized, dest=offset)
+    else:
+        image = image.convert("RGB")
+        resized = resized.convert("RGB")
+        canvas = Image.new("RGB", image.size, _scene_background(image))
+        canvas.paste(resized, ((width - target[0]) // 2, (height - target[1]) // 2))
     canvas.save(path, format="PNG", optimize=True)
     receipt = scene_safe_zone_receipt(path, margin)
     if receipt["status"] != "PASS":
@@ -246,6 +275,21 @@ def _run_one(job, base_dir, retry, idx=0, effort=None, model=None, timeout=590):
                     produced = max(cache, key=os.path.getmtime)
             if os.path.exists(produced):
                 shutil.copy(produced, out)
+                source_artifact = str(out) + ".source.png"
+                shutil.copyfile(out, source_artifact)
+                scene_mode = job.get("scene_mode", "cutout")
+                requested_transparent = bool(
+                    job.get("requested_transparent", False)
+                )
+                pre_frame_report = analyze_scene(
+                    source_artifact,
+                    requested_transparent=requested_transparent,
+                )
+                if scene_mode == "cutout" and pre_frame_report["status"] != "PASS":
+                    raise ValueError(
+                        "generated cutout or alpha validation failed before framing: "
+                        + "; ".join(pre_frame_report["errors"])
+                    )
                 safe_receipt = None
                 safe_zone = job.get("safe_zone")
                 if safe_zone is not None:
@@ -256,6 +300,34 @@ def _run_one(job, base_dir, retry, idx=0, effort=None, model=None, timeout=590):
                         safe_receipt = scene_safe_zone_receipt(out, margin)
                     if safe_receipt["status"] != "PASS":
                         raise ValueError(f"scene violates the safe zone: {safe_receipt}")
+                    content_report = analyze_scene(
+                        out,
+                        requested_transparent=requested_transparent,
+                    )
+                    if scene_mode == "cutout" and content_report["status"] != "PASS":
+                        raise ValueError(
+                            "scene cutout or alpha validation failed: "
+                            + "; ".join(content_report["errors"])
+                        )
+                    safe_receipt.update(
+                        {
+                            "sceneMode": scene_mode,
+                            "transparencyRequested": requested_transparent,
+                            "contentBBox": content_report["contentBBox"],
+                            "contentCoverage": content_report["contentCoverage"],
+                            "backgroundMode": content_report["backgroundMode"],
+                            "alpha": content_report["alpha"],
+                            "checkerboardDetected": content_report[
+                                "checkerboardDetected"
+                            ],
+                            "contentErrors": content_report["errors"],
+                            "sourceArtifact": os.path.basename(source_artifact),
+                            "sourceSha256": pre_frame_report["sha256"],
+                            "preFrameContentBBox": pre_frame_report["contentBBox"],
+                            "preFrameBackgroundMode": pre_frame_report["backgroundMode"],
+                            "jobPromptDigest": digest_value(job["prompt"]),
+                        }
+                    )
                     write_scene_safe_receipt(out, safe_receipt)
                 size_kb = os.path.getsize(out) // 1024
                 # 30KB 미만만 PIL폴백/한글깨짐 의심 (표지·클로징 등 여백 많은 정상 슬라이드는 50~90KB로 정상)
@@ -306,6 +378,56 @@ def _hamming(a, b):
     return bin(a ^ b).count("1") if (a is not None and b is not None) else 999
 
 
+def _verify_scene_artifacts(out, job, margin):
+    mode = job.get("scene_mode", "cutout")
+    requested_transparent = bool(job.get("requested_transparent", False))
+    current = analyze_scene(
+        out,
+        requested_transparent=requested_transparent,
+    )
+    if mode == "cutout" and current["status"] != "PASS":
+        return "cutout-validation(" + ";".join(current["errors"]) + ")"
+    sidecar_path = str(out) + ".safe.json"
+    try:
+        with open(sidecar_path, encoding="utf-8") as handle:
+            receipt = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return "safe-receipt-missing-or-invalid"
+    safe_current = scene_safe_zone_receipt(out, float(margin))
+    if not all(receipt.get(key) == value for key, value in safe_current.items()):
+        return "safe-receipt-stale"
+    if receipt.get("sceneMode") != mode:
+        return "safe-receipt-mode-mismatch"
+    if bool(receipt.get("transparencyRequested")) != requested_transparent:
+        return "safe-receipt-transparency-mismatch"
+    if receipt.get("jobPromptDigest") != digest_value(job.get("prompt", "")):
+        return "safe-receipt-prompt-mismatch"
+    source_path = str(out) + ".source.png"
+    if (
+        receipt.get("sourceArtifact") != os.path.basename(source_path)
+        or not os.path.isfile(source_path)
+        or os.path.islink(source_path)
+    ):
+        return "unframed-source-missing-or-noncanonical"
+    source = analyze_scene(
+        source_path,
+        requested_transparent=requested_transparent,
+    )
+    if mode == "cutout" and source["status"] != "PASS":
+        return "unframed-source-validation(" + ";".join(source["errors"]) + ")"
+    if (
+        receipt.get("sourceSha256") != source["sha256"]
+        or receipt.get("preFrameContentBBox") != source["contentBBox"]
+        or receipt.get("preFrameBackgroundMode") != source["backgroundMode"]
+        or receipt.get("contentBBox") != current["contentBBox"]
+        or receipt.get("backgroundMode") != current["backgroundMode"]
+        or receipt.get("alpha") != current["alpha"]
+        or receipt.get("checkerboardDetected") != current["checkerboardDetected"]
+    ):
+        return "scene-source-or-content-receipt-stale"
+    return None
+
+
 def verify(jobs, base_dir, dup_check=False):
     """실패/오염 잡 라벨 반환. 크기<30KB(PIL폴백/깨짐) 검출.
     ⚠️ dup-headline은 기본 OFF: CODEX_HOME 격리가 내용오염을 이미 차단하므로 중복. 게다가
@@ -330,6 +452,14 @@ def verify(jobs, base_dir, dup_check=False):
                 continue
             if receipt["status"] != "PASS":
                 bad[lbl] = "safe-zone-violation"
+                continue
+            try:
+                artifact_error = _verify_scene_artifacts(out, j, safe_zone)
+            except Exception as error:
+                bad[lbl] = f"scene-artifact-error({type(error).__name__})"
+                continue
+            if artifact_error is not None:
+                bad[lbl] = artifact_error
                 continue
         hashes[lbl] = _ahash_head(out)
     if dup_check:

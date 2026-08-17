@@ -9,8 +9,8 @@
     {
       "name": "business-plan-writer",
       "source": "./plugins/business-plan-writer",
-      "description": "Lead business planning from natural-language instructions through evidence, decisions, autonomous HWPX information design, render QA, and optional dual-mode PPT outputs.",
-      "version": "0.12.1"
+      "description": "Natural-language business-plan and PPT workflow with user-edited HWPX preservation, bundled Pretendard, immediate PPT routing, mandatory Korean humanization, and cutout/canvas scene placement gates.",
+      "version": "0.12.2"
     },
     {
       "name": "business-documents",
