@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.3 RC
+
+- HWPX 답변을 길이와 관계없이 `o 대항목 → - 핵심항목 → · 세부내용` 개조식으로 통일
+- 산문 승인값은 `o 핵심내용 → - 주장`으로 자동 정규화하고 `AUTO_OUTLINED` 대상만 사용자에게 안내
+- `o` 1,200/-1,200, `-` 2,400/-1,200, `·` 3,600/-800 HWPUNIT의 실제 내어쓰기 유지
+- E/U 출처를 `출처명, YYYY`로 검증하고 최종 HWPX에는 내부 ID 대신 `(출처명, 연도)`로 표시
+- 근거가 여러 개면 `(출처명, 연도; 출처명, 연도)`로 묶고 `근거목록.csv` 역추적 유지
+
 - authored `contracts/`에 canonical payload, approval envelope, validation, provider-run, visible-text/OCR schemas와 QUICK·SECTION·FULL 상태기계를 추가
 - `create-business-documents`를 독립 `business-documents` 플러그인과 SemVer/tag namespace로 분리
 - HWPX와 PPT를 독립 선택 산출물로 변경하고 PPT-only 경로에서 HWPX 선행 의존성을 제거

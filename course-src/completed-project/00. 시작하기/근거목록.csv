@@ -1,0 +1,4 @@
+evidence_id,evidence_type,inline_citation,related_section,statement,source_name,source_path_or_url,published_or_recorded_date,base_date,unit,checked_on,status,limitations,notes
+H001,hypothesis,검증가설,문제정의,초기 창업자의 자료·근거 연결 문제,검증가설,,,,,HYPOTHESIS,실제 사용자 조사 전,교육용 가상 사례
+H002,hypothesis,검증가설,시장근거,공식 출처로 교체할 교육용 예시,검증가설,,,,,HYPOTHESIS,실제 공식 자료 확인 전,교육용 가상 사례
+P001,plan,실행계획,30일실행계획,고객인터뷰부터 개선까지 4주 실행계획,실행계획,,,,,PLAN,실행 전 계획,교육용 가상 사례

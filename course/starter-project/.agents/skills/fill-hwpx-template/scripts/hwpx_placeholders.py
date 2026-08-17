@@ -39,7 +39,7 @@ RUN_BLOCK_RE = re.compile(r"<hp:run\b[^>]*>.*?</hp:run>", flags=re.DOTALL)
 OUTLINE_HEADING_PREFIXES = ("o ", "○ ", "□ ")
 OUTLINE_DETAIL_PREFIXES = ("- ", "• ", "▪ ")
 OUTLINE_SUBDETAIL_PREFIXES = ("· ",)
-LONG_PROSE_THRESHOLD = 200
+SOURCE_CITATION_RE = re.compile(r"^(.+), ((?:19|20)\d{2})$")
 CLAIM_MARKER_START_RE = re.compile(r"\[[EUHP]\d{3}")
 CLAIM_MARKER_RE = re.compile(
     r"\[([EUHP]\d{3}) \| ([^\[\]\|]{2,100})\]"
@@ -187,6 +187,27 @@ def claim_markers_at_end(text: str) -> list[tuple[str, str]]:
     return parsed
 
 
+def render_claim_citations(text: str) -> str:
+    stripped = text.strip()
+    markers = claim_markers_at_end(stripped)
+    if not markers:
+        return stripped
+    start = CLAIM_MARKER_START_RE.search(stripped)
+    if start is None:
+        return stripped
+    body = stripped[:start.start()].rstrip()
+    labels = "; ".join(label for _, label in markers)
+    return f"{body} ({labels})"
+
+
+def source_citation_year(row: dict[str, str]) -> str | None:
+    for field in ("published_or_recorded_date", "base_date", "checked_on"):
+        match = re.search(r"(?:19|20)\d{2}", row.get(field) or "")
+        if match:
+            return match.group(0)
+    return None
+
+
 def parse_outline_value(value: str) -> list[str] | None:
     lines = [line.strip() for line in value.splitlines() if line.strip()]
     roles = [outline_role(line) for line in lines]
@@ -220,11 +241,25 @@ def parse_outline_value(value: str) -> list[str] | None:
     if untraced_details:
         raise ValueError(
             "각 핵심항목·세부내용 주장은 끝에 "
-            "[E001 | 기관·연도]·[U001 | 사용자 자료]·"
+            "[E001 | 기관명, 2025]·[U001 | 사용자 제공자료, 2025]·"
             "[H001 | 검증가설]·[P001 | 실행계획] 형식의 "
             "근거 또는 상태 표지가 필요합니다."
         )
     return lines
+
+
+def normalize_prose_as_outline(value: str) -> list[str]:
+    paragraphs = [line.strip() for line in value.splitlines() if line.strip()]
+    if not paragraphs:
+        return []
+    for paragraph in paragraphs:
+        if not claim_markers_at_end(paragraph):
+            raise ValueError(
+                "산문 입력을 개조식으로 바꾸려면 각 문장 끝에 "
+                "[E001 | 기관명, 2025]·[U001 | 사용자 제공자료, 2025]·"
+                "[H001 | 검증가설]·[P001 | 실행계획] 표지가 필요합니다."
+            )
+    return ["o 핵심내용", *(f"- {paragraph}" for paragraph in paragraphs)]
 
 
 def marker_block_style_refs(
@@ -694,6 +729,26 @@ def validate_evidence_registry(
             raise ValueError(
                 f"{evidence_id} inline_citation은 앞뒤 공백·제어문자 없이 필요합니다."
             )
+        if evidence_id[0] in {"E", "U"}:
+            citation_match = SOURCE_CITATION_RE.fullmatch(inline_citation)
+            if citation_match is None:
+                raise ValueError(
+                    f"{evidence_id} inline_citation은 `출처명, YYYY` 형식이어야 합니다."
+                )
+            expected_year = source_citation_year(row)
+            if expected_year is None:
+                raise ValueError(
+                    f"{evidence_id} 출처 연도를 확인할 날짜가 필요합니다."
+                )
+            if citation_match.group(2) != expected_year:
+                raise ValueError(
+                    f"{evidence_id} inline_citation 연도는 근거목록 날짜의 "
+                    f"{expected_year}와 같아야 합니다."
+                )
+        elif evidence_id[0] == "H" and inline_citation != "검증가설":
+            raise ValueError("H 계열 inline_citation은 `검증가설`이어야 합니다.")
+        elif evidence_id[0] == "P" and inline_citation != "실행계획":
+            raise ValueError("P 계열 inline_citation은 `실행계획`이어야 합니다.")
         if claimed_labels[evidence_id] != {inline_citation}:
             raise ValueError(
                 f"{evidence_id} 보고서 표지는 근거목록.csv inline_citation "
@@ -728,7 +783,6 @@ def fill_hwpx(
     overwrite: bool,
     allow_unapproved_values: bool = False,
     allow_empty: bool = False,
-    allow_prose_values: bool = False,
     evidence_registry_path: Path | None = None,
 ) -> tuple[list[str], list[dict[str, str]]]:
     input_errors = validate_hwpx(source)
@@ -749,48 +803,26 @@ def fill_hwpx(
             "빈 치환이 의도라면 --allow-empty를 명시하세요."
         )
     outline_lines_by_marker: dict[str, list[str]] = {}
-    prose_markers = []
+    auto_outlined_markers: set[str] = set()
     for marker, value in values.items():
-        if not value:
+        if not value or marker in claim_free_markers:
             continue
         try:
             outline_lines = parse_outline_value(value)
         except ValueError as exc:
             raise ValueError(f"{marker}: {exc}") from exc
-        if outline_lines is not None:
-            outline_lines_by_marker[marker] = outline_lines
-        else:
-            prose_paragraphs = [
-                line.strip()
-                for line in value.splitlines()
-                if line.strip()
-            ] or [value.strip()]
-            if marker not in claim_free_markers:
-                for paragraph in prose_paragraphs:
-                    try:
-                        markers = claim_markers_at_end(paragraph)
-                    except ValueError as exc:
-                        raise ValueError(f"{marker}: {exc}") from exc
-                    if not markers:
-                        raise ValueError(
-                            f"{marker}: 주장 문단 끝에 "
-                            "[E001 | 기관·연도]·[U001 | 사용자 자료]·"
-                            "[H001 | 검증가설]·[P001 | 실행계획] "
-                            "근거 또는 상태 표지가 필요합니다."
-                        )
-            if (
-                len(value.strip()) >= LONG_PROSE_THRESHOLD
-                and not allow_prose_values
-            ):
-                prose_markers.append(marker)
-    if prose_markers:
-        raise ValueError(
-            "장문 HWPX 답변은 기본 개조식이어야 합니다. "
-            "`o 핵심항목`과 `- 세부내용` 문단으로 나누세요: "
-            + ", ".join(prose_markers)
-            + ". 공식 양식이 서술형을 요구할 때만 --allow-prose-values를 사용하세요."
-        )
+        if outline_lines is None:
+            try:
+                outline_lines = normalize_prose_as_outline(value)
+            except ValueError as exc:
+                raise ValueError(f"{marker}: {exc}") from exc
+            auto_outlined_markers.add(marker)
+        outline_lines_by_marker[marker] = outline_lines
     validate_evidence_registry(values, evidence_registry_path)
+    outline_lines_by_marker = {
+        marker: [render_claim_citations(line) for line in lines]
+        for marker, lines in outline_lines_by_marker.items()
+    }
     output.parent.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, str]] = []
     modified: dict[str, bytes] = {}
@@ -887,8 +919,16 @@ def fill_hwpx(
                                 "placeholder": marker,
                                 "file": name,
                                 "replacements": str(replacements),
-                                "status": "REPLACED",
-                                "message": "주장·여러 줄·개조식 문단 치환",
+                                "status": (
+                                    "AUTO_OUTLINED"
+                                    if marker in auto_outlined_markers
+                                    else "REPLACED"
+                                ),
+                                "message": (
+                                    "산문 입력을 `o 핵심내용 → - 주장` 개조식으로 자동 정규화했습니다."
+                                    if marker in auto_outlined_markers
+                                    else "주장·여러 줄·개조식 문단 치환"
+                                ),
                             }
                         )
                     totals[marker] += replacements
@@ -1016,7 +1056,6 @@ def command_fill(args: argparse.Namespace) -> int:
         args.overwrite,
         allow_unapproved_values=args.allow_unapproved_values,
         allow_empty=args.allow_empty,
-        allow_prose_values=args.allow_prose_values,
         evidence_registry_path=(
             Path(args.evidence_registry).expanduser().resolve()
             if args.evidence_registry
@@ -1029,6 +1068,16 @@ def command_fill(args: argparse.Namespace) -> int:
     print(f"BLOCKS: {len(blocks)}")
     print(f"UNRESOLVED: {len(unresolved)}")
     for marker in unresolved:
+        print(f"  - {marker}")
+    auto_outlined = sorted(
+        {
+            row["placeholder"]
+            for row in rows
+            if row["status"] == "AUTO_OUTLINED"
+        }
+    )
+    print(f"AUTO_OUTLINED: {len(auto_outlined)}")
+    for marker in auto_outlined:
         print(f"  - {marker}")
     return 2 if blocks or unresolved else 0
 
@@ -1079,11 +1128,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--allow-unapproved-values",
         action="store_true",
         help="레거시 평면 JSON 또는 미승인 값을 명시적으로 허용",
-    )
-    fill.add_argument(
-        "--allow-prose-values",
-        action="store_true",
-        help="공식 양식이 장문 서술형을 요구할 때 개조식 기본 gate를 명시적으로 해제",
     )
     fill.add_argument(
         "--evidence-registry",
