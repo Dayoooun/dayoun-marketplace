@@ -57,9 +57,9 @@ def approved_values(problem: str) -> dict[str, object]:
             "{회사명}": "회사명 식별값",
         },
         "values": {
-            "{30일실행계획}": "1주차 확인, 2주차 제작, 3주차 검증, 4주차 개선 [P001 | 실행계획]",
+            "{30일실행계획}": "o 30일 실행계획\n- 1주차 확인, 2주차 제작, 3주차 검증, 4주차 개선 [P001 | 실행계획]",
             "{문제정의}": problem,
-            "{시장근거}": "공식 출처와 기준일을 확인한다. [E001 | 공식자료]",
+            "{시장근거}": "o 시장근거\n- 공식 출처와 기준일을 확인한다. [E001 | 공식자료, 2025]",
             "{회사명}": "모두랩",
         },
     }
@@ -83,16 +83,16 @@ def write_test_registry(path: Path) -> None:
         "notes",
     ]
     rows = [
-        ("E001", "external", "공식자료", "공식 근거", "기관", "https://example.com/e1", "PASS"),
-        ("E002", "external", "보조자료", "보조 근거", "기관", "https://example.com/e2", "PASS"),
-        ("U001", "user", "사용자 자료", "사용자 제공 사실", "사용자", "inputs/user-note.txt", "CONFIRMED"),
-        ("H001", "hypothesis", "검증가설", "검증가설", "", "", "HYPOTHESIS"),
-        ("P001", "plan", "실행계획", "실행계획", "", "", "PLAN"),
+        ("E001", "external", "공식자료, 2025", "공식 근거", "기관", "https://example.com/e1", "2025-12-31", "PASS"),
+        ("E002", "external", "보조자료, 2024", "보조 근거", "기관", "https://example.com/e2", "2024-12-31", "PASS"),
+        ("U001", "user", "사용자 제공자료, 2026", "사용자 제공 사실", "사용자", "inputs/user-note.txt", "2026-08-16", "CONFIRMED"),
+        ("H001", "hypothesis", "검증가설", "검증가설", "", "", "", "HYPOTHESIS"),
+        ("P001", "plan", "실행계획", "실행계획", "", "", "", "PLAN"),
     ]
     with path.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
-        for evidence_id, evidence_type, inline_citation, statement, source_name, source_path, status in rows:
+        for evidence_id, evidence_type, inline_citation, statement, source_name, source_path, recorded_date, status in rows:
             writer.writerow(
                 {
                     "evidence_id": evidence_id,
@@ -102,7 +102,7 @@ def write_test_registry(path: Path) -> None:
                     "statement": statement,
                     "source_name": source_name,
                     "source_path_or_url": source_path,
-                    "published_or_recorded_date": "",
+                    "published_or_recorded_date": recorded_date,
                     "base_date": "",
                     "unit": "",
                     "checked_on": "2026-08-16" if evidence_id[0] in {"E", "U"} else "",
@@ -221,7 +221,12 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                 header = ET.fromstring(archive.read("Contents/header.xml"))
                 section = ET.fromstring(archive.read("Contents/section0.xml"))
 
-            expected = outline.splitlines()
+            expected = [
+                "o 문제와 검증 원칙",
+                "- 공개자료와 사용자 자료를 분리하고 확인되지 않은 수치는 가설로 둔다. (검증가설)",
+                "o 실행 판단 기준",
+                "- 원료·안전성·제조·고객 행동지표가 확인될 때만 다음 단계로 진행한다. (실행계획)",
+            ]
             paragraphs = [
                 node for node in section.iter() if local_name(node.tag) == "p"
             ]
@@ -313,8 +318,8 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
         outline = "\n".join(
             [
                 "o 산업·기술 근거와 한계",
-                "- 확인된 산업근거 [E001 | 공식자료]",
-                "· 국내 양식 미역 생산량을 확인한다. [E002 | 보조자료]",
+                "- 확인된 산업근거 [E001 | 공식자료, 2025]",
+                "· 국내 양식 미역 생산량을 확인한다. [E002 | 보조자료, 2024]",
                 "- 근거의 한계 [H001 | 검증가설]",
                 "· 전국 통계를 기장 물량으로 환산하지 않는다. [H001 | 검증가설]",
             ]
@@ -333,12 +338,19 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
             with zipfile.ZipFile(output) as archive:
                 header = ET.fromstring(archive.read("Contents/header.xml"))
                 section = ET.fromstring(archive.read("Contents/section0.xml"))
+            expected = [
+                "o 산업·기술 근거와 한계",
+                "- 확인된 산업근거 (공식자료, 2025)",
+                "· 국내 양식 미역 생산량을 확인한다. (보조자료, 2024)",
+                "- 근거의 한계 (검증가설)",
+                "· 전국 통계를 기장 물량으로 환산하지 않는다. (검증가설)",
+            ]
             paragraphs = {
                 text_of(node): node
                 for node in section.iter()
-                if local_name(node.tag) == "p" and text_of(node) in outline.splitlines()
+                if local_name(node.tag) == "p" and text_of(node) in expected
             }
-            self.assertEqual(set(paragraphs), set(outline.splitlines()))
+            self.assertEqual(set(paragraphs), set(expected))
 
             para_defs = {
                 attributes(node).get("id"): node
@@ -346,11 +358,11 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                 if local_name(node.tag) == "paraPr"
             }
             role_expectations = {
-                outline.splitlines()[0]: ("1200", "-1200"),
-                outline.splitlines()[1]: ("2400", "-1200"),
-                outline.splitlines()[2]: ("3600", "-800"),
-                outline.splitlines()[3]: ("2400", "-1200"),
-                outline.splitlines()[4]: ("3600", "-800"),
+                expected[0]: ("1200", "-1200"),
+                expected[1]: ("2400", "-1200"),
+                expected[2]: ("3600", "-800"),
+                expected[3]: ("2400", "-1200"),
+                expected[4]: ("3600", "-800"),
             }
             for text, (left, intent) in role_expectations.items():
                 para_ref = attributes(paragraphs[text])["paraPrIDRef"]
@@ -398,47 +410,40 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                 0,
                 style_check.stdout + style_check.stderr,
             )
-    def test_long_prose_blocks_by_default_and_requires_explicit_override(self) -> None:
-        prose = " ".join(["근거를 확인하지 않은 장문 서술형 문단이다."] * 20)
+    def test_plain_statement_is_auto_outlined_and_reported(self) -> None:
+        statement = "고객 문제는 인터뷰로 추가 검증한다. [H001 | 검증가설]"
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             values = root / "values.json"
-            output = root / "prose.hwpx"
-            values.write_text(
-                json.dumps(approved_values(prose), ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
-
-            blocked = run_fill(values, output)
-            self.assertNotEqual(blocked.returncode, 0)
-            self.assertIn("근거 또는 상태 표지가 필요합니다", blocked.stdout)
-            self.assertFalse(output.exists())
-            untraced_override = run_fill(
-                values,
-                root / "untraced-prose.hwpx",
-                "--allow-prose-values",
-            )
-            self.assertNotEqual(untraced_override.returncode, 0)
-            self.assertIn("근거 또는 상태 표지가 필요합니다", untraced_override.stdout)
+            output = root / "auto-outlined.hwpx"
             values.write_text(
                 json.dumps(
-                    approved_values(prose + " [E001 | 공식자료]"),
+                    approved_values(statement),
                     ensure_ascii=False,
                     indent=2,
                 ),
                 encoding="utf-8",
             )
-            layout_blocked = run_fill(values, output)
-            self.assertNotEqual(layout_blocked.returncode, 0)
-            self.assertIn(
-                "장문 HWPX 답변은 기본 개조식이어야 합니다",
-                layout_blocked.stdout,
+            completed = run_fill(values, output)
+            self.assertEqual(
+                completed.returncode,
+                0,
+                completed.stdout + completed.stderr,
             )
-            self.assertFalse(output.exists())
-
-            allowed = run_fill(values, output, "--allow-prose-values")
-            self.assertEqual(allowed.returncode, 0, allowed.stdout + allowed.stderr)
-            self.assertTrue(output.is_file())
+            self.assertIn("AUTO_OUTLINED: 1", completed.stdout)
+            self.assertIn("{문제정의}", completed.stdout)
+            with zipfile.ZipFile(output) as archive:
+                section = ET.fromstring(archive.read("Contents/section0.xml"))
+            final_text = {
+                text_of(node)
+                for node in section.iter()
+                if local_name(node.tag) == "p"
+            }
+            self.assertIn("o 핵심내용", final_text)
+            self.assertIn(
+                "- 고객 문제는 인터뷰로 추가 검증한다. (검증가설)",
+                final_text,
+            )
 
     def test_detail_claims_require_trace_ids(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -450,16 +455,16 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                 {
                     "{문제정의}": "o 핵심항목\n- 근거 ID가 없는 주장",
                     "{회사명}": "모두랩",
-                    "{시장근거}": "확인 [E001 | 공식자료]",
-                    "{30일실행계획}": "실행 [P001 | 실행계획]",
+                    "{시장근거}": "o 시장근거\n- 확인 [E001 | 공식자료, 2025]",
+                    "{30일실행계획}": "o 실행계획\n- 실행 [P001 | 실행계획]",
                 },
             )
             valid_outline = "\n".join(
                 [
                     "o 외부 근거",
-                    "- 공식 통계로 확인한다. [E001 | 공식자료]",
+                    "- 공식 통계로 확인한다. [E001 | 공식자료, 2025]",
                     "o 사용자 제공",
-                    "- 대표자 경력은 사용자 자료에서 확인한다. [U001 | 사용자 자료]",
+                    "- 대표자 경력은 사용자 자료에서 확인한다. [U001 | 사용자 제공자료, 2026]",
                     "o 검증가설",
                     "- 고객군은 아직 검증할 가설이다. [H001 | 검증가설]",
                     "o 실행계획",
@@ -471,8 +476,8 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                 {
                     "{문제정의}": valid_outline,
                     "{회사명}": "모두랩",
-                    "{시장근거}": "확인 [E001 | 공식자료]",
-                    "{30일실행계획}": "실행 [P001 | 실행계획]",
+                    "{시장근거}": "o 시장근거\n- 확인 [E001 | 공식자료, 2025]",
+                    "{30일실행계획}": "o 실행계획\n- 실행 [P001 | 실행계획]",
                 },
             )
             missing = run_fill(missing_values, root / "missing.hwpx")
@@ -480,6 +485,14 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
             self.assertNotEqual(missing.returncode, 0)
             self.assertIn("근거 또는 상태 표지가 필요합니다", missing.stdout)
             self.assertEqual(valid.returncode, 0, valid.stdout + valid.stderr)
+            with zipfile.ZipFile(root / "valid.hwpx") as archive:
+                final_section = archive.read("Contents/section0.xml").decode("utf-8")
+            self.assertIn("(공식자료, 2025)", final_section)
+            self.assertIn("(사용자 제공자료, 2026)", final_section)
+            self.assertIn("(검증가설)", final_section)
+            self.assertIn("(실행계획)", final_section)
+            self.assertNotIn("[E001 |", final_section)
+            self.assertNotIn("[U001 |", final_section)
 
     def test_claim_ids_require_matching_evidence_registry(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -488,7 +501,7 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
             output = root / "without-registry.hwpx"
             values.write_text(
                 json.dumps(
-                    approved_values("o 핵심항목\n- 공식 근거 주장 [E001 | 공식자료]"),
+                    approved_values("o 핵심항목\n- 공식 근거 주장 [E001 | 공식자료, 2025]"),
                     ensure_ascii=False,
                     indent=2,
                 ),
@@ -595,7 +608,7 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
             "label_mismatch": (
                 "inline_citation",
                 lambda rows: [
-                    {**row, "inline_citation": "다른자료"}
+                    {**row, "inline_citation": "다른자료, 2025"}
                     if row["evidence_id"] == "E001"
                     else row
                     for row in rows
@@ -604,7 +617,25 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
             "citation_whitespace": (
                 "앞뒤 공백",
                 lambda rows: [
-                    {**row, "inline_citation": " 공식자료 "}
+                    {**row, "inline_citation": " 공식자료, 2025 "}
+                    if row["evidence_id"] == "E001"
+                    else row
+                    for row in rows
+                ],
+            ),
+            "citation_without_year": (
+                "`출처명, YYYY` 형식",
+                lambda rows: [
+                    {**row, "inline_citation": "공식자료"}
+                    if row["evidence_id"] == "E001"
+                    else row
+                    for row in rows
+                ],
+            ),
+            "citation_year_mismatch": (
+                "연도는 근거목록 날짜의 2025와 같아야 합니다",
+                lambda rows: [
+                    {**row, "inline_citation": "공식자료, 2024"}
                     if row["evidence_id"] == "E001"
                     else row
                     for row in rows
@@ -620,7 +651,7 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                     values.write_text(
                         json.dumps(
                             approved_values(
-                                "o 핵심항목\n- 공식 주장 [E001 | 공식자료]"
+                                "o 핵심항목\n- 공식 주장 [E001 | 공식자료, 2025]"
                             ),
                             ensure_ascii=False,
                             indent=2,
@@ -662,15 +693,15 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
             "extra_pipe": "o 핵심항목\n- 주장 [E001 | 기관 | 2025]",
             "malformed_before_valid": (
                 "o 핵심항목\n- 주장 "
-                "[E999 | 기관 | 2025][E001 | 공식자료]"
+                "[E999 | 기관 | 2025][E001 | 공식자료, 2025]"
             ),
             "nested_before_valid": (
                 "o 핵심항목\n- 주장 "
-                "[E999 | x [U999 | y][E001 | 공식자료]"
+                "[E999 | x [U999 | y][E001 | 공식자료, 2025]"
             ),
             "unregistered_before_valid": (
                 "o 핵심항목\n- 주장 "
-                "[E999 | 미등록자료][E001 | 공식자료]"
+                "[E999 | 미등록자료][E001 | 공식자료, 2025]"
             ),
             "del_control": "o 핵심항목\n- 주장 [E001 | 공식\u007f자료]",
             "c1_control": "o 핵심항목\n- 주장 [E001 | 공식\u0085자료]",
@@ -700,7 +731,7 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                 json.dumps(
                     approved_values(
                         "o 핵심항목\n- 복수 근거 주장 "
-                        "[E001 | 공식자료][E002 | 보조자료]"
+                        "[E001 | 공식자료, 2025][E002 | 보조자료, 2024]"
                     ),
                     ensure_ascii=False,
                     indent=2,
@@ -724,13 +755,20 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                 0,
                 valid.stdout + valid.stderr,
             )
+            with zipfile.ZipFile(root / "multiple.hwpx") as archive:
+                multiple_section = archive.read("Contents/section0.xml").decode("utf-8")
+            self.assertIn(
+                "복수 근거 주장 (공식자료, 2025; 보조자료, 2024)",
+                multiple_section,
+            )
+            self.assertNotIn("[E001 |", multiple_section)
 
             missing_values = root / "missing-followup.json"
             missing_values.write_text(
                 json.dumps(
                     approved_values(
                         "o 핵심항목\n- 누락 근거 주장 "
-                        "[E001 | 공식자료][E003 | 누락자료]"
+                        "[E001 | 공식자료, 2025][E003 | 누락자료, 2023]"
                     ),
                     ensure_ascii=False,
                     indent=2,
@@ -749,7 +787,7 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
             root = Path(directory)
             values = root / "values.json"
             document = approved_values(
-                "짧은 주장 [H001 | 검증가설]"
+                "o 핵심항목\n- 짧은 주장 [H001 | 검증가설]"
             )
             document.pop("_claim_free")
             values.write_text(
@@ -785,7 +823,7 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
             source_values.write_text(
                 json.dumps(
                     approved_values(
-                        "짧은 주장 [H001 | 검증가설]"
+                        "o 핵심항목\n- 짧은 주장 [H001 | 검증가설]"
                     ),
                     ensure_ascii=False,
                     indent=2,
@@ -820,48 +858,15 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
             self.assertEqual(second_run.returncode, 0, second_run.stdout + second_run.stderr)
             self.assertEqual(first.read_bytes(), second.read_bytes())
 
-    def test_long_prose_gate_uses_exact_200_character_boundary(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            short_values = root / "short.json"
-            blocked_values = root / "blocked.json"
-            trace = " [H001 | 검증가설]"
-            short_problem = "가" * (199 - len(trace)) + trace
-            blocked_problem = "가" * (200 - len(trace)) + trace
-            self.assertEqual(len(short_problem), 199)
-            self.assertEqual(len(blocked_problem), 200)
-            write_approved_values(
-                short_values,
-                {
-                    "{문제정의}": short_problem,
-                    "{회사명}": "모두랩",
-                    "{시장근거}": "확인 [E001 | 공식자료]",
-                    "{30일실행계획}": "실행 [P001 | 실행계획]",
-                },
-            )
-            write_approved_values(
-                blocked_values,
-                {
-                    "{문제정의}": blocked_problem,
-                    "{회사명}": "모두랩",
-                    "{시장근거}": "확인 [E001 | 공식자료]",
-                    "{30일실행계획}": "실행 [P001 | 실행계획]",
-                },
-            )
-            allowed = run_fill(short_values, root / "short.hwpx")
-            blocked = run_fill(blocked_values, root / "blocked.hwpx")
-            self.assertEqual(allowed.returncode, 0, allowed.stdout + allowed.stderr)
-            self.assertNotEqual(blocked.returncode, 0)
-            self.assertIn("장문 HWPX 답변은 기본 개조식이어야 합니다", blocked.stdout)
 
     def test_mixed_or_malformed_outline_values_block(self) -> None:
         invalid_values = {
-            "mixed": "o 핵심항목\n표시 없는 장문\n- 세부내용 [E001 | 공식자료]",
-            "detail_first": "- 세부내용 [E001 | 공식자료]\no 핵심항목\n- 다음 세부내용 [E002 | 보조자료]",
-            "subdetail_before_core": "o 대항목\n· 세부내용 [E001 | 공식자료]\n- 핵심항목 [E002 | 보조자료]",
+            "mixed": "o 핵심항목\n표시 없는 장문\n- 세부내용 [E001 | 공식자료, 2025]",
+            "detail_first": "- 세부내용 [E001 | 공식자료, 2025]\no 핵심항목\n- 다음 세부내용 [E002 | 보조자료, 2024]",
+            "subdetail_before_core": "o 대항목\n· 세부내용 [E001 | 공식자료, 2025]\n- 핵심항목 [E002 | 보조자료, 2024]",
             "heading_without_detail": "o 핵심항목",
-            "consecutive_headings": "o 첫 항목\no 둘째 항목\n- 세부내용 [E001 | 공식자료]",
-            "orphan_last_heading": "o 핵심항목\n- 세부내용 [E001 | 공식자료]\no 마지막 항목",
+            "consecutive_headings": "o 첫 항목\no 둘째 항목\n- 세부내용 [E001 | 공식자료, 2025]",
+            "orphan_last_heading": "o 핵심항목\n- 세부내용 [E001 | 공식자료, 2025]\no 마지막 항목",
         }
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -877,11 +882,7 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                         ),
                         encoding="utf-8",
                     )
-                    completed = run_fill(
-                        values,
-                        output,
-                        "--allow-prose-values",
-                    )
+                    completed = run_fill(values, output)
                     self.assertNotEqual(completed.returncode, 0)
                     self.assertFalse(output.exists())
 
@@ -890,7 +891,7 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
             [
                 "  ○ 첫 핵심항목  ",
                 "",
-                "  • 첫 세부내용 [E001 | 공식자료]  ",
+                "  • 첫 세부내용 [E001 | 공식자료, 2025]  ",
                 "\t□ 둘째 핵심항목",
                 "",
                 "  ▪ 둘째 세부내용 [P001 | 실행계획]",
@@ -898,9 +899,9 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
         )
         expected = [
             "○ 첫 핵심항목",
-            "• 첫 세부내용 [E001 | 공식자료]",
+            "• 첫 세부내용 (공식자료, 2025)",
             "□ 둘째 핵심항목",
-            "▪ 둘째 세부내용 [P001 | 실행계획]",
+            "▪ 둘째 세부내용 (실행계획)",
         ]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -923,9 +924,9 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
 
     def test_each_placeholder_preserves_its_own_base_character_style(self) -> None:
         mapping = {
-            "{문제정의}": "o 문제 핵심\n- 문제 세부 [E001 | 공식자료]",
-            "{시장근거}": "o 시장 핵심\n- 시장 세부 [E002 | 보조자료]",
-            "{30일실행계획}": "실행 [P001 | 실행계획]",
+            "{문제정의}": "o 문제 핵심\n- 문제 세부 [E001 | 공식자료, 2025]",
+            "{시장근거}": "o 시장 핵심\n- 시장 세부 [E002 | 보조자료, 2024]",
+            "{30일실행계획}": "o 실행 핵심\n- 실행 [P001 | 실행계획]",
             "{회사명}": "모두랩",
         }
         with tempfile.TemporaryDirectory() as directory:
@@ -948,7 +949,7 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                 if local_name(paragraph.tag) != "p":
                     continue
                 text = text_of(paragraph)
-                if text not in {"o 문제 핵심", "- 문제 세부 [E001 | 공식자료]", "o 시장 핵심", "- 시장 세부 [E002 | 보조자료]"}:
+                if text not in {"o 문제 핵심", "- 문제 세부 (공식자료, 2025)", "o 시장 핵심", "- 시장 세부 (보조자료, 2024)"}:
                     continue
                 run = next(
                     node for node in paragraph.iter() if local_name(node.tag) == "run"
@@ -956,9 +957,9 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                 char_id = attributes(run)["charPrIDRef"]
                 text_to_height[text] = attributes(char_defs[char_id])["height"]
             self.assertEqual(text_to_height["o 문제 핵심"], "1400")
-            self.assertEqual(text_to_height["- 문제 세부 [E001 | 공식자료]"], "1400")
+            self.assertEqual(text_to_height["- 문제 세부 (공식자료, 2025)"], "1400")
             self.assertEqual(text_to_height["o 시장 핵심"], "1100")
-            self.assertEqual(text_to_height["- 시장 세부 [E002 | 보조자료]"], "1100")
+            self.assertEqual(text_to_height["- 시장 세부 (보조자료, 2024)"], "1100")
 
     def test_marker_run_is_styled_without_changing_leading_control_run(self) -> None:
         with zipfile.ZipFile(DEMO) as archive:
@@ -982,7 +983,7 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
             write_archive_with_section(DEMO, source, section_with_control)
             values.write_text(
                 json.dumps(
-                    approved_values("o 핵심항목\n- 세부내용 [E001 | 공식자료]"),
+                    approved_values("o 핵심항목\n- 세부내용 [E001 | 공식자료, 2025]"),
                     ensure_ascii=False,
                     indent=2,
                 ),
