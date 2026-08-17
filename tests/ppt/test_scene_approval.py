@@ -120,7 +120,11 @@ class SceneApprovalTests(unittest.TestCase):
             output = scene_root / "s01.png"
             image = Image.new("RGB", (600, 600), "white")
             draw = ImageDraw.Draw(image)
-            draw.rectangle((180, 180, 420, 420), fill=(20, 60, 90))
+            draw.rounded_rectangle(
+                (180, 180, 420, 420),
+                radius=60,
+                fill=(20, 60, 90),
+            )
             image.save(output)
             receipt = scene_safe_zone_receipt(output, 0.18)
             receipt.update(
@@ -200,7 +204,11 @@ class SceneApprovalTests(unittest.TestCase):
             source = scenes / "s01.png.source.png"
             image = Image.new("RGB", (600, 600), "white")
             draw = ImageDraw.Draw(image)
-            draw.rectangle((180, 180, 420, 420), fill=(20, 60, 90))
+            draw.rounded_rectangle(
+                (180, 180, 420, 420),
+                radius=60,
+                fill=(20, 60, 90),
+            )
             image.save(framed, compress_level=0)
             image.save(source, compress_level=0)
             safe = scene_safe_zone_receipt(framed, 0.18)

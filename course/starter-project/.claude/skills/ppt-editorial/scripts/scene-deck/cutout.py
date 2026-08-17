@@ -118,6 +118,7 @@ def analyze_image(
     transparent_border_ratio = float(np.mean(alpha[border] <= 8))
     fake_checkerboard = False
     residual_foreground_ratio = 0.0
+    background_field_ambiguous = False
     errors: list[str] = []
 
     if alpha_min < 255:
@@ -166,12 +167,31 @@ def analyze_image(
             (width - right) / width,
             (height - bottom) / height,
         )
+        bbox_mask = content_mask[top:bottom, left:right]
+        bbox_fill_ratio = float(np.mean(bbox_mask))
+        bbox_edge_fill = (
+            float(np.mean(bbox_mask[0, :])),
+            float(np.mean(bbox_mask[-1, :])),
+            float(np.mean(bbox_mask[:, 0])),
+            float(np.mean(bbox_mask[:, -1])),
+        )
+        background_field_ambiguous = (
+            alpha_min == 255
+            and coverage >= 0.15
+            and bbox_fill_ratio >= 0.94
+            and min(bbox_edge_fill) >= 0.85
+        )
         if alpha_min == 255 and (
             residual_foreground_ratio > 0.55 or min(margins) < 0.05
         ):
             background_mode = "opaque-nonuniform"
             errors.append(
                 "opaque cutout retains excessive interior background or texture"
+            )
+        if background_field_ambiguous:
+            background_mode = "opaque-nonuniform"
+            errors.append(
+                "opaque cutout contains an ambiguous filled background field"
             )
     if requested_transparent and alpha_min == 255:
         if not alpha_present:
@@ -195,6 +215,7 @@ def analyze_image(
         },
         "checkerboardDetected": fake_checkerboard,
         "residualForegroundRatio": round(residual_foreground_ratio, 6),
+        "backgroundFieldAmbiguous": background_field_ambiguous,
         "errors": errors,
     }
 

@@ -209,6 +209,23 @@ class SceneCutoutTests(unittest.TestCase):
             self.assertTrue(
                 any("excessive interior" in error for error in report["errors"])
             )
+
+    def test_central_textured_rectangle_is_not_mistaken_for_cutout(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "central-texture.png"
+            image = Image.new("RGB", (500, 400), "white")
+            draw = ImageDraw.Draw(image)
+            for y in range(80, 321):
+                shade = 195 + (y % 35)
+                draw.line((100, y, 400, y), fill=(shade, 215, 232))
+            draw.ellipse((205, 135, 295, 285), fill=(35, 80, 105))
+            image.save(path)
+            report = cutout.analyze_scene(path)
+            self.assertEqual(report["status"], "BLOCK")
+            self.assertTrue(report["backgroundFieldAmbiguous"])
+            self.assertTrue(
+                any("ambiguous filled background" in error for error in report["errors"])
+            )
     def test_verify_blocks_preexisting_transparency_failure(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
