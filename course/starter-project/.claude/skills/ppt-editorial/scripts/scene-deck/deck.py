@@ -41,7 +41,10 @@ for path in (HERE, SCRIPTS):
 
 from presets import preset, style_block          # noqa: E402
 import layout_engine as LE                        # noqa: E402
-from codex_parallel_gen import scene_safe_zone_receipt  # noqa: E402
+from codex_parallel_gen import (  # noqa: E402
+    _verify_scene_artifacts,
+    scene_safe_zone_receipt,
+)
 from approved_inputs import (  # noqa: E402
     ApprovalError,
     SCENE_RENDERER_VERSION,
@@ -65,6 +68,15 @@ TAIL = ("\nUse ONLY the image-generation capability - ABSOLUTELY NO Python/PIL/c
 # 구도별 권장 씬 비율
 RATIO = {"W": "16:9 wide", "F": "16:9 wide"}
 DEFAULT_RATIO = "4:3 landscape"
+CUTOUT_LAYOUTS = {"COVER", "L", "S", "A", "CLOSING"}
+SCENE_TARGETS = {
+    "COVER": {"slot": "right", "minOccupancy": 0.70, "maxOccupancy": 0.88, "allowAspectAdjusted": True},
+    "L": {"slot": "right", "minOccupancy": 0.68, "maxOccupancy": 0.88, "allowAspectAdjusted": True},
+    "S": {"slot": "left", "minOccupancy": 0.68, "maxOccupancy": 0.88, "allowAspectAdjusted": True},
+    "W": {"slot": "bottom", "minOccupancy": 0.72, "maxOccupancy": 0.92, "allowAspectAdjusted": True},
+    "A": {"slot": "right-large", "minOccupancy": 0.72, "maxOccupancy": 0.90, "allowAspectAdjusted": True},
+    "CLOSING": {"slot": "center", "minOccupancy": 0.65, "maxOccupancy": 0.85, "allowAspectAdjusted": True},
+}
 
 
 def _safe_receipt_valid(path, margin=0.18):
@@ -74,7 +86,16 @@ def _safe_receipt_valid(path, margin=0.18):
         current = scene_safe_zone_receipt(path, margin)
     except (OSError, ValueError, TypeError, json.JSONDecodeError):
         return False
-    return receipt == current
+    expected_source = Path(str(path) + ".source.png")
+    if receipt.get("sourceArtifact"):
+        if (
+            receipt.get("sourceArtifact") != expected_source.name
+            or not expected_source.is_file()
+            or expected_source.is_symlink()
+            or receipt.get("sourceSha256") != sha256_file(expected_source)
+        ):
+            return False
+    return all(receipt.get(key) == value for key, value in current.items())
 
 
 def _load_safe_receipt(path, margin=0.18):
@@ -109,8 +130,22 @@ class Deck:
         os.makedirs(self.dir, exist_ok=True)
 
     # ══════ 슬라이드 추가 ══════
-    def slide(self, lay, eyebrow, head, sub, scene=None, labels=None,
-              num=None, chips=None, items=None, ratio=None):
+    def slide(
+        self,
+        lay,
+        eyebrow,
+        head,
+        sub,
+        scene=None,
+        labels=None,
+        num=None,
+        chips=None,
+        items=None,
+        ratio=None,
+        scene_mode=None,
+        scene_target=None,
+        scene_transparent=False,
+    ):
         """슬라이드 1장 추가.
 
         lay      L/S/W/C/A/F/T
@@ -126,6 +161,20 @@ class Deck:
         if scene:
             s["scene_body"] = scene
             s["scene_ratio"] = ratio or RATIO.get(lay, DEFAULT_RATIO)
+            mode = scene_mode or ("cutout" if lay in CUTOUT_LAYOUTS else "canvas")
+            if mode not in {"cutout", "canvas"}:
+                raise ValueError("scene_mode must be cutout or canvas")
+            if scene_transparent and mode != "cutout":
+                raise ValueError("scene_transparent requires scene_mode='cutout'")
+            target = dict(SCENE_TARGETS.get(lay, {}))
+            if scene_target is not None:
+                target.update(scene_target)
+            if mode == "cutout" and not target:
+                raise ValueError(f"cutout scene target is missing for layout {lay}")
+            s["scene_ratio"] = ratio or RATIO.get(lay, DEFAULT_RATIO)
+            s["sceneMode"] = mode
+            s["sceneTarget"] = target
+            s["sceneTransparent"] = bool(scene_transparent)
         if labels:
             s["scene_labels"] = list(labels)
         for k, v in [("num", num), ("chips", chips), ("items", items)]:
@@ -137,10 +186,17 @@ class Deck:
 
 
     # ══════ 실무 필수 슬라이드 ══════
-    def cover(self, eyebrow, head, sub=None, issuer=None, meta=None, scene=None):
+    def cover(self, eyebrow, head, sub=None, issuer=None, meta=None, scene=None, **scene_options):
         """표지. 크롬(쪽번호·푸터)이 붙지 않는다."""
-        self.slide("COVER", eyebrow, head, sub or [], scene=scene,
-                   ratio="4:3 landscape")
+        self.slide(
+            "COVER",
+            eyebrow,
+            head,
+            sub or [],
+            scene=scene,
+            ratio="4:3 landscape",
+            **scene_options,
+        )
         self.slides[-1].update({"issuer": issuer or self.foot,
                                 "meta": meta or [], "_nochrome": True})
         self.save()
@@ -155,9 +211,9 @@ class Deck:
         self.save()
         return self
 
-    def closing(self, head, sub=None, issuer=None, scene=None, eyebrow="THANK YOU"):
+    def closing(self, head, sub=None, issuer=None, scene=None, eyebrow="THANK YOU", **scene_options):
         """클로징."""
-        self.slide("CLOSING", eyebrow, head, sub or [], scene=scene)
+        self.slide("CLOSING", eyebrow, head, sub or [], scene=scene, **scene_options)
         self.slides[-1]["issuer"] = issuer or self.foot
         self.save()
         return self
@@ -170,7 +226,7 @@ class Deck:
         lay = lay or {"hero": "L", "compare": "C", "sequence": "W", "grid": "F"}[pl["mode"]]
         self.slide(lay, eyebrow, head, sub,
                    scene="a %s composition integrating the provided photographs" % pl["mode"],
-                   labels=labels, **kw)
+                   labels=labels, scene_mode="canvas", **kw)
         sid = self.slides[-1]["scene"]
         self._photo_refs[sid] = (ready, pl, labels)
         self.slides[-1]["_photo"] = [os.path.relpath(x, self.dir) for x in ready]
@@ -254,6 +310,12 @@ class Deck:
                     p += ("\n\nTEXT LABELS rendered in the image "
                           "(bold Korean gothic, ink colour, small):\n  "
                           + "  ".join('"%s"' % x for x in s["scene_labels"]))
+            if s.get("sceneMode") == "cutout":
+                p += (
+                    "\n\nASSET MODE: isolated foreground object group. "
+                    "Use a genuinely transparent background when possible; otherwise use one "
+                    "uniform removable background. Never paint a checkerboard."
+                )
             p += SAFE + "\nOutput %s framing.\n" % s.get("scene_ratio", DEFAULT_RATIO) + TAIL
             out.append(
                 {
@@ -263,6 +325,9 @@ class Deck:
                     "prompt": p,
                     "safe_zone": 0.18,
                     "safe_frame": True,
+                    "scene_mode": s.get("sceneMode", "canvas"),
+                    "scene_target": s.get("sceneTarget", {}),
+                    "requested_transparent": bool(s.get("sceneTransparent", False)),
                 }
             )
         return out
@@ -288,6 +353,30 @@ class Deck:
 
     def _scene_job_record(self, job):
         output = Path(self.dir) / job["out"]
+        safe_zone = _load_safe_receipt(output, float(job["safe_zone"]))
+        artifact_error = _verify_scene_artifacts(
+            output,
+            job,
+            float(job["safe_zone"]),
+        )
+        if artifact_error is not None:
+            raise ApprovalError(f"scene artifact validation failed: {artifact_error}")
+        if safe_zone.get("sceneMode") != job.get("scene_mode", "cutout"):
+            raise ApprovalError(
+                "scene safe receipt mode does not match approved job"
+            )
+        if not safe_zone.get("sourceArtifact") or not safe_zone.get("sourceSha256"):
+            raise ApprovalError(
+                "scene safe receipt must bind the unframed source artifact"
+            )
+        if bool(safe_zone.get("transparencyRequested")) != bool(
+            job.get("requested_transparent", False)
+        ):
+            raise ApprovalError(
+                "scene safe receipt transparency request does not match approved job"
+            )
+        if safe_zone.get("jobPromptDigest") != digest_value(job["prompt"]):
+            raise ApprovalError("scene safe receipt prompt digest is stale")
         return {
             "sceneId": job["label"],
             "promptDigest": digest_value(job["prompt"]),
@@ -296,7 +385,10 @@ class Deck:
                 for relative in job.get("refs", [])
             ],
             "outputDigest": sha256_file(output),
-            "safeZone": _load_safe_receipt(output, float(job["safe_zone"])),
+            "safeZoneReceiptDigest": sha256_file(
+                Path(str(output) + ".safe.json")
+            ),
+            "safeZone": safe_zone,
         }
 
     def _verify_scene_receipt(self, approval_digest, all_jobs):
@@ -305,7 +397,7 @@ class Deck:
             raise ApprovalError("scene receipt is missing")
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         if (
-            receipt.get("receiptVersion") != "dayoun-scene-render-receipt-v2"
+            receipt.get("receiptVersion") != "dayoun-scene-render-receipt-v3"
             or receipt.get("approvalEnvelopeDigest") != approval_digest
             or receipt.get("rendererVersion") != SCENE_RENDERER_VERSION
         ):
@@ -324,15 +416,63 @@ class Deck:
             for path in files
         ]
 
+    def _placement_receipt_path(self):
+        return os.path.join(self.dir, "scene-placement-receipt.json")
+
+    def _verify_placement_receipt(self, approval_digest):
+        path = Path(self._placement_receipt_path())
+        if not path.is_file():
+            raise ApprovalError("scene placement receipt is missing")
+        receipt = json.loads(path.read_text(encoding="utf-8"))
+        all_jobs = self.jobs(only_missing=False)
+        scene_receipt_path = Path(self._scene_receipt_path())
+        current_scene_receipt_digest = (
+            sha256_file(scene_receipt_path) if all_jobs and scene_receipt_path.is_file() else None
+        )
+        if all_jobs:
+            if receipt.get("sceneReceiptSha256") != current_scene_receipt_digest:
+                raise ApprovalError("scene placement receipt scene provenance is stale")
+            self._verify_scene_receipt(approval_digest, all_jobs)
+        elif receipt.get("sceneReceiptSha256") is not None:
+            raise ApprovalError("text-only placement receipt must not bind a scene receipt")
+        if (
+            receipt.get("approvalEnvelopeDigest") != approval_digest
+            or receipt.get("rendererVersion") != SCENE_RENDERER_VERSION
+            or receipt.get("slideSpecDigest") != digest_value(self.slides)
+        ):
+            raise ApprovalError("scene placement receipt is stale")
+        placements = receipt.get("placements")
+        if not isinstance(placements, list):
+            raise ApprovalError("scene placement receipt has no placements")
+        for placement in placements:
+            if placement.get("collisions"):
+                raise ApprovalError("scene placement collision was not resolved")
+            scene_name = placement.get("scene")
+            source = Path(self.dir, "scenes", f"{scene_name}.png")
+            if (
+                not source.is_file()
+                or placement.get("sourceSha256") != sha256_file(source)
+            ):
+                raise ApprovalError("scene placement source digest is stale")
+        return receipt
+
     def _verify_output_receipt(self, approval_digest):
         path = Path(self._output_receipt_path())
         if not path.is_file():
             raise ApprovalError("deck output receipt is missing")
         receipt = json.loads(path.read_text(encoding="utf-8"))
+        placement = self._verify_placement_receipt(approval_digest)
         if (
             receipt.get("approvalEnvelopeDigest") != approval_digest
             or receipt.get("rendererVersion") != SCENE_RENDERER_VERSION
             or receipt.get("slides") != self._output_records()
+            or receipt.get("scenePlacementReceiptSha256") != sha256_file(
+                Path(self._placement_receipt_path())
+            )
+            or receipt.get("scenePlacements") != placement.get("placements")
+            or receipt.get("sceneReceiptSha256") != placement.get(
+                "sceneReceiptSha256"
+            )
         ):
             raise ApprovalError("assembled slide pixels changed after receipt")
     def _require_approved(self, approval_digest, approval_store):
@@ -417,7 +557,7 @@ class Deck:
             )
         receipt = {
             "schemaVersion": "1.0.0",
-            "receiptVersion": "dayoun-scene-render-receipt-v2",
+            "receiptVersion": "dayoun-scene-render-receipt-v3",
             "approvalEnvelopeDigest": approval_digest,
             "rendererVersion": SCENE_RENDERER_VERSION,
             "scenes": [self._scene_job_record(job) for job in all_jobs],
@@ -463,6 +603,7 @@ class Deck:
         os.makedirs(out, exist_ok=True)
         n = len(self.slides)
         _prepare_slide_outputs(out, n)
+        LE.clear_placement_receipts()
         for i, s in enumerate(self.slides, 1):
             im = Image.new("RGB", (LE.W, LE.H), LE.WHITE)
             d = ImageDraw.Draw(im)
@@ -470,12 +611,38 @@ class Deck:
             if not s.get("_nochrome"):
                 LE.chrome(im, d, s["eyebrow"], "%02d" % i, n)
             im.save(os.path.join(out, "slide_%02d.png" % i))
+        placements = LE.placement_receipts()
+        expected_scene_ids = {
+            slide["scene"] for slide in self.slides if slide.get("scene_body")
+        }
+        if {record["scene"] for record in placements} != expected_scene_ids:
+            raise ApprovalError("not every generated scene has a placement receipt")
+        scene_receipt_digest = (
+            sha256_file(Path(self._scene_receipt_path())) if all_jobs else None
+        )
+        placement_receipt = {
+            "schemaVersion": "1.0.0",
+            "approvalEnvelopeDigest": approval_digest,
+            "rendererVersion": SCENE_RENDERER_VERSION,
+            "slideSpecDigest": digest_value(self.slides),
+            "sceneReceiptSha256": scene_receipt_digest,
+            "placements": placements,
+        }
+        Path(self._placement_receipt_path()).write_text(
+            json.dumps(placement_receipt, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
         print("[조립] %d장 (도메인=%s 폰트=%s)" % (n, self.preset["key"], LE.FAMILY))
         output_receipt = {
             "schemaVersion": "1.0.0",
             "approvalEnvelopeDigest": approval_digest,
             "rendererVersion": SCENE_RENDERER_VERSION,
             "slides": self._output_records(),
+            "scenePlacementReceiptSha256": sha256_file(
+                Path(self._placement_receipt_path())
+            ),
+            "scenePlacements": placements,
+            "sceneReceiptSha256": scene_receipt_digest,
         }
         Path(self._output_receipt_path()).write_text(
             json.dumps(output_receipt, ensure_ascii=False, indent=2) + "\n",

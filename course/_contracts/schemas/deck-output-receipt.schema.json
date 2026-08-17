@@ -1,14 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dayoun.dev/contracts/deck-output-receipt.schema.json",
-  "title": "Digest-bound assembled slide pixels",
+  "title": "Digest-bound assembled slide pixels and scene placements",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "approvalEnvelopeDigest", "rendererVersion", "slides"],
+  "required": [
+    "schemaVersion", "approvalEnvelopeDigest", "rendererVersion", "slides",
+    "scenePlacementReceiptSha256", "sceneReceiptSha256", "scenePlacements"
+  ],
   "properties": {
     "schemaVersion": { "const": "1.0.0" },
     "approvalEnvelopeDigest": { "$ref": "#/$defs/digest" },
-    "rendererVersion": { "const": "scene-deck-v2" },
+    "rendererVersion": { "const": "scene-deck-v3" },
     "slides": {
       "type": "array",
       "minItems": 1,
@@ -21,7 +24,58 @@
           "sha256": { "$ref": "#/$defs/digest" }
         }
       }
+    },
+    "scenePlacementReceiptSha256": { "$ref": "#/$defs/digest" },
+    "sceneReceiptSha256": {
+      "anyOf": [
+        { "$ref": "#/$defs/digest" },
+        { "type": "null" }
+      ]
+    },
+    "scenePlacements": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/placement" }
     }
   },
-  "$defs": { "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" } }
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "bbox": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "integer", "minimum": 0 },
+        { "type": "integer", "minimum": 1 },
+        { "type": "integer", "minimum": 1 }
+      ],
+      "items": false
+    },
+    "placement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slideId", "scene", "layout", "sceneMode", "slot", "placedBBox",
+        "contentBBox", "sourceSha256", "areaOccupancy", "widthOccupancy",
+        "heightOccupancy", "minOccupancy", "maxOccupancy", "allowAspectAdjusted", "aspectAdjusted",
+        "collisions"
+      ],
+      "properties": {
+        "slideId": { "type": "integer", "minimum": 1 },
+        "scene": { "type": "string", "minLength": 1 },
+        "layout": { "type": "string", "minLength": 1 },
+        "sceneMode": { "enum": ["cutout", "canvas"] },
+        "slot": { "$ref": "#/$defs/bbox" },
+        "placedBBox": { "$ref": "#/$defs/bbox" },
+        "contentBBox": { "$ref": "#/$defs/bbox" },
+        "sourceSha256": { "$ref": "#/$defs/digest" },
+        "areaOccupancy": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "widthOccupancy": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "heightOccupancy": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "minOccupancy": { "type": "number", "minimum": 0, "maximum": 1 },
+        "maxOccupancy": { "type": "number", "minimum": 0, "maximum": 1 },
+        "allowAspectAdjusted": { "type": "boolean" },
+        "aspectAdjusted": { "type": "boolean" },
+        "collisions": { "type": "array", "maxItems": 0 }
+      }
+    }
+  }
 }

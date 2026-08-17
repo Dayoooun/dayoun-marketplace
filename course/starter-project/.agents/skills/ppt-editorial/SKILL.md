@@ -64,6 +64,46 @@ PPT의 수치·고유명사·주장·근거는 승인 bundle과 다시 대조한
 
 > ⚠️ 스킬명 `ppt-editorial`은 초기 이름이 남은 것이다. 현재는 씬 덱과 이미지 퍼스트 두 모드를 모두 제공한다.
 
+### 씬 자산 모드 — `cutout`과 `canvas`
+
+씬이 있다고 전부 같은 방식으로 배치하지 않는다.
+
+- 원료·제품·기기·인물·3D 오브젝트는 `sceneMode: "cutout"`으로 지정한다.
+- 환경·공간·전면 사진처럼 배경 자체가 디자인 자산이면 `sceneMode: "canvas"`로 지정한다.
+- `cutout`은 실제 `contentBBox`로 전경을 크롭하고 alpha mask로 붙인다.
+- `.safe.json`은 18% 생성 안전영역 증거일 뿐 전체 캔버스를 유지하라는 지시가 아니다.
+  sidecar가 있어도 전경 크롭을 생략하지 않는다.
+- 투명 배경을 요청한 결과는 실제 RGBA, alpha 0~255, 테두리 95% 이상 투명을
+  확인한다. RGB, alpha 전부 255, 픽셀로 그린 체크무늬는 BLOCK한다.
+- 불투명 흰색·아이보리 배경은 가장자리 연결영역만 제거한다. 접촉 그림자,
+  반투명 젤·유리, 밝은 용기 내부는 전경으로 보존한다.
+
+스펙 예시:
+
+```json
+{
+  "sceneMode": "cutout",
+  "sceneTransparent": false,
+  "sceneTarget": {
+    "slot": "right",
+    "minOccupancy": 0.68,
+    "maxOccupancy": 0.88,
+    "allowAspectAdjusted": true
+  }
+}
+```
+
+기본 점유율은 COVER 70~88%, L/S 68~88%, W 72~92%, A 72~90%,
+CLOSING 65~85%다. 면적과 폭·높이 점유율을 모두 receipt에 기록한다. 극단적인
+가로·세로 전경은 승인 스펙의 `allowAspectAdjusted: true`가 있고 한 축 90% 이상·
+다른 축 30% 이상일 때만 예외로 허용한다. 숨은 자동 예외는 없으며 이 조건도 못
+채우면 작게 두지 말고 BLOCK한다. `canvas`도 명시된 점유율 범위를 그대로 검사한다.
+
+조립 뒤 `scene-placement-receipt.json`에 source digest, mode, content bbox, slot,
+placed bbox, 면적·폭·높이 점유율, 충돌 결과를 기록한다. 제목·본문·상단 chrome,
+쪽번호·하단 헤어라인·발신주체와 겹치거나 슬롯을 벗어나면 납품하지 않는다.
+콘택트시트만 보지 않고 COVER·L·S·W·A·CLOSING을 원본 16:9 크기로 각각 확인한다.
+
 레퍼런스(사용자가 원하는 룩을 보여주는 완성 덱 이미지)를 기준으로, **어떤 분야든** 잡지·갤러리 수준의 16:9 슬라이드를 codex(GPT Image)로 생성한다. 슬라이드의 모든 텍스트·아이콘·도식·사진을 이미지 안에 렌더하고, 로고·페이지번호 같은 고정 크롬만 PIL로 후합성한다.
 
 ## ★★★ 0. 실행 전제조건 (없으면 먼저 설치한다)
@@ -314,7 +354,7 @@ d.photos(["a.jpg", "b.jpg"], "ON SITE", ["현장에서 함께합니다"], ["..."
 d.closing(["함께 만드는 무결점 라인"], issuer="(주)OO정밀", scene="...")
 
 # d.slides와 d.approval_config()를 deck_brief의 sceneDeckSlides/sceneDeckConfig로 기록하고
-# approved_inputs.py build --renderer-version scene-deck-v2 으로 승인한다.
+# approved_inputs.py build --renderer-version scene-deck-v3 으로 승인한다.
 
 APPROVAL_DIGEST = "sha256:..."  # approved_inputs.py build 출력
 APPROVAL_STORE = "approval-store"

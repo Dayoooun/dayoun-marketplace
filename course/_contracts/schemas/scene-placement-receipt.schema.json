@@ -1,38 +1,25 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dayoun.dev/contracts/deck-output-receipt.schema.json",
-  "title": "Digest-bound assembled slide pixels and scene placements",
+  "$id": "https://dayoun.dev/contracts/scene-placement-receipt.schema.json",
+  "title": "Digest-bound cutout and canvas scene placement receipt",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schemaVersion", "approvalEnvelopeDigest", "rendererVersion", "slides",
-    "scenePlacementReceiptSha256", "sceneReceiptSha256", "scenePlacements"
+    "schemaVersion", "approvalEnvelopeDigest", "rendererVersion",
+    "slideSpecDigest", "sceneReceiptSha256", "placements"
   ],
   "properties": {
     "schemaVersion": { "const": "1.0.0" },
     "approvalEnvelopeDigest": { "$ref": "#/$defs/digest" },
     "rendererVersion": { "const": "scene-deck-v3" },
-    "slides": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["fileName", "sha256"],
-        "properties": {
-          "fileName": { "type": "string", "pattern": "^slide_[0-9]+\\.png$" },
-          "sha256": { "$ref": "#/$defs/digest" }
-        }
-      }
-    },
-    "scenePlacementReceiptSha256": { "$ref": "#/$defs/digest" },
+    "slideSpecDigest": { "$ref": "#/$defs/digest" },
     "sceneReceiptSha256": {
       "anyOf": [
         { "$ref": "#/$defs/digest" },
         { "type": "null" }
       ]
     },
-    "scenePlacements": {
+    "placements": {
       "type": "array",
       "items": { "$ref": "#/$defs/placement" }
     }

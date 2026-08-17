@@ -166,6 +166,9 @@ HWPX와 PPT는 독립 선택 산출물입니다. PPT를 만들기 위해 HWPX를
 
 PPT 렌더 전 bundled Pretendard 1.3.9의 bundle·사용자 범위 설치를 검사하고 없을 때만
 `install_bundled_fonts.py install`을 실행합니다.
+제품·원료·기기·인물 씬은 `cutout`, 환경·공간 장면은 `canvas`로 명시합니다.
+`.safe.json`과 조립 크롭을 분리하고 실제 alpha·가짜 체크무늬·전경 bbox·슬롯 점유율·
+텍스트/크롬 충돌을 검증한 placement receipt가 없으면 PPT를 완료로 보고하지 않습니다.
 
 ## 안전 규칙
 

@@ -606,6 +606,19 @@ class BusinessPlanPluginTests(unittest.TestCase):
             self.assertIn(contract, humanization)
         self.assertIn("필수 한국어 윤문 gate", skill)
         self.assertIn("윤문: PASS", skill)
+        for contract in (
+            'sceneMode: "cutout"',
+            'sceneMode: "canvas"',
+            "contentBBox",
+            "alpha 0~255",
+            "체크무늬",
+            "minOccupancy",
+            "scene-placement-receipt.json",
+            "원본 16:9 크기",
+        ):
+            self.assertIn(contract, skill)
+        self.assertTrue((ROOT / "tests" / "ppt" / "test_scene_cutout.py").is_file())
+        self.assertTrue((ROOT / "tests" / "ppt" / "test_scene_occupancy.py").is_file())
 
         for relative in (
             "scripts/intake.py",
@@ -615,6 +628,7 @@ class BusinessPlanPluginTests(unittest.TestCase):
             "scripts/ocr/map_ocr_regions.py",
             "scripts/ocr/validate_visible_text.py",
             "scripts/scene-deck/info_layouts.py",
+            "scripts/scene-deck/cutout.py",
         ):
             self.assertTrue((ppt / relative).is_file(), relative)
         self.assertTrue(

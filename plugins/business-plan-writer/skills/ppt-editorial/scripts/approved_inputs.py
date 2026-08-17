@@ -13,7 +13,7 @@ import rfc8785
 DIGEST_PREFIX = "sha256:"
 NORMALIZER_VERSION = "dayoun-visible-text-v1"
 MAPPER_VERSION = "dayoun-region-map-v1"
-SCENE_RENDERER_VERSION = "scene-deck-v2"
+SCENE_RENDERER_VERSION = "scene-deck-v3"
 IMAGE_RENDERER_VERSION = "image-first-v1"
 
 

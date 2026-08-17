@@ -19,6 +19,7 @@ SCHEMA_FILES = (
     "render-receipt.schema.json",
     "deck-output-receipt.schema.json",
     "scene-receipt.schema.json",
+    "scene-placement-receipt.schema.json",
     "release-manifest.schema.json",
     "toolchain-lock.schema.json",
 )

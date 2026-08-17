@@ -14,7 +14,7 @@
 
 종료코드 0=통과 / 1=FAIL 존재
 """
-import os, sys, glob, argparse
+import os, sys, glob, argparse, json
 import numpy as np
 from PIL import Image
 
@@ -49,6 +49,55 @@ def bounds(im, y0=0.0, y1=1.0):
             (rows.min() + int(H * y0)) / H, (rows.max() + int(H * y0)) / H)
 
 
+def validate_placement_receipt(path):
+    errors = []
+    try:
+        with open(path, encoding="utf-8") as handle:
+            receipt = json.load(handle)
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"placement receipt read failed: {error}"]
+    placements = receipt.get("placements")
+    if not isinstance(placements, list):
+        return ["placement receipt has no placements"]
+    for item in placements:
+        label = item.get("scene", "?")
+        collisions = item.get("collisions")
+        if collisions:
+            errors.append(f"{label}: collision {collisions}")
+        area = float(item.get("areaOccupancy", -1))
+        minimum = float(item.get("minOccupancy", 0))
+        maximum = float(item.get("maxOccupancy", 1))
+        aspect_adjusted = bool(item.get("aspectAdjusted", False))
+        allow_aspect_adjusted = bool(item.get("allowAspectAdjusted", False))
+        if aspect_adjusted and not allow_aspect_adjusted:
+            errors.append(f"{label}: unapproved aspect-adjusted occupancy")
+        if area < minimum and not aspect_adjusted:
+            errors.append(
+                f"{label}: occupancy {area:.3f} below {minimum:.3f}"
+            )
+        if area > maximum + 0.002:
+            errors.append(
+                f"{label}: occupancy {area:.3f} above {maximum:.3f}"
+            )
+        slot = item.get("slot")
+        placed = item.get("placedBBox")
+        if (
+            not isinstance(slot, list)
+            or len(slot) != 4
+            or not isinstance(placed, list)
+            or len(placed) != 4
+        ):
+            errors.append(f"{label}: slot or placedBBox missing")
+        elif (
+            placed[0] < slot[0]
+            or placed[1] < slot[1]
+            or placed[2] > slot[2]
+            or placed[3] > slot[3]
+        ):
+            errors.append(f"{label}: foreground exceeds assigned slot")
+    return errors
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("folder")
@@ -58,6 +107,10 @@ def main():
     ap.add_argument("--body", action="store_true",
                     help="★크롬 합성 전 본문 폴더에만 쓴다. 완성 슬라이드에 쓰면 "
                          "크롬(eyebrow·하단선)을 침범으로 오인해 전건 오탐이 난다")
+    ap.add_argument(
+        "--placement-receipt",
+        help="scene-placement-receipt.json; when omitted, use the deck folder parent if present",
+    )
     a = ap.parse_args()
 
     if a.body:
@@ -72,6 +125,18 @@ def main():
 
     sizes = {}
     fails, warns = [], []
+    placement_path = a.placement_receipt
+    if placement_path is None:
+        candidate = os.path.join(
+            os.path.dirname(os.path.abspath(a.folder)),
+            "scene-placement-receipt.json",
+        )
+        placement_path = candidate if os.path.isfile(candidate) else None
+    if a.placement_receipt and not os.path.isfile(a.placement_receipt):
+        fails.append(("placement", "scene placement receipt is missing"))
+    elif placement_path:
+        for message in validate_placement_receipt(placement_path):
+            fails.append(("placement", message))
 
     print("=" * 66)
     print("덱 검수 :", a.folder, "(%d장)" % len(files))

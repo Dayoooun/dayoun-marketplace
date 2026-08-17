@@ -297,6 +297,12 @@ runtime contract fetch, 저장소 상대경로 조회, 예전 이름 compatibili
 
 두 방식 모두 같은 이미지 생성 엔진을 쓰지만 지원·완료 기준은 같습니다. 이미지 퍼스트도 한글 깨짐을 허용하지 않습니다. 생성 전 canonical payload·ordered deck briefs·stable `text_id`와 normalized region·relation geometry를 가진 visible-text manifest를 한 approval digest에 묶습니다. 렌더 직후 ordered PNG digest receipt를 고정하고, 전달 PPTX와 PDF pixels의 source artifact/page raster digest가 일치하는 OCR만 받아 label/value·evidence/claim 관계까지 검사합니다. 한 글자·수치·날짜·고유명사·clip·tofu·ambiguous region·stale OCR이 다르면 자동 BLOCK입니다.
 
+씬 덱의 생성 이미지는 `cutout`과 `canvas`를 구분합니다. 제품·원료·기기·인물은
+실제 전경 경계로 크롭해 alpha mask로 크게 배치하고, 환경 장면만 전체 캔버스를
+유지합니다. 18% 생성 안전여백 receipt가 있어도 크롭을 생략하지 않습니다. 실제 alpha,
+가짜 체크무늬, 불투명 배경, 슬롯 점유율, 제목·본문·쪽번호·캡션·하단 헤어라인 충돌을
+검사하며 `scene-placement-receipt.json`이 없거나 stale이면 PPTX/PDF를 내보내지 않습니다.
+
 ### 레퍼런스는 역할을 나눠서 줍니다
 
 이미지를 한 덩어리로 주면 안 됩니다. 쓰임이 다르면 처리도 다릅니다.

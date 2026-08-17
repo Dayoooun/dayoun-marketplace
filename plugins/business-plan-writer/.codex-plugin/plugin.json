@@ -1,7 +1,7 @@
 {
   "name": "business-plan-writer",
   "version": "0.12.2",
-  "description": "Natural-language business-plan leadership with user-edited HWPX preservation, evidence gates and render QA, plus immediately routed and mandatory-humanized PPT outputs.",
+  "description": "Natural-language business-plan and PPT workflow with user-edited HWPX preservation, bundled Pretendard, mandatory Korean humanization, and cutout/canvas scene placement gates.",
   "author": {
     "name": "Dayoun",
     "url": "https://github.com/Dayoooun"
