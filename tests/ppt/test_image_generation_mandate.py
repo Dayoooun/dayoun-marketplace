@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
@@ -162,6 +163,78 @@ class StyleProfileDefaultTests(unittest.TestCase):
         source = (PPT_SCRIPTS / "codex_parallel_gen.py").read_text(encoding="utf-8")
 
         self.assertIn("+ style_block", source)
+
+
+class ParallelGenerationTests(unittest.TestCase):
+    """이미지 생성이 항상 병렬로 돌아가는지.
+
+    슬라이드 1장 생성에 수 분이 걸린다. 순차로 떨어지면 23장 덱이 70분 넘게
+    걸려 수업·납품 일정에서 그대로 실패한다. 격리 CODEX_HOME 을 쓰므로
+    고병렬이 안전하고, 순차로 내려가는 건 언제나 실수다.
+    """
+
+    def _observed_cap(self, job_count, extra_argv):
+        observed = []
+
+        def fake_run_round(jobs, base_dir, cap, retry, effort, model, timeout=590):
+            observed.append(cap)
+
+        original = gen.run_round
+        gen.run_round = fake_run_round
+        try:
+            with tempfile.TemporaryDirectory() as temp:
+                base = Path(temp)
+                (base / "anchor.png").write_bytes(b"x" * 1024)
+                jobs = [
+                    {
+                        "label": f"s{index:02d}",
+                        "out": f"out/s{index:02d}.png",
+                        "prompt": "슬라이드",
+                        "refs": ["anchor.png"],
+                    }
+                    for index in range(1, job_count + 1)
+                ]
+                jobs_path = base / "jobs.json"
+                jobs_path.write_text(
+                    json.dumps(jobs, ensure_ascii=False), encoding="utf-8"
+                )
+
+                argv = sys.argv
+                sys.argv = [
+                    "codex_parallel_gen.py",
+                    str(jobs_path),
+                    "--loop",
+                    "1",
+                ] + extra_argv
+                try:
+                    gen.main()
+                except SystemExit:
+                    pass
+                finally:
+                    sys.argv = argv
+        finally:
+            gen.run_round = original
+
+        self.assertTrue(observed, "run_round 가 호출되지 않았습니다")
+        return observed[0]
+
+    def test_sequential_cap_is_overridden_for_multi_slide_decks(self) -> None:
+        # 사용자가 --cap 1 로 순차를 요청해도 덱 생성은 병렬로 올린다.
+        self.assertEqual(self._observed_cap(8, ["--cap", "1"]), gen.MIN_PARALLEL_CAP)
+        self.assertEqual(self._observed_cap(8, ["--cap", "2"]), gen.MIN_PARALLEL_CAP)
+
+    def test_cap_above_minimum_is_respected(self) -> None:
+        self.assertEqual(self._observed_cap(8, ["--cap", "6"]), 6)
+
+    def test_forced_cap_never_exceeds_job_count(self) -> None:
+        # 잡보다 많은 워커는 낭비다.
+        self.assertEqual(self._observed_cap(3, ["--cap", "1"]), 3)
+
+    def test_single_slide_stays_sequential(self) -> None:
+        self.assertEqual(self._observed_cap(1, ["--cap", "1"]), 1)
+
+    def test_auto_cap_is_parallel_for_multi_slide_decks(self) -> None:
+        self.assertGreater(self._observed_cap(8, []), 1)
 
 
 if __name__ == "__main__":

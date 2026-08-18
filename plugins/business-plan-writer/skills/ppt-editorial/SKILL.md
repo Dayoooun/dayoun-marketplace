@@ -435,6 +435,16 @@ python "<스킬 루트>\scripts\style_profile.py" --accent "#0B5FFF"
 ### 철칙 A — PIL 드로잉 금지 (텍스트 "???" 깨짐의 진짜 원인)
 프롬프트에 이미지생성 강제가 없으면 codex가 슬라이드를 **이미지 생성 대신 Python/PIL/matplotlib로 그려버린다**. PIL 기본 폰트엔 CJK 글리프가 없어 **모든 글자가 "?"로 렌더**된다(면도날 직선 헤어라인 = 드로잉 증거, 파일크기 18~50KB=드로잉 / 700KB~1MB=이미지생성).
 → **모든 프롬프트 말미에**: `Use ONLY the image-generation capability — ABSOLUTELY NO Python/PIL/matplotlib/code drawing (renders text as broken '?'). Every glyph perfectly correct, no '?'.` 실측: 동일 슬라이드 45KB"???" → 923KB 완벽.
+→ 이 문구는 `codex_parallel_gen.py`가 `IMAGE_GEN_MANDATE`로 **항상 자동 주입**한다. 잡 프롬프트에 따로 쓰지 않아도 된다. 산출물이 60KB 미만이면 코드드로잉으로 보고 재시도하며, verify에서 `code-drawing-fallback`으로 불합격 처리한다.
+
+### ★★★ 병렬 생성 강제 — 순차 실행 금지
+
+슬라이드 1장 생성에 수 분이 걸린다. 순차로 돌리면 23장 덱이 70분을 넘겨 수업·납품 일정에서 그대로 실패한다. 격리 `CODEX_HOME`으로 상태를 분리하므로 고병렬이 안전하다.
+
+- 잡이 2개 이상이면 `--cap`을 1이나 2로 줘도 **최소 4로 자동 상향**한다(`MIN_PARALLEL_CAP`).
+- 강제된 cap은 잡 수를 넘지 않는다. 잡 3개면 3.
+- 잡 1개일 때만 순차다.
+- `--cap 0`(기본)은 `min(잡수, 코어//2, 10)`으로 자동 결정한다.
 
 ### 철칙 B — 레퍼런스 덱을 `-i` 스타일 앵커로 반드시 먹여라
 품질 격차의 근본원인 = 레퍼런스 없이 "미니멀·여백" 규칙대로 앙상하게 만든 것. **다른 완성 덱(원하는 룩)을 `-i`로 먹이는 게 리치 룩 재현의 최대 동력.**

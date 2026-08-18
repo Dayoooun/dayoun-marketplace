@@ -57,6 +57,10 @@ IMAGE_GEN_MANDATE = (
 # 700KB~1MB = 이미지생성. 30KB 기준은 50KB 짜리 드로잉을 놓친다.
 DRAWING_FALLBACK_KB = 60
 
+# ★ 최소 병렬 동시성. 슬라이드 1장 생성에 수 분이 걸려 순차 실행은 일정에서 실패한다.
+# 격리 CODEX_HOME 으로 상태를 분리하므로 고병렬이 안전하다.
+MIN_PARALLEL_CAP = 4
+
 
 def resolve_style_prompt(profile_name, accent):
     """스타일 프로파일 프롬프트 블록. 지정이 없으면 기본 프로파일.
@@ -643,7 +647,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("jobs_json")
     ap.add_argument("--cap", type=int, default=0,
-                    help="동시 실행 캡 (0=자동: min(잡수, 코어//2, 10). 격리홈이라 고병렬 안전)")
+                    help="동시 실행 캡 (0=자동: min(잡수, 코어//2, 10). 격리홈이라 고병렬 안전. 잡이 2개 이상이면 최소 4로 강제 — 순차 생성 금지)")
     ap.add_argument("--retry", type=int, default=1, help="잡별 재시도 (기본 1)")
     ap.add_argument("--loop", type=int, default=3, help="재귀 개선 라운드 상한 (기본 3) — 전부 통과 시 조기 종료")
     ap.add_argument("--effort", default=None, help="reasoning effort (low/medium/high/xhigh)")
@@ -667,6 +671,18 @@ def main():
         # 잡 수를 넘지 않고, 코어의 절반, 최대 10으로 제한.
         args.cap = max(1, min(len(all_jobs), (os.cpu_count() or 8) // 2, 10))
         print(f"[cap 자동] {args.cap} (잡 {len(all_jobs)}, 코어 {os.cpu_count()})", flush=True)
+
+    # ★ 병렬 강제. 슬라이드 1장에 수 분이 걸리므로 순차 실행은 수업·납품 일정에서
+    # 그대로 실패한다(23장 × 3분 ≈ 70분). 격리 CODEX_HOME 을 쓰므로 고병렬이 안전하고,
+    # 순차로 떨어지는 건 언제나 실수다. 잡이 둘 이상이면 최소 동시성을 보장한다.
+    if len(all_jobs) > 1 and args.cap < MIN_PARALLEL_CAP:
+        forced = min(len(all_jobs), MIN_PARALLEL_CAP)
+        print(
+            f"[cap 강제] {args.cap} → {forced} "
+            f"(잡 {len(all_jobs)}개 · 순차 생성 금지)",
+            flush=True,
+        )
+        args.cap = forced
 
     # 선검증: 이미 정상인 슬라이드는 재생성하지 않음 (기존 결과 재활용)
     pre = verify(all_jobs, base_dir, args.dup_check)

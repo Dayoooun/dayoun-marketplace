@@ -1,6 +1,6 @@
 {
   "name": "business-plan-writer",
-  "version": "0.12.5",
+  "version": "0.12.6",
   "description": "Natural-language business-plan and PPT workflow with outline-only HWPX answers, hanging indents, source-year citations, user-edited HWPX preservation, bundled Pretendard, mandatory Korean humanization, and cutout/canvas scene placement gates.",
   "author": {
     "name": "Dayoun",

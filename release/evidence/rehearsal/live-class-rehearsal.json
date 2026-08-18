@@ -1,8 +1,8 @@
 {
   "status": "PASS",
-  "artifact": "dayoun-business-plan-writer-0.12.5.zip",
-  "artifactDigest": "sha256:729dfb22d3361f1b556f91b2648bed5b82fec3ef33920297f17a28d64da09497",
-  "version": "0.12.5",
+  "artifact": "dayoun-business-plan-writer-0.12.6.zip",
+  "artifactDigest": "sha256:f5acb15e441fbc7189d4f93b752a1607c1bd12f6b8675f15a429207d81de544f",
+  "version": "0.12.6",
   "skills": [
     "complete-business-plan",
     "draft-business-plan",
