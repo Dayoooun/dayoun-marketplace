@@ -36,10 +36,7 @@ jobs:
       - name: Build non-release health artifacts
         run: python scripts/build_release_artifacts.py --all --health-only --output-dir dist/health
       - name: Prove live-class rehearsal reproducibility
+        shell: bash
         run: |
           python scripts/build_release_artifacts.py --target business-plan-writer --health-only --output-dir dist/rehearsal-ci
-          python scripts/rehearse_live_class.py \
-            --artifact dist/rehearsal-ci/dayoun-business-plan-writer-0.12.4.zip \
-            --demo-inputs tests/course/fixtures/live-class/inputs \
-            --template tests/course/fixtures/live-class/template.hwpx \
-            --out dist/rehearsal-ci/evidence
+          python scripts/rehearse_live_class.py --artifact dist/rehearsal-ci/dayoun-business-plan-writer-0.12.4.zip --demo-inputs tests/course/fixtures/live-class/inputs --template tests/course/fixtures/live-class/template.hwpx --out dist/rehearsal-ci/evidence
