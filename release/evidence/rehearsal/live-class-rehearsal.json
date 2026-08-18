@@ -1,0 +1,43 @@
+{
+  "status": "PASS",
+  "artifact": "dayoun-business-plan-writer-0.12.4.zip",
+  "artifactDigest": "sha256:63c4aa1a083ffb0c489bb852ec81cc94c2ace5106194691079252438644b665c",
+  "version": "0.12.4",
+  "skills": [
+    "complete-business-plan",
+    "draft-business-plan",
+    "fill-hwpx-template",
+    "ppt-editorial",
+    "research-business-evidence",
+    "review-business-plan",
+    "setup-business-plan-project"
+  ],
+  "runA": {
+    "leadRequest": "sha256:02c1c5e5036ef16fb8b026e574dba826cf89d2f40f6aad6541b4befde451d4b9",
+    "createProject": "sha256:e648053a40ddb670d31db2fbb84ad4782508d1f8a515b83f97fc8b3444433a68",
+    "demoInputs": "sha256:5c09ed14f3029b1bffdfc3d0155dce63944a782e9339647471c4669849de0a89",
+    "stageGate": "sha256:f7f21a5e46cc5b9697ccab7b2f924e34599949df361d5a64be286e5dacee1b33",
+    "hwpxGate": "sha256:7ab749f3f799c01ebd1e9d45a1ddd32ad1a30daf80eebe406549d9043736e65b"
+  },
+  "runB": {
+    "leadRequest": "sha256:02c1c5e5036ef16fb8b026e574dba826cf89d2f40f6aad6541b4befde451d4b9",
+    "createProject": "sha256:e648053a40ddb670d31db2fbb84ad4782508d1f8a515b83f97fc8b3444433a68",
+    "demoInputs": "sha256:5c09ed14f3029b1bffdfc3d0155dce63944a782e9339647471c4669849de0a89",
+    "stageGate": "sha256:f7f21a5e46cc5b9697ccab7b2f924e34599949df361d5a64be286e5dacee1b33",
+    "hwpxGate": "sha256:7ab749f3f799c01ebd1e9d45a1ddd32ad1a30daf80eebe406549d9043736e65b"
+  },
+  "mismatchedSteps": [],
+  "details": {
+    "createdFiles": 52,
+    "createProjectStdout": "PROJECT: <PROJECT>\nCREATED: 36\nUNCHANGED: 0\nPRESERVED_EXISTING: 0\nPROTECTED_MODIFIED: 0",
+    "stageStatus": "skip:1:{\n  \"status\": \"BLOCK\",\n  \"error\": \"stage 7 blocked by stage 1 status NOT_STARTED\"\n}\nnoEvidence:1:{\n  \"status\": \"BLOCK\",\n  \"error\": \"stage 1 must be IN_PROGRESS before completion\"\n}\nstart:0:{\n  \"status\": \"PASS\",\n  \"project\": \"<PROJECT>\",\n  \"interactionMode\": \"REAL\",\n  \"currentStage\": 1,\n  \"stages\": [\n    {\n      \"id\": 1,\n      \"name\": \"공고문·평가지표·작성지침·사업계획서 양식 분석\",\n      \"status\": \"IN_PROGRESS\",\n      \"evidence\": []\n    },\n    {\n      \"id\": 2,\n      \"name\": \"회사·사업 현황·아이디어 분석\",\n      \"status\": \"NOT_STARTED\",\n      \"evidence\": []\n    },\n    {\n      \"id\": 3,\n      \"name\": \"방향 인터뷰·부족한 근거·확인 질문 도출\",\n      \"status\": \"NOT_STARTED\",\n      \"evidence\": []\n    },\n    {\n      \"id\": 4,\n      \"name\": \"시장·고객·경쟁·가격·규제 독립 조사\",\n      \"status\": \"NOT_STARTED\",\n      \"evidence\": []\n    },\n    {\n      \"id\": 5,\n      \"name\": \"사업전략·실행계획·수익구조 설계\",\n      \"status\": \"NOT_STARTED\",\n      \"evidence\": []\n    },\n    {\n      \"id\": 6,\n      \"name\": \"평가지표와 양식에 맞춰 텍스트 초안 작성\",\n      \"status\": \"NOT_STARTED\",\n      \"evidence\": []\n    },\n    {\n      \"id\": 7,\n      \"name\": \"검토·수정·사용자 승인\",\n      \"status\": \"NOT_STARTED\",\n      \"evidence\": []\n    },\n    {\n      \"id\": 8,\n      \"name\": \"선택한 경우 승인 내용을 HWPX 양식에 반영\",\n      \"s",
+    "skipBlocked": true,
+    "evidenceRequired": true,
+    "hwpxFillReturncode": 1,
+    "hwpxGateOutput": "scan:0:{\n  \"{문제 인식-1000자 이상}\": \"\",\n  \"{성장전략-1000자 이상}\": \"\",\n  \"{실현가능성-1000자 이상}\": \"\",\n  \"{향후 발전방안-1000자 이상}\": \"\"\n}\nPLACEHOLDERS: 4\nfillBlocked:1:ERROR: 승인된 치환값만 사용할 수 있습니다. _approval.status가 APPROVED인 승인 문서를 사용하세요.\nflags:False:True",
+    "copiedInputs": [
+      "01_회사소개.txt",
+      "02_사업아이디어.txt"
+    ]
+  }
+}
