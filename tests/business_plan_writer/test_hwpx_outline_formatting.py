@@ -239,9 +239,9 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
 
             expected = [
                 "o 문제와 검증 원칙",
-                "- 공개자료와 사용자 자료를 분리하고 확인되지 않은 수치는 가설로 둔다. (검증가설)",
+                "- 공개자료와 사용자 자료를 분리하고 확인되지 않은 수치는 가설로 둔다.",
                 "o 실행 판단 기준",
-                "- 원료·안전성·제조·고객 행동지표가 확인될 때만 다음 단계로 진행한다. (실행계획)",
+                "- 원료·안전성·제조·고객 행동지표가 확인될 때만 다음 단계로 진행한다.",
             ]
             paragraphs = [
                 node for node in section.iter() if local_name(node.tag) == "p"
@@ -358,8 +358,8 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                 "o 산업·기술 근거와 한계",
                 "- 확인된 산업근거 (공식자료, 2025)",
                 "· 국내 양식 미역 생산량을 확인한다. (보조자료, 2024)",
-                "- 근거의 한계 (검증가설)",
-                "· 전국 통계를 기장 물량으로 환산하지 않는다. (검증가설)",
+                "- 근거의 한계",
+                "· 전국 통계를 기장 물량으로 환산하지 않는다.",
             ]
             paragraphs = {
                 text_of(node): node
@@ -457,7 +457,7 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
             }
             self.assertIn("o 핵심내용", final_text)
             self.assertIn(
-                "- 고객 문제는 인터뷰로 추가 검증한다. (검증가설)",
+                "- 고객 문제는 인터뷰로 추가 검증한다.",
                 final_text,
             )
 
@@ -504,11 +504,18 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
             with zipfile.ZipFile(root / "valid.hwpx") as archive:
                 final_section = archive.read("Contents/section0.xml").decode("utf-8")
             self.assertIn("(공식자료, 2025)", final_section)
-            self.assertIn("(사용자 제공자료, 2026)", final_section)
-            self.assertIn("(검증가설)", final_section)
-            self.assertIn("(실행계획)", final_section)
+            # 외부 공개자료만 최종 본문에 남는다. U·H·P 는 내부 추적 표지라
+            # 심사자가 보는 문서에 노출하지 않는다.
+            self.assertNotIn("(사용자 제공자료", final_section)
+            self.assertNotIn("(검증가설)", final_section)
+            self.assertNotIn("(실행계획)", final_section)
             self.assertNotIn("[E001 |", final_section)
             self.assertNotIn("[U001 |", final_section)
+            self.assertNotIn("[H001 |", final_section)
+            self.assertNotIn("[P001 |", final_section)
+            # 표지를 지워도 문장 자체는 그대로 남아야 한다.
+            self.assertIn("대표자 경력은 사용자 자료에서 확인한다.", final_section)
+            self.assertIn("고객군은 아직 검증할 가설이다.", final_section)
 
     def test_claim_ids_require_matching_evidence_registry(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -917,7 +924,7 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
             "○ 첫 핵심항목",
             "• 첫 세부내용 (공식자료, 2025)",
             "□ 둘째 핵심항목",
-            "▪ 둘째 세부내용 (실행계획)",
+            "▪ 둘째 세부내용",
         ]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

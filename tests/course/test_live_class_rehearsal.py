@@ -68,7 +68,7 @@ class LiveClassRehearsalTests(unittest.TestCase):
         second = rehearse(self.archive, self.demo_inputs, self.template, "b")
 
         self.assertEqual(first["steps"], second["steps"])
-        self.assertEqual(first["shape"]["version"], "0.12.4")
+        self.assertEqual(first["shape"]["version"], declared_version("business-plan-writer"))
         self.assertEqual(len(first["shape"]["skills"]), 7)
 
     def test_stage_and_approval_gates_stay_closed(self) -> None:

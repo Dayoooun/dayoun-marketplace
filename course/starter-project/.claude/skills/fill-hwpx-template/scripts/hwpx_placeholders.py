@@ -189,6 +189,17 @@ def claim_markers_at_end(text: str) -> list[tuple[str, str]]:
 
 
 def render_claim_citations(text: str) -> str:
+    """최종 문서에는 외부 출처만 괄호로 남긴다.
+
+    E 계열(외부 공개자료·공식 통계·법령)만 심사자가 확인할 수 있는 근거다.
+    U(사용자 제공자료)·H(검증가설)·P(실행계획)은 내부 추적용 상태 표지이므로
+    본문에 노출하지 않는다. `(검증가설)`이 붙은 문장은 심사에서 사업자가
+    스스로 근거 없음을 선언한 것으로 읽히고, `(사용자 제공자료)`는 출처가
+    아니라 자기 진술이라 근거로 기능하지 않는다.
+
+    추적은 사라지지 않는다. 표지·근거목록.csv 대조는 치환 전에 이미 끝났고,
+    `근거목록.csv`가 문장별 ID를 그대로 보관한다.
+    """
     stripped = text.strip()
     markers = claim_markers_at_end(stripped)
     if not markers:
@@ -197,8 +208,10 @@ def render_claim_citations(text: str) -> str:
     if start is None:
         return stripped
     body = stripped[:start.start()].rstrip()
-    labels = "; ".join(label for _, label in markers)
-    return f"{body} ({labels})"
+    external = [label for evidence_id, label in markers if evidence_id[0] == "E"]
+    if not external:
+        return body
+    return f"{body} ({'; '.join(external)})"
 
 
 def source_citation_year(row: dict[str, str]) -> str | None:

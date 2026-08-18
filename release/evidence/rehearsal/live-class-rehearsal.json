@@ -1,8 +1,8 @@
 {
   "status": "PASS",
-  "artifact": "dayoun-business-plan-writer-0.12.4.zip",
-  "artifactDigest": "sha256:63c4aa1a083ffb0c489bb852ec81cc94c2ace5106194691079252438644b665c",
-  "version": "0.12.4",
+  "artifact": "dayoun-business-plan-writer-0.12.5.zip",
+  "artifactDigest": "sha256:729dfb22d3361f1b556f91b2648bed5b82fec3ef33920297f17a28d64da09497",
+  "version": "0.12.5",
   "skills": [
     "complete-business-plan",
     "draft-business-plan",
@@ -17,14 +17,16 @@
     "createProject": "sha256:e648053a40ddb670d31db2fbb84ad4782508d1f8a515b83f97fc8b3444433a68",
     "demoInputs": "sha256:5c09ed14f3029b1bffdfc3d0155dce63944a782e9339647471c4669849de0a89",
     "stageGate": "sha256:f7f21a5e46cc5b9697ccab7b2f924e34599949df361d5a64be286e5dacee1b33",
-    "hwpxGate": "sha256:7ab749f3f799c01ebd1e9d45a1ddd32ad1a30daf80eebe406549d9043736e65b"
+    "hwpxGate": "sha256:7ab749f3f799c01ebd1e9d45a1ddd32ad1a30daf80eebe406549d9043736e65b",
+    "citationRendering": "sha256:6933712e5a4122264940ca01a594c3dff4bb33fba1226f76dff427b795866359"
   },
   "runB": {
     "leadRequest": "sha256:02c1c5e5036ef16fb8b026e574dba826cf89d2f40f6aad6541b4befde451d4b9",
     "createProject": "sha256:e648053a40ddb670d31db2fbb84ad4782508d1f8a515b83f97fc8b3444433a68",
     "demoInputs": "sha256:5c09ed14f3029b1bffdfc3d0155dce63944a782e9339647471c4669849de0a89",
     "stageGate": "sha256:f7f21a5e46cc5b9697ccab7b2f924e34599949df361d5a64be286e5dacee1b33",
-    "hwpxGate": "sha256:7ab749f3f799c01ebd1e9d45a1ddd32ad1a30daf80eebe406549d9043736e65b"
+    "hwpxGate": "sha256:7ab749f3f799c01ebd1e9d45a1ddd32ad1a30daf80eebe406549d9043736e65b",
+    "citationRendering": "sha256:6933712e5a4122264940ca01a594c3dff4bb33fba1226f76dff427b795866359"
   },
   "mismatchedSteps": [],
   "details": {
@@ -38,6 +40,14 @@
     "copiedInputs": [
       "01_회사소개.txt",
       "02_사업아이디어.txt"
+    ],
+    "renderedCitations": [
+      "- 부산 미역 생산량은 연간 약 11,000톤이다. (부산광역시, 2026)",
+      "- 대표자는 폐기 미역 소식을 접했다.",
+      "- 고객군은 아직 검증할 가설이다.",
+      "- 3개월 내 시제품을 만든다.",
+      "- 두 기관 자료를 함께 본다. (해양수산부, 2025; 부산광역시, 2024)",
+      "- 공개자료와 사용자 진술을 함께 쓴다. (부산광역시, 2026)"
     ]
   }
 }

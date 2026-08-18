@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0.0",
+  "defaultProfile": "modern-flat",
+  "note": "산문 설명만으로는 프로파일이 매 실행 무시된다. 이 파일이 단일 출처이며 scripts/style_profile.py 가 프롬프트 블록으로 주입한다.",
+  "profiles": {
+    "modern-flat": {
+      "label": "모던 플랫 (Toss/Naver flat)",
+      "summary": "밝고 친근한 정보 전달. 스타트업 IR·SaaS·이커머스·데이터 성과·심사 발표에 적합.",
+      "typography": {
+        "family": "Pretendard 계열 고딕",
+        "forbidSerif": true,
+        "headline": "큰 볼드 고딕, 다만 modest 스케일",
+        "eyebrow": "작은 영문 라벨"
+      },
+      "surface": {
+        "background": "흰색 또는 옅은 웜그레이",
+        "cards": "둥근 소프트카드와 알약(pill)",
+        "dividers": "얇은 그레이 구분선",
+        "density": "낮음 — 한 장당 하나의 메시지"
+      },
+      "illustration": {
+        "kind": "3D 아이소메트릭·클레이 일러스트 + 플랫 아이콘",
+        "generation": "image-generation only",
+        "background": "transparent PNG",
+        "scale": "작게, 코너에 tuck",
+        "semanticBinding": {
+          "고객": "사람·연결 오브젝트",
+          "전략": "성장 화살표·계단",
+          "로드맵": "경로·이정표",
+          "성과": "상승 차트",
+          "브랜드": "브랜드 모티프"
+        },
+        "forbid": [
+          "무의미한 장식용 아이콘",
+          "제네릭 아이콘",
+          "무의미한 기하 필러"
+        ]
+      },
+      "numbers": "큰 볼드 숫자로 핵심 수치 하나만",
+      "accentColorPolicy": "브랜드색을 파라미터로 받는다. 레퍼런스가 블루여도 브랜드색을 강제하고 임의 블루를 금지한다.",
+      "promptBlock": "★★ STYLE PROFILE — MODERN FLAT (Toss/Naver flat):\nBright clean editorial-tech look. White or very light warm-grey background.\nPretendard-style Korean gothic typeface — NEVER serif/myeongjo.\nOne message per slide. Generous airy whitespace, low information density.\nSoft rounded cards and pill shapes. Thin light-grey divider rules.\nSmall English eyebrow label above a modest bold gothic headline.\nOne large bold number when a metric matters.\n3D isometric / clay illustration and flat icons, rendered SMALL and tucked\ninto a corner — never large or heavy. Every illustration must be semantically\nbound to the slide message (customer=people/connection, strategy=growth\narrow/steps, roadmap=path/milestones, results=rising chart, brand=brand motif).\nNO generic decorative icons, NO meaningless geometric filler.\nREFINED & SMALL: modest headline, small tucked illustration, generous airy\nwhitespace, NOT big/heavy/crowded.",
+      "indexChromeStyle": "folder-tab"
+    },
+    "paper-serif": {
+      "label": "페이퍼화이트 명조",
+      "summary": "차분·고급·정제된 여백. 결과보고·컨설팅·전통/식음 브랜드에 적합.",
+      "typography": {
+        "family": "명조(serif)",
+        "forbidSerif": false
+      },
+      "surface": {
+        "background": "페이퍼화이트",
+        "dividers": "얇은 헤어라인",
+        "density": "미니멀, 강조 1색"
+      },
+      "illustration": {
+        "kind": "실물 사진 크게, 선택적 수묵/잉크 모티프",
+        "generation": "image-generation only"
+      },
+      "promptBlock": "★★ STYLE PROFILE — PAPER SERIF:\nPaper-white background, refined Korean serif (myeongjo) typography,\nminimal composition with a single accent colour, thin hairline rules,\noptional ink/sumi motif. Large real photography.\nCalm, premium, generous negative space.",
+      "indexChromeStyle": "eyebrow-rule"
+    }
+  }
+}

@@ -7,7 +7,7 @@
 
 사용 예:
   python scripts/rehearse_live_class.py \
-      --artifact dist/rehearsal/dayoun-business-plan-writer-0.12.4.zip \
+      --artifact dist/rehearsal/dayoun-business-plan-writer-0.12.5.zip \
       --demo-inputs "D:/.../강의시연용" \
       --template "D:/.../(양식) 성명_1R 사업계획서.hwpx" \
       --out release/evidence/rehearsal
@@ -26,7 +26,14 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-EXPECTED_VERSION = "0.12.4"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+# 버전을 하드코딩하면 릴리스마다 이 파일을 고쳐야 하고, 고치는 걸 잊으면
+# 검증이 조용히 옛 버전을 통과시킨다. 소스 매니페스트를 단일 출처로 쓴다.
+EXPECTED_VERSION = json.loads(
+    (REPO_ROOT / "plugins" / "business-plan-writer" / "plugin.json").read_text(
+        encoding="utf-8"
+    )
+)["version"]
 EXPECTED_SKILLS = 7
 
 # 시연에서 강사가 실제로 만드는 폴더/파일. 하나라도 빠지면 수업이 막힌다.
@@ -486,6 +493,61 @@ def step_hwpx_gate(
     }
 
 
+def step_citation_rendering(plugin_root: Path, env: dict[str, str]) -> dict[str, object]:
+    """최종 문서에 외부 출처만 남고 내부 표지는 사라지는지.
+
+    심사자가 보는 문서에 `(검증가설)`·`(사용자 제공자료)`가 찍히면
+    사업자가 스스로 근거 없음을 선언한 것으로 읽힌다. 문장은 남고
+    표지만 사라져야 한다.
+    """
+    module = (
+        plugin_root
+        / "skills"
+        / "fill-hwpx-template"
+        / "scripts"
+        / "hwpx_placeholders.py"
+    )
+    probe = (
+        "import sys, json;"
+        f"sys.path.insert(0, {str(module.parent)!r});"
+        "from hwpx_placeholders import render_claim_citations as r;"
+        "cases=["
+        "'- 부산 미역 생산량은 연간 약 11,000톤이다. [E001 | 부산광역시, 2026]',"
+        "'- 대표자는 폐기 미역 소식을 접했다. [U001 | 사용자 제공자료, 2026]',"
+        "'- 고객군은 아직 검증할 가설이다. [H001 | 검증가설]',"
+        "'- 3개월 내 시제품을 만든다. [P001 | 실행계획]',"
+        "'- 두 기관 자료를 함께 본다. [E001 | 해양수산부, 2025][E002 | 부산광역시, 2024]',"
+        "'- 공개자료와 사용자 진술을 함께 쓴다. [E001 | 부산광역시, 2026][H001 | 검증가설]'"
+        "];"
+        "print(json.dumps([r(c) for c in cases], ensure_ascii=False))"
+    )
+    result = run([sys.executable, "-c", probe], cwd=plugin_root, env=env)
+    if result.returncode != 0:
+        raise RehearsalError(f"출처 표기 검사 실패: {result.stderr.strip()}")
+    rendered = json.loads(result.stdout)
+
+    expected = [
+        "- 부산 미역 생산량은 연간 약 11,000톤이다. (부산광역시, 2026)",
+        "- 대표자는 폐기 미역 소식을 접했다.",
+        "- 고객군은 아직 검증할 가설이다.",
+        "- 3개월 내 시제품을 만든다.",
+        "- 두 기관 자료를 함께 본다. (해양수산부, 2025; 부산광역시, 2024)",
+        "- 공개자료와 사용자 진술을 함께 쓴다. (부산광역시, 2026)",
+    ]
+    if rendered != expected:
+        raise RehearsalError(
+            "최종 출처 표기가 기대와 다릅니다.\n"
+            + "\n".join(
+                f"  got={got!r}\n  want={want!r}"
+                for got, want in zip(rendered, expected)
+                if got != want
+            )
+        )
+
+    payload = json.dumps(rendered, ensure_ascii=False, sort_keys=True)
+    return {"digest": sha256_bytes(payload.encode("utf-8")), "rendered": rendered}
+
+
 def rehearse(archive: Path, demo_inputs: Path, template: Path, label: str) -> dict[str, object]:
     with tempfile.TemporaryDirectory(prefix=f"dayoun-rehearsal-{label}-") as temp:
         base = Path(temp)
@@ -505,6 +567,7 @@ def rehearse(archive: Path, demo_inputs: Path, template: Path, label: str) -> di
         inputs = step_demo_inputs(project, demo_inputs)
         stage = step_stage_gate(plugin_root, project, env)
         hwpx = step_hwpx_gate(plugin_root, project, template, env)
+        citations = step_citation_rendering(plugin_root, env)
 
         return {
             "label": label,
@@ -517,6 +580,7 @@ def rehearse(archive: Path, demo_inputs: Path, template: Path, label: str) -> di
                 "demoInputs": inputs["digest"],
                 "stageGate": stage["digest"],
                 "hwpxGate": hwpx["digest"],
+                "citationRendering": citations["digest"],
             },
             "details": {
                 "createdFiles": created["fileCount"],
@@ -527,6 +591,7 @@ def rehearse(archive: Path, demo_inputs: Path, template: Path, label: str) -> di
                 "hwpxFillReturncode": hwpx["returncode"],
                 "hwpxGateOutput": hwpx["output"],
                 "copiedInputs": inputs["copied"],
+                "renderedCitations": citations["rendered"],
             },
         }
 

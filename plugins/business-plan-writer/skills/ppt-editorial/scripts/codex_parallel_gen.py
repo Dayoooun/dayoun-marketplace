@@ -8,13 +8,16 @@ ima2 서버·OAuth 로그인 없이, 이미 인증된 codex(GPT Image)로 여러
   2) ★★ 잡별 CODEX_HOME 격리 — codex 세션이 ~/.codex 공유 상태(cap_sid 등)로 서로 내용을 섞는
      "고병렬 오염" 방지. auth.json+config.toml만 격리홈에 복사 → 고병렬에서도 안전
   3) codex 경로를 Windows 셰임과 macOS Homebrew 대표 경로에서 자동 탐색
-  4) 검증: 파일<100KB=PIL폴백/깨짐 WARN + ★중복 헤드라인 해시=내용오염 검출
+  4) 검증: 스타일앵커 필수(철칙B) + 이미지생성 강제(철칙A) + 파일<60KB=코드드로잉 불합격
+     + ★중복 헤드라인 해시=내용오염 검출
   5) ★재귀 개선 루프(--loop N): 실패/오염 잡만 재생성, 전부 통과할 때까지 반복
   6) 고품질: --effort(reasoning) / --model / 프롬프트 고해상도 지시
 
 사용:
   python codex_parallel_gen.py jobs.json --cap 10 --retry 1 --loop 4 --effort high
   jobs.json = [{"label","refs":[...],"out","prompt"}]  (경로는 jobs.json 기준 상대/절대)
+  refs = 스타일 앵커(필수). 원하는 룩의 완성 슬라이드를 넣는다.
+         부트스트랩 1장만 예외적으로 allowNoStyleAnchor: true 허용.
 """
 import sys, os, json, shutil, subprocess, argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -30,6 +33,40 @@ from platform_support import (
 )
 
 CODEX = resolve_executable("codex") or "codex"
+
+# ★★★ 철칙 A — 이미지 생성 강제 (SKILL.md "3대 철칙" 참조)
+#
+# codex 는 같은 프롬프트를 받아도 슬라이드마다 이미지생성과 코드드로잉을
+# 확률적으로 고른다. 코드드로잉으로 빠지면 PIL 기본 폰트에 CJK 글리프가 없어
+# 한글이 전부 "?" 로 렌더되고, SVG/matplotlib 로 그리면 에디토리얼 품질이
+# 나오지 않는다. 실측: 동일 슬라이드 45KB "???" → 923KB 완벽.
+#
+# 이 문구는 잡 작성자가 프롬프트에 넣는 것이 아니라 실행 경로가 항상 덧붙인다.
+IMAGE_GEN_MANDATE = (
+    "★★★ RENDERING METHOD — THIS OVERRIDES ANY EARLIER INSTRUCTION:\n"
+    "Use ONLY your built-in image-generation capability to produce this slide.\n"
+    "ABSOLUTELY NO Python, PIL/Pillow, matplotlib, SVG, HTML/CSS, canvas, "
+    "ImageDraw, or any code-based drawing. Those renderers have no CJK glyphs "
+    "and output broken '?' characters.\n"
+    "Do NOT write or execute a script that composes the image. "
+    "Generate the image directly.\n"
+    "Every glyph must be perfectly correct with no '?' or missing characters."
+)
+
+# 코드드로잉 산출물은 파일이 작다. SKILL.md 실측: 18~50KB = 드로잉,
+# 700KB~1MB = 이미지생성. 30KB 기준은 50KB 짜리 드로잉을 놓친다.
+DRAWING_FALLBACK_KB = 60
+
+
+def resolve_style_prompt(profile_name, accent):
+    """스타일 프로파일 프롬프트 블록. 지정이 없으면 기본 프로파일.
+
+    style_profile 모듈이 없거나 정의가 깨졌으면 조용히 넘어가지 않는다.
+    스타일 없이 생성하면 매번 다른 룩이 나오고, 그게 이 게이트를 만든 이유다.
+    """
+    from style_profile import prompt_block  # noqa: PLC0415 — 스킬 루트 경로 의존
+
+    return prompt_block(profile_name, accent)
 
 
 def require_codex() -> str:
@@ -184,6 +221,24 @@ def _run_one(job, base_dir, retry, idx=0, effort=None, model=None, timeout=590):
     """단일 codex 생성 잡 (격리 폴더 + 격리 CODEX_HOME에서 실행)."""
     prompt = job["prompt"]
     refs = [os.path.join(base_dir, r) if not os.path.isabs(r) else r for r in job.get("refs", [])]
+    # ★ 철칙 B 강제 (SKILL.md "3대 철칙").
+    # 스타일 앵커 없이 프롬프트만 주면 모델이 매번 다른 룩을 만든다. "토스 느낌"
+    # 같은 지시는 프롬프트 문장으로 재현되지 않는다 — 원하는 룩의 완성 덱을
+    # `-i` 로 먹여야 고정된다. 앵커가 없으면 조용히 앙상한 기본 룩으로 빠지므로
+    # 여기서 끊고 부트스트랩(1장 뽑아 고른 뒤 앵커로 재사용)을 요구한다.
+    if not refs and not job.get("allowNoStyleAnchor"):
+        raise ValueError(
+            f"[{job.get('label', 'job')}] 스타일 앵커가 없습니다. "
+            "원하는 룩의 완성 슬라이드를 refs 에 넣으세요. "
+            "레퍼런스가 아직 없으면 표지 1장을 여러 변형으로 뽑아 사용자가 고른 것을 "
+            "이후 슬라이드의 앵커로 재사용하고, 그 부트스트랩 1장에만 "
+            "allowNoStyleAnchor: true 를 붙이세요."
+        )
+    missing_refs = [r for r in refs if not os.path.isfile(r)]
+    if missing_refs:
+        raise FileNotFoundError(
+            f"[{job.get('label', 'job')}] 스타일 앵커 파일이 없습니다: {missing_refs}"
+        )
     out = job["out"] if os.path.isabs(job["out"]) else os.path.join(base_dir, job["out"])
     os.makedirs(os.path.dirname(out), exist_ok=True)
     aid = _ascii_id(job, idx)
@@ -207,7 +262,23 @@ def _run_one(job, base_dir, retry, idx=0, effort=None, model=None, timeout=590):
                 cmd += ["-m", model]
             for lr in local_refs:
                 cmd += ["-i", lr]
-            full_prompt = prompt + f"\n\n결과를 반드시 {result_name} (파일명 정확히) 로 저장하고 크기를 출력하라."
+            # ★ 철칙 A 강제 (SKILL.md "3대 철칙"). 프롬프트에 이미지생성 강제가 없으면
+            # codex 가 슬라이드를 Python/PIL/matplotlib 로 그려버린다. PIL 기본 폰트에는
+            # CJK 글리프가 없어 모든 한글이 "?" 로 렌더된다. 문서에만 적어 두면 잡 작성자가
+            # 빠뜨리므로 실행 경로에서 무조건 덧붙인다.
+            # ★ 스타일 프로파일 강제. 산문 설명만 두면 매 실행 다른 룩이 나온다.
+            # 잡이 지정하지 않으면 style_profiles.json 의 기본값(modern-flat)을 쓴다.
+            style_block = resolve_style_prompt(
+                job.get("styleProfile"), job.get("accentColor")
+            )
+            full_prompt = (
+                prompt
+                + "\n\n"
+                + style_block
+                + "\n\n"
+                + IMAGE_GEN_MANDATE
+                + f"\n\n결과를 반드시 {result_name} (파일명 정확히) 로 저장하고 크기를 출력하라."
+            )
             env = dict(os.environ, CODEX_HOME=_iso_home(work))  # ★상태 격리
             # ★★ 캐시 즉시 반환 (2026-07-14): 이미지가 나타나는 순간 회수하고 codex 트리 강제종료.
             #    codex는 생성 후 후처리/요약에 수백 초 매달림 — 블로킹 대기는 순수 낭비 (검증: ppt-image-first bubu_genAB)
@@ -330,11 +401,16 @@ def _run_one(job, base_dir, retry, idx=0, effort=None, model=None, timeout=590):
                     )
                     write_scene_safe_receipt(out, safe_receipt)
                 size_kb = os.path.getsize(out) // 1024
-                # 30KB 미만만 PIL폴백/한글깨짐 의심 (표지·클로징 등 여백 많은 정상 슬라이드는 50~90KB로 정상)
-                status = "WARN(PIL폴백의심<30KB)" if size_kb < 30 else "OK"
-                # [2026-07-29] WARN을 내고도 그대로 반환하면 재시도 기회를 버린다.
-                # 남은 시도가 있으면 다시 뽑는다 — 어차피 verify가 30KB 미만을 불합격 처리한다.
-                if size_kb < 30 and attempt < retry:
+                # ★ 철칙 A 검출. SKILL.md 실측: 코드드로잉 18~50KB / 이미지생성 700KB~1MB.
+                # 30KB 기준은 50KB 짜리 드로잉을 통과시킨다. 60KB 로 올린다.
+                status = (
+                    f"WARN(코드드로잉의심<{DRAWING_FALLBACK_KB}KB)"
+                    if size_kb < DRAWING_FALLBACK_KB
+                    else "OK"
+                )
+                # WARN 을 내고도 그대로 반환하면 재시도 기회를 버린다.
+                # 남은 시도가 있으면 다시 뽑는다 — verify 가 같은 기준으로 불합격 처리한다.
+                if size_kb < DRAWING_FALLBACK_KB and attempt < retry:
                     continue
                 return {
                     "label": label,
@@ -429,7 +505,7 @@ def _verify_scene_artifacts(out, job, margin):
 
 
 def verify(jobs, base_dir, dup_check=False):
-    """실패/오염 잡 라벨 반환. 크기<30KB(PIL폴백/깨짐) 검출.
+    """실패/오염 잡 라벨 반환. 크기<60KB(코드드로잉 폴백) 검출.
     ⚠️ dup-headline은 기본 OFF: CODEX_HOME 격리가 내용오염을 이미 차단하므로 중복. 게다가
     에디토리얼 덱은 상단 여백+헤드라인 위치가 유사해 avg-hash가 닮아 '오염'으로 오탐 → 불필요 재생성.
     옛 draft-anchor 파이프라인(격리 없이 고병렬)에서만 --dup-check로 켤 것.
@@ -441,8 +517,8 @@ def verify(jobs, base_dir, dup_check=False):
         lbl = j.get("label", out)
         if not os.path.exists(out):
             bad[lbl] = "missing"; continue
-        if os.path.getsize(out) < 30 * 1024:
-            bad[lbl] = "small(<30KB)"; continue
+        if os.path.getsize(out) < DRAWING_FALLBACK_KB * 1024:
+            bad[lbl] = f"code-drawing-fallback(<{DRAWING_FALLBACK_KB}KB)"; continue
         safe_zone = j.get("safe_zone")
         if safe_zone is not None:
             try:

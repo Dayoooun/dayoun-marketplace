@@ -15,7 +15,9 @@ PLUGIN = ROOT / "plugins" / "business-plan-writer"
 SKILLS = PLUGIN / "skills"
 STARTER_SKILLS = ROOT / "course" / "starter-project" / ".agents" / "skills"
 CLAUDE_STARTER_SKILLS = ROOT / "course" / "starter-project" / ".claude" / "skills"
-VERSION = "0.12.4"
+# 버전을 여기에 적으면 릴리스마다 세 파일을 손으로 맞춰야 하고,
+# 하나라도 놓치면 CI 가 배포를 막는다. 매니페스트를 단일 출처로 쓴다.
+VERSION = json.loads((PLUGIN / "plugin.json").read_text(encoding="utf-8"))["version"]
 CORE_SKILLS = {
     "complete-business-plan",
     "draft-business-plan",

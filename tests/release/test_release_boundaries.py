@@ -12,7 +12,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from build_release_artifacts import build_target, configure_utf8_output  # noqa: E402
+from build_release_artifacts import (  # noqa: E402
+    build_target,
+    configure_utf8_output,
+    declared_version,
+)
 from compare_release_builds import digest  # noqa: E402
 from release_dry_run import (  # noqa: E402
     ReleaseGateError,
@@ -51,8 +55,8 @@ class ReleaseBoundaryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             left = Path(directory) / "left"
             right = Path(directory) / "right"
-            build_target("business-plan-writer", "0.12.4", left)
-            build_target("business-plan-writer", "0.12.4", right)
+            build_target("business-plan-writer", declared_version("business-plan-writer"), left)
+            build_target("business-plan-writer", declared_version("business-plan-writer"), right)
             left_zip = next(left.glob("*.zip"))
             right_zip = next(right.glob("*.zip"))
             self.assertEqual(digest(left_zip), digest(right_zip))
@@ -124,7 +128,7 @@ class ReleaseBoundaryTests(unittest.TestCase):
             root = Path(directory)
             artifacts = root / "artifacts"
             evidence = root / "evidence"
-            build_target("business-plan-writer", "0.12.4", artifacts)
+            build_target("business-plan-writer", declared_version("business-plan-writer"), artifacts)
             evidence.mkdir()
             lock_path = ROOT / "release" / "toolchains.lock.json"
             lock_digest = "sha256:" + hashlib.sha256(lock_path.read_bytes()).hexdigest()
