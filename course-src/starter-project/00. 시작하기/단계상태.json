@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "interactionMode": "DEMO",
+  "interactionMode": "REAL",
   "currentStage": 1,
   "stages": [
     {
@@ -17,13 +17,13 @@
     },
     {
       "id": 3,
-      "name": "부족한 근거와 확인 질문 도출",
+      "name": "방향 인터뷰·부족한 근거·확인 질문 도출",
       "status": "NOT_STARTED",
       "evidence": []
     },
     {
       "id": 4,
-      "name": "시장·고객·경쟁·가격·규제 조사",
+      "name": "시장·고객·경쟁·가격·규제 독립 조사",
       "status": "NOT_STARTED",
       "evidence": []
     },

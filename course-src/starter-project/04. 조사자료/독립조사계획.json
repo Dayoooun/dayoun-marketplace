@@ -1,0 +1,9 @@
+{
+  "status": "DRAFT",
+  "direction_confirmed": false,
+  "lanes": [
+    {"id": "R01", "question": "{확인필요}", "source_scope": "", "worker": "", "status": "NOT_STARTED"},
+    {"id": "R02", "question": "{확인필요}", "source_scope": "", "worker": "", "status": "NOT_STARTED"},
+    {"id": "R03", "question": "{확인필요}", "source_scope": "", "worker": "", "status": "NOT_STARTED"}
+  ]
+}

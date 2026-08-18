@@ -35,8 +35,8 @@ TOP_LEVEL = {
 STAGES = [
     "공고문·평가지표·작성지침·사업계획서 양식 분석",
     "회사·사업 현황·아이디어 분석",
-    "부족한 근거와 확인 질문 도출",
-    "시장·고객·경쟁·가격·규제 조사",
+    "방향 인터뷰·부족한 근거·확인 질문 도출",
+    "시장·고객·경쟁·가격·규제 독립 조사",
     "사업전략·실행계획·수익구조 설계",
     "평가지표와 양식에 맞춰 텍스트 초안 작성",
     "검토·수정·사용자 승인",
@@ -112,6 +112,33 @@ class StageWorkflowTests(unittest.TestCase):
             self.assertTrue((project / "99. 원본백업" / "README.md").is_file())
             self.assertTrue((project / "06. 검토결과" / "문안승인.md").is_file())
             self.assertFalse((project / "05. 작성초안" / "문안승인.md").exists())
+
+    def test_live_education_project_defaults_to_real_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory) / "live-education"
+            result = run(
+                CREATE,
+                "--path",
+                str(project),
+                "--purpose",
+                "교육",
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            state = json.loads(
+                (project / "00. 시작하기" / "단계상태.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            collaboration = json.loads(
+                (project / "00. 시작하기" / "사용자협업상태.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(state["interactionMode"], "REAL")
+            self.assertEqual(collaboration["interactionMode"], "REAL")
+            self.assertTrue(
+                (project / "04. 조사자료" / "독립조사" / "worker-01.md").is_file()
+            )
 
     def test_next_stage_and_pass_without_evidence_are_blocked(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
