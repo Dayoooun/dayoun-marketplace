@@ -8,6 +8,7 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
+import sys
 
 import fitz
 from PIL import Image
@@ -116,7 +117,15 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def configure_utf8_output() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8")
+
+
 def main() -> int:
+    configure_utf8_output()
     args = parse_args()
     payload = build_receipt(
         args.hwpx.resolve(),

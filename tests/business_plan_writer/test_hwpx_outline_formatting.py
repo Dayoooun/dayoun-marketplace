@@ -1139,6 +1139,7 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                     "test",
                 ],
                 cwd=ROOT,
+                env={**os.environ, "PYTHONIOENCODING": "cp1252"},
                 text=True,
                 encoding="utf-8",
                 capture_output=True,
