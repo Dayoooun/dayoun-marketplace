@@ -15,7 +15,7 @@ PLUGIN = ROOT / "plugins" / "business-plan-writer"
 SKILLS = PLUGIN / "skills"
 STARTER_SKILLS = ROOT / "course" / "starter-project" / ".agents" / "skills"
 CLAUDE_STARTER_SKILLS = ROOT / "course" / "starter-project" / ".claude" / "skills"
-VERSION = "0.12.3"
+VERSION = "0.12.4"
 CORE_SKILLS = {
     "complete-business-plan",
     "draft-business-plan",
@@ -245,7 +245,7 @@ class BusinessPlanPluginTests(unittest.TestCase):
         module = load_create_project_module()
         starter = ROOT / "course" / "starter-project"
         for relative, template in module.TEMPLATES.items():
-            expected = module.render_template(template, "교육", "unknown", "DEMO")
+            expected = module.render_template(template, "교육", "unknown", "REAL")
             target = starter / relative
             self.assertTrue(target.is_file(), relative)
             self.assertEqual(target.read_text(encoding="utf-8-sig"), expected, relative)
@@ -271,6 +271,84 @@ class BusinessPlanPluginTests(unittest.TestCase):
         self.assertLess(intake_at, setup_at)
         self.assertIn("질문 하나만", content)
         self.assertIn("답을 기다린다", content)
+
+    def test_direction_interview_precedes_three_independent_research_workers(self) -> None:
+        complete = (SKILLS / "complete-business-plan" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        research = (
+            SKILLS / "research-business-evidence" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        create_project = load_create_project_module()
+
+        direction_at = complete.index("조사 전에 방향을 확정한다")
+        research_at = complete.index("시장·고객·경쟁·가격·규제 독립 조사")
+        self.assertLess(direction_at, research_at)
+        for requirement in (
+            "방향 확인 전에는",
+            "외부 조사 worker를 시작하면 안 된다",
+            "조사 lane 3개 이상",
+            "worker별 결과·실패 기록·종합본",
+            "`REAL` 모드",
+            "`purpose=교육`",
+        ):
+            self.assertIn(requirement, complete)
+
+        for requirement in (
+            "하네스가 자료의 모호성을 먼저 찾고 사용자에게",
+            "역질문한다",
+            "확인됨 / 모호함 / 모름 / 보류",
+            "한 번에 한 질문만",
+            "2~3개 선택지",
+            "사용자의 답을 한 문장으로 되짚어",
+            "질문 대기열",
+            "스스로 승인하지 않는다",
+        ):
+            self.assertIn(requirement, complete)
+
+        for requirement in (
+            "방향결정.md",
+            "독립조사계획.json",
+            "worker 3개 이상",
+            "한 worker의 중간 결과를 다른 worker 입력으로 넘기지 않는다",
+            "독립조사/worker-01.md",
+            "독립조사종합.md",
+            "시간·사용량 한도",
+        ):
+            self.assertIn(requirement, research)
+
+        for relative_path in (
+            "04. 조사자료/방향결정.md",
+            "04. 조사자료/독립조사계획.json",
+            "04. 조사자료/독립조사/worker-01.md",
+            "04. 조사자료/독립조사/worker-02.md",
+            "04. 조사자료/독립조사/worker-03.md",
+            "04. 조사자료/독립조사종합.md",
+        ):
+            self.assertIn(relative_path, create_project.TEMPLATES)
+        self.assertIn("04. 조사자료/독립조사", create_project.FOLDERS)
+        direction_template = create_project.TEMPLATES["04. 조사자료/방향결정.md"]
+        for field in (
+            "자료에서 확인한 내용",
+            "모호한 지점",
+            "사용자 결정",
+            "권장안과 대안",
+            "보류 항목과 영향",
+        ):
+            self.assertIn(field, direction_template)
+        worker_template = create_project.TEMPLATES[
+            "04. 조사자료/독립조사/worker-01.md"
+        ]
+        for field in (
+            "독립 입력·검색 범위",
+            "성공·실패 이유",
+            "발표일·기준일·확인일",
+            "수치·단위·적용 범위",
+            "한계·말할 수 없는 것",
+            "시간·사용량 제한",
+            "미확인 질문",
+        ):
+            self.assertIn(field, worker_template)
 
     def test_installed_agent_leads_natural_language_and_hwpx_design(self) -> None:
         complete = (SKILLS / "complete-business-plan" / "SKILL.md").read_text(
@@ -539,8 +617,8 @@ class BusinessPlanPluginTests(unittest.TestCase):
         stages = [
             "공고문·평가지표·작성지침·사업계획서 양식 분석",
             "회사·사업 현황·아이디어 분석",
-            "부족한 근거와 확인 질문 도출",
-            "시장·고객·경쟁·가격·규제 조사",
+            "방향 인터뷰·부족한 근거·확인 질문 도출",
+            "시장·고객·경쟁·가격·규제 독립 조사",
             "사업전략·실행계획·수익구조 설계",
             "평가지표와 양식에 맞춰 텍스트 초안 작성",
             "검토·수정·사용자 승인",

@@ -7,6 +7,7 @@ import argparse
 from copy import deepcopy
 import csv
 import html
+import hashlib
 import json
 import os
 import re
@@ -241,7 +242,7 @@ def parse_outline_value(value: str) -> list[str] | None:
     if untraced_details:
         raise ValueError(
             "각 핵심항목·세부내용 주장은 끝에 "
-            "[E001 | 기관명, 2025]·[U001 | 사용자 제공자료, 2025]·"
+            "[E001 | 기관명, {발표연도}]·[U001 | 사용자 제공자료, {기록연도}]·"
             "[H001 | 검증가설]·[P001 | 실행계획] 형식의 "
             "근거 또는 상태 표지가 필요합니다."
         )
@@ -256,7 +257,7 @@ def normalize_prose_as_outline(value: str) -> list[str]:
         if not claim_markers_at_end(paragraph):
             raise ValueError(
                 "산문 입력을 개조식으로 바꾸려면 각 문장 끝에 "
-                "[E001 | 기관명, 2025]·[U001 | 사용자 제공자료, 2025]·"
+                "[E001 | 기관명, {발표연도}]·[U001 | 사용자 제공자료, {기록연도}]·"
                 "[H001 | 검증가설]·[P001 | 실행계획] 표지가 필요합니다."
             )
     return ["o 핵심내용", *(f"- {paragraph}" for paragraph in paragraphs)]
@@ -612,7 +613,32 @@ def replace_multiline(
     return text, count, None
 
 
-def load_values(path: Path, allow_unapproved: bool = False) -> dict[str, str]:
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
+
+
+def validate_canonical_receipt(source: Path, receipt_path: Path) -> None:
+    try:
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError) as exc:
+        raise ValueError(f"canonical receipt를 읽을 수 없습니다: {exc}") from exc
+    if receipt.get("status") != "PASS":
+        raise ValueError("canonical receipt status는 PASS여야 합니다.")
+    if receipt.get("role") != "user-edited-canonical":
+        raise ValueError("canonical receipt role은 user-edited-canonical이어야 합니다.")
+    actual_digest = sha256(source)
+    if receipt.get("canonicalSha256") != actual_digest:
+        raise ValueError(
+            "canonical receipt digest가 입력 HWPX와 일치하지 않습니다. "
+            f"expected={receipt.get('canonicalSha256')} actual={actual_digest}"
+        )
+
+
+def load_values(path: Path) -> dict[str, str]:
     raw = json.loads(path.read_text(encoding="utf-8-sig"))
     if not isinstance(raw, dict):
         raise ValueError("치환값 JSON의 최상위는 객체여야 합니다.")
@@ -622,15 +648,14 @@ def load_values(path: Path, allow_unapproved: bool = False) -> dict[str, str]:
     if not isinstance(raw_values, dict):
         raise ValueError("치환값 JSON의 values는 객체여야 합니다.")
 
-    if not allow_unapproved:
-        if not isinstance(approval, dict) or approval.get("status") != "APPROVED":
-            raise ValueError(
-                "승인된 치환값만 사용할 수 있습니다. "
-                "_approval.status가 APPROVED인 승인 문서를 사용하세요."
-            )
-        missing = [field for field in REQUIRED_APPROVAL_FIELDS if not approval.get(field)]
-        if missing:
-            raise ValueError("승인 메타데이터 누락: " + ", ".join(missing))
+    if not isinstance(approval, dict) or approval.get("status") != "APPROVED":
+        raise ValueError(
+            "승인된 치환값만 사용할 수 있습니다. "
+            "_approval.status가 APPROVED인 승인 문서를 사용하세요."
+        )
+    missing = [field for field in REQUIRED_APPROVAL_FIELDS if not approval.get(field)]
+    if missing:
+        raise ValueError("승인 메타데이터 누락: " + ", ".join(missing))
 
     values: dict[str, str] = {}
     for marker, value in raw_values.items():
@@ -781,21 +806,23 @@ def fill_hwpx(
     output: Path,
     log_path: Path,
     overwrite: bool,
-    allow_unapproved_values: bool = False,
     allow_empty: bool = False,
     evidence_registry_path: Path | None = None,
+    canonical_receipt_path: Path | None = None,
 ) -> tuple[list[str], list[dict[str, str]]]:
     input_errors = validate_hwpx(source)
     if input_errors:
         raise ValueError("\n".join(input_errors))
     if source.resolve() == output.resolve():
         raise ValueError("원본과 출력 경로는 달라야 합니다.")
+    if canonical_receipt_path is not None:
+        validate_canonical_receipt(source, canonical_receipt_path)
     if output.exists() and not overwrite:
         raise FileExistsError(f"출력 파일이 이미 있습니다: {output}")
     if not values_path.is_file():
         raise FileNotFoundError(f"치환값 파일을 찾을 수 없습니다: {values_path}")
 
-    values = load_values(values_path, allow_unapproved=allow_unapproved_values)
+    values = load_values(values_path)
     claim_free_markers = load_claim_free(values_path, values)
     if not values and not allow_empty:
         raise ValueError(
@@ -1054,11 +1081,15 @@ def command_fill(args: argparse.Namespace) -> int:
         output,
         log_path,
         args.overwrite,
-        allow_unapproved_values=args.allow_unapproved_values,
         allow_empty=args.allow_empty,
         evidence_registry_path=(
             Path(args.evidence_registry).expanduser().resolve()
             if args.evidence_registry
+            else None
+        ),
+        canonical_receipt_path=(
+            Path(args.canonical_receipt).expanduser().resolve()
+            if args.canonical_receipt
             else None
         ),
     )
@@ -1125,13 +1156,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="0개 치환값으로 변경 없는 결과 생성을 명시적으로 허용",
     )
     fill.add_argument(
-        "--allow-unapproved-values",
-        action="store_true",
-        help="레거시 평면 JSON 또는 미승인 값을 명시적으로 허용",
-    )
-    fill.add_argument(
         "--evidence-registry",
         help="주장 ID와 실제 출처·가설·계획을 대조할 근거목록.csv",
+    )
+    fill.add_argument(
+        "--canonical-receipt",
+        help="user-edited canonical 입력의 digest-bound receipt JSON",
     )
     fill.set_defaults(func=command_fill)
 

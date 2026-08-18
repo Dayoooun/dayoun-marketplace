@@ -3,6 +3,8 @@ from __future__ import annotations
 import csv
 import os
 import json
+import hashlib
+import fitz
 import subprocess
 import sys
 import tempfile
@@ -27,6 +29,20 @@ STYLE_SCRIPT = (
     / "fill-hwpx-template"
     / "scripts"
     / "hwpx_style_integrity.py"
+)
+RENDER_SCRIPT = (
+    PLUGIN
+    / "skills"
+    / "fill-hwpx-template"
+    / "scripts"
+    / "render_pdf_pages.py"
+)
+VERIFY_RENDER_SCRIPT = (
+    PLUGIN
+    / "skills"
+    / "fill-hwpx-template"
+    / "scripts"
+    / "verify_hwpx_render.py"
 )
 DEMO = PLUGIN / "assets" / "demo" / "demo-business-plan.hwpx"
 
@@ -1018,6 +1034,166 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
             blocked = run_fill_source(split_source, values, split_output)
             self.assertNotEqual(blocked.returncode, 0)
             self.assertIn("BLOCKS: 1", blocked.stdout)
+
+    def test_unapproved_values_cannot_bypass_fill_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            values = root / "draft.json"
+            document = approved_values(
+                "o 핵심항목\n- 검증할 주장 [H001 | 검증가설]"
+            )
+            document["_approval"]["status"] = "DRAFT"
+            values.write_text(
+                json.dumps(document, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            blocked = run_fill(values, root / "blocked.hwpx")
+            bypass = run_fill(
+                values,
+                root / "bypass.hwpx",
+                "--allow-unapproved-values",
+            )
+            self.assertNotEqual(blocked.returncode, 0)
+            self.assertIn("승인된 치환값만", blocked.stdout)
+            self.assertNotEqual(bypass.returncode, 0)
+            self.assertIn("unrecognized arguments", bypass.stdout + bypass.stderr)
+
+    def test_user_edited_canonical_receipt_is_digest_bound(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            values = root / "values.json"
+            values.write_text(
+                json.dumps(
+                    approved_values(
+                        "o 핵심항목\n- 검증할 주장 [H001 | 검증가설]"
+                    ),
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+            digest = "sha256:" + hashlib.sha256(DEMO.read_bytes()).hexdigest()
+            receipt = root / "canonical.json"
+            receipt.write_text(
+                json.dumps(
+                    {
+                        "status": "PASS",
+                        "role": "user-edited-canonical",
+                        "canonicalSha256": digest,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            passed = run_fill(
+                values,
+                root / "passed.hwpx",
+                "--canonical-receipt",
+                str(receipt),
+            )
+            self.assertEqual(passed.returncode, 0, passed.stdout + passed.stderr)
+
+            receipt.write_text(
+                json.dumps(
+                    {
+                        "status": "PASS",
+                        "role": "user-edited-canonical",
+                        "canonicalSha256": "sha256:" + "0" * 64,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            blocked = run_fill(
+                values,
+                root / "blocked.hwpx",
+                "--canonical-receipt",
+                str(receipt),
+            )
+            self.assertNotEqual(blocked.returncode, 0)
+            self.assertIn("canonical receipt digest", blocked.stdout)
+
+    def test_render_receipt_starts_blocked_until_visual_review(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf = root / "exported.pdf"
+            document = fitz.open()
+            page = document.new_page()
+            page.insert_text((72, 72), "render smoke")
+            document.save(pdf)
+            document.close()
+
+            render_dir = root / "render"
+            receipt = root / "render-qa.json"
+            drafted = subprocess.run(
+                [
+                    sys.executable,
+                    str(RENDER_SCRIPT),
+                    str(DEMO),
+                    str(pdf),
+                    "--output-dir",
+                    str(render_dir),
+                    "--receipt",
+                    str(receipt),
+                    "--renderer-name",
+                    "Hanword",
+                    "--renderer-version",
+                    "test",
+                ],
+                cwd=ROOT,
+                env={**os.environ, "PYTHONIOENCODING": "cp1252"},
+                text=True,
+                encoding="utf-8",
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(drafted.returncode, 0, drafted.stdout + drafted.stderr)
+            payload = json.loads(receipt.read_text(encoding="utf-8"))
+            self.assertEqual(payload["status"], "NEEDS_REVIEW")
+            self.assertEqual(len(payload["pages"]), 1)
+            self.assertFalse(payload["pages"][0]["zoomReviewed"])
+            self.assertTrue(
+                all(value is None for value in payload["pages"][0]["checks"].values())
+            )
+
+            blocked = subprocess.run(
+                [
+                    sys.executable,
+                    str(VERIFY_RENDER_SCRIPT),
+                    str(DEMO),
+                    "--receipt",
+                    str(receipt),
+                ],
+                cwd=ROOT,
+                text=True,
+                encoding="utf-8",
+                capture_output=True,
+                check=False,
+            )
+            self.assertNotEqual(blocked.returncode, 0)
+
+            payload["status"] = "PASS"
+            payload["pages"][0]["checks"] = {
+                name: False for name in payload["pages"][0]["checks"]
+            }
+            payload["pages"][0]["zoomReviewed"] = True
+            receipt.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            passed = subprocess.run(
+                [
+                    sys.executable,
+                    str(VERIFY_RENDER_SCRIPT),
+                    str(DEMO),
+                    "--receipt",
+                    str(receipt),
+                ],
+                cwd=ROOT,
+                text=True,
+                encoding="utf-8",
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(passed.returncode, 0, passed.stdout + passed.stderr)
 
 
 if __name__ == "__main__":

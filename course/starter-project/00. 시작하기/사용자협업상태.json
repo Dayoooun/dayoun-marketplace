@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "interactionMode": "DEMO",
+  "interactionMode": "REAL",
   "questionRound": {
     "status": "NOT_CONFIRMED",
     "answers": [],

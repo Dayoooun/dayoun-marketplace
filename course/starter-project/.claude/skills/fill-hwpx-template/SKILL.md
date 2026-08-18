@@ -9,7 +9,7 @@ description: "승인된 내용을 원본 보존 작업용 HWPX에 반영하고, 
 
 - `.hwp`는 직접 처리하지 않는다. 한글에서 **다른 이름으로 저장 → HWPX**로 준비한다.
 - 최초 원본은 보존한다. 사용자가 자동 생성본을 한글에서 수정해 다시 올리면 그 최신 업로드본을 새 `user-edited-canonical`로 잠그고, 이후 작업용 HWPX는 반드시 그 파일에서 복사한다. 과거 원본·과거 자동 생성본으로 되돌아가 재생성하지 않는다.
-- 사용자가 승인한 `placeholder-values.approved.json`만 기본 입력으로 사용한다.
+- `_approval.status=APPROVED`, 승인자·시각·source_draft가 모두 있는 `placeholder-values.approved.json`만 입력으로 사용한다. 승인 우회 옵션은 없다.
 - 중괄호 항목이 0개면 자동 입력 성공이 아니라 BLOCK이다.
 - 구조검사와 실제 렌더 검사는 서로 다른 검사이며 둘 다 필요하다. 실제 렌더러가 만든 PDF·페이지별 PNG와 전체·100%·확대 검수 기록이 없으면 BLOCK이다.
 - 공식 고정 구조·고정 문구와 사용자가 지정하지 않은 문단·글자·목록·표 스타일은 유지한다. 공식 지시, 사용자 지시, 디자인 결정표가 지정한 속성만 작업용 복사본에서 변경하고 변경 속성을 로그에 남긴다.
@@ -18,8 +18,8 @@ description: "승인된 내용을 원본 보존 작업용 HWPX에 반영하고, 
 - 비어 있지 않은 답변 플레이스홀더는 길이와 관계없이 `o 대항목 → - 핵심항목 → · 세부내용` 개조식으로 반영한다. 식별 라벨만 `_claim_free`로 제외한다.
 - filler는 답변 셀의 기준 스타일을 복제해 `o` 1,200/-1,200 굵게, `-` 2,400/-1,200 보통, `·` 3,600/-800 보통의 실제 내어쓰기를 적용한다. 공백·탭으로 모양을 만들지 않는다.
 - 승인값이 산문이면 중단하지 않고 `o 핵심내용 → - 주장`으로 자동 정규화한 뒤 `AUTO_OUTLINED`와 대상 플레이스홀더를 사용자에게 알린다. `--allow-prose-values` 예외는 없다.
-- 초안·승인 JSON에는 각 주장 끝에 `[E001 | 기관명, 2025]`·`[U001 | 사용자 제공자료, 2025]`·`[H001 | 검증가설]`·`[P001 | 실행계획]` 표지를 둔다. E/U의 `inline_citation`은 `출처명, YYYY` 형식이며 근거목록 날짜의 연도와 같아야 한다.
-- 최종 HWPX에서는 내부 ID를 지우고 `(기관명, 2025)`·`(사용자 제공자료, 2025)`·`(검증가설)`·`(실행계획)`으로 표시한다. 근거가 여러 개면 `(기관명, 2025; 기관명, 2024)`처럼 한 괄호에 묶는다.
+- 초안·승인 JSON에는 각 주장 끝에 `[E001 | 기관명, {발표연도}]`·`[U001 | 사용자 제공자료, {기록연도}]`·`[H001 | 검증가설]`·`[P001 | 실행계획]` 표지를 둔다. E/U의 `inline_citation`은 `출처명, YYYY` 형식이며 근거목록 날짜의 연도와 같아야 한다.
+- 최종 HWPX에서는 내부 ID를 지우고 `(기관명, 연도)`·`(사용자 제공자료, 연도)`·`(검증가설)`·`(실행계획)`으로 표시한다. 근거가 여러 개면 `(기관명, 연도; 기관명, 연도)`처럼 한 괄호에 묶는다.
 - 주장 ID는 `--evidence-registry 근거목록.csv`로 검증한다. E/U 행에 출처명·경로 또는 URL·확인일이 없거나, 표지와 `inline_citation`이 다르면 BLOCK한다.
 - 회사명·성명·날짜처럼 주장하지 않는 식별 라벨만 승인 JSON의 `_claim_free` 객체에 `"{회사명}": "회사명 식별값"`처럼 키와 사유를 명시해 제외한다.
 - 주장 플레이스홀더는 한 개의 문단과 한 개의 텍스트 run을 단독 점유해야 한다. 뒤에 고정 문구가 붙거나 여러 run으로 쪼개졌으면 최종 문단 끝 표지를 보장할 수 없으므로 BLOCK한다.
@@ -64,8 +64,9 @@ BLOCK이 없고 사용자가 승인한 문안만 최종 제출 양식의 작업�
 이미지 참조, 캡션, 원본 `secPr` 보존도 PASS해야 한다. 렌더러나 렌더 산출물이 없으면
 완료가 아니라 BLOCK이다.
 
-**다음 단계**: 승인된 사업계획서 원문과 HWPX 검증 기록을 `ppt-editorial`에 넘긴다.
-PPT는 HWPX 페이지를 복사하지 않고 발표 목적에 맞게 내용을 다시 구성한다.
+**다음 단계**: PPT를 선택했다면 승인된 사업계획서 canonical 원문과 검토 결과를
+`ppt-editorial`에 넘긴다. PPT는 HWPX 파일·검사기록을 요구하지 않고 발표 목적에 맞게
+내용을 다시 구성한다.
 
 ## 실행 방법
 
@@ -87,6 +88,9 @@ python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_revision.py" validate "03. 
 
 사용자 수정본이 없으면 최초 원본을 canonical로 사용하되 `role`을 임의로
 `user-edited-canonical`이라고 기록하지 않는다.
+
+최신 user-edited canonical을 입력할 때는 이후 `fill` 명령에 같은 receipt를
+`--canonical-receipt`로 전달한다. digest가 다르거나 receipt role/status가 다르면 BLOCK한다.
 
 이 SKILL.md가 있는 폴더를 스킬 루트로 정하고 그 아래 `scripts/hwpx_placeholders.py`를 사용한다. 프로젝트 루트의 scripts로 해석하지 않는다.
 
@@ -111,10 +115,14 @@ python3 "<이 SKILL.md가 있는 폴더>/scripts/hwpx_placeholders.py" scan "03.
 ### 2. 사용자 승인값으로 새 파일 만들기
 
 ```powershell
-python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_placeholders.py" fill "03. 사업계획서양식\작업용 HWPX\양식.hwpx" --values "03. 사업계획서양식\placeholder-values.approved.json" --evidence-registry "00. 시작하기\근거목록.csv" --output "07. 최종본\사업계획서_v01.hwpx"
+python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_placeholders.py" fill "03. 사업계획서양식\canonical\사용자수정본_v08.hwpx" --canonical-receipt "06. 검토결과\user-canonical-v08.json" --values "03. 사업계획서양식\placeholder-values.approved.json" --evidence-registry "00. 시작하기\근거목록.csv" --output "07. 최종본\사업계획서_v09.hwpx"
 ```
 
 macOS/Linux에서는 `python3`와 `/` 경로 구분자를 사용한다.
+
+사용자 수정본이 없는 최초 실행은 `작업용 HWPX/양식.hwpx`를 입력하고
+`--canonical-receipt`를 생략한다. 이후 source/style/visual 검사는 그때 선택한 동일 입력을
+끝까지 `--source`로 사용한다.
 
 ### 3. 구조 다시 검사하기
 
@@ -142,7 +150,7 @@ python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_style_integrity.py" validat
 플레이스홀더 바깥의 `사업명:` 고정 문구는 자동 보존한다.
 
 ```powershell
-python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_source_integrity.py" "07. 최종본\사업계획서_v01.hwpx" --source "03. 사업계획서양식\원본.hwpx" --editable-spec "03. 사업계획서양식\editable-zones.approved.json" --output "06. 검토결과\hwpx-source-integrity.json"
+python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_source_integrity.py" "07. 최종본\사업계획서_v09.hwpx" --source "03. 사업계획서양식\canonical\사용자수정본_v08.hwpx" --editable-spec "03. 사업계획서양식\editable-zones.approved.json" --output "06. 검토결과\hwpx-source-integrity.json"
 ```
 
 editable spec이 필요 없는 빈 양식은 `--editable-spec`만 생략한다. macOS/Linux에서는
@@ -163,7 +171,7 @@ python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_visuals.py" inspect "07. �
 승인된 위치 명세와 원본 HWPX를 기준으로 재현 검증한다.
 
 ```powershell
-python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_visuals.py" validate "07. 최종본\사업계획서_v01.hwpx" --source "03. 사업계획서양식\원본.hwpx" --spec "03. 사업계획서양식\visual-placement.approved.json"
+python "<이 SKILL.md가 있는 폴더>\scripts\hwpx_visuals.py" validate "07. 최종본\사업계획서_v09.hwpx" --source "03. 사업계획서양식\canonical\사용자수정본_v08.hwpx" --spec "03. 사업계획서양식\visual-placement.approved.json"
 ```
 
 macOS/Linux에서는 `python3`와 `/` 경로 구분자를 사용한다. 검사는 다음을 모두
@@ -181,17 +189,29 @@ fail-closed로 확인한다.
 
 ### 6. 실제 렌더와 확대 검수
 
-지원되는 실제 렌더러로 결과 HWPX를 PDF로 내보내고 모든 페이지를 PNG로 렌더한다.
-렌더러 이름·버전, HWPX/PDF/PNG digest, 페이지 크기, 전체 페이지·100%·확대 검수 결과를
-`render-qa.json`에 기록한다. 각 페이지는 `clipping`, `overlap`, `blankPage`,
-`lowContrast`, `orphanParagraph`, `captionSplit`이 모두 `false`이고
-`zoomReviewed=true`여야 한다.
+Windows 강의·실무 기준 렌더러는 설치·라이선스가 확인된 한컴 한글이다. 결과 HWPX를
+한컴 한글에서 열어 글꼴 대체 경고가 없는지 확인하고 `파일 → PDF로 저장하기`로
+`06. 검토결과/render/사업계획서.pdf`를 만든다. 한컴 한글의 제품명과
+`도움말 → 한글 정보`에 표시된 버전을 기록한다. macOS/Linux에서 한컴 한글 렌더를
+재현할 수 없으면 다른 렌더러로 PASS를 대체하지 않고 BLOCK한다.
+
+PDF를 모든 페이지 PNG와 검수 전 receipt로 바꾼다.
 
 ```powershell
-python "<이 SKILL.md가 있는 폴더>\scripts\verify_hwpx_render.py" "07. 최종본\사업계획서_v01.hwpx" --receipt "06. 검토결과\render-qa.json" --output "06. 검토결과\render-qa-verified.json"
+python "<이 SKILL.md가 있는 폴더>\scripts\render_pdf_pages.py" "07. 최종본\사업계획서_v09.hwpx" "06. 검토결과\render\사업계획서.pdf" --output-dir "06. 검토결과\render\pages" --receipt "06. 검토결과\render-qa.json" --renderer-name "한컴 한글" --renderer-version "<도움말에 표시된 실제 버전>"
 ```
 
-PDF·페이지 PNG·렌더러 버전·확대 검수 중 하나라도 없거나 digest가 바뀌면 BLOCK이다.
+`render-qa.json`은 `NEEDS_REVIEW`, 각 결함 확인값 `null`, `zoomReviewed=false`로
+생성된다. 전체 페이지·100%·확대 화면을 직접 확인한 뒤 각 페이지의 `clipping`,
+`overlap`, `blankPage`, `lowContrast`, `orphanParagraph`, `captionSplit`을 모두
+`false`, `zoomReviewed`를 `true`, 최상위 `status`를 `PASS`로 바꾼다. 결함을 발견하면
+receipt를 통과시키지 말고 HWPX를 수정해 새 버전으로 다시 렌더한다.
+
+```powershell
+python "<이 SKILL.md가 있는 폴더>\scripts\verify_hwpx_render.py" "07. 최종본\사업계획서_v09.hwpx" --receipt "06. 검토결과\render-qa.json" --output "06. 검토결과\render-qa-verified.json"
+```
+
+PDF·페이지 PNG·렌더러 이름·버전·확대 검수 중 하나라도 없거나 digest가 바뀌면 BLOCK이다.
 
 최종 파일의 미리보기 텍스트를 본문과 동기화한 새 버전을 만든 뒤 검증한다.
 

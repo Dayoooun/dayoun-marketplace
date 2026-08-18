@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.4 RC
+
+- 외부 조사 전에 목표고객·문제·첫 제품·판매 방식·조사 우선순위를 사용자와 확정
+- FULL·교육 실습에서 서로 독립적인 조사 worker 3개 이상과 worker별 결과·실패 기록·종합본을 필수화
+- 조사 worker가 실패하거나 시간·사용량 한도에 닿으면 미확인 범위를 남기고 전체 완료 선언을 차단
+- 승인 우회 `--allow-unapproved-values`를 제거하고 user-edited canonical 입력을 receipt digest에 결속
+- 한컴 한글 PDF 내보내기 뒤 페이지 PNG와 `NEEDS_REVIEW` receipt를 만드는 render QA 도구 추가
+- Scene Deck과 image-first의 이미지·텍스트 책임을 분리하고 PPT 재생성 횟수·수업 컷오프를 제한
+- 출처 예시의 고정 연도 `2025`를 실제 근거목록 연도 자리표시자로 교체
+
 ### business-plan-writer 0.12.3 RC
 
 - HWPX 답변을 길이와 관계없이 `o 대항목 → - 핵심항목 → · 세부내용` 개조식으로 통일
