@@ -8,6 +8,7 @@ import zipfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
+import sys
 
 
 PLACEHOLDER = re.compile(r"\{[^{}]+\}")
@@ -280,6 +281,10 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="backslashreplace")
     args = parse_args()
     report = validate(args.source, args.result, args.editable_spec)
     serialized = json.dumps(report, ensure_ascii=False, indent=2) + "\n"

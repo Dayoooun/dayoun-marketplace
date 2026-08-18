@@ -13,6 +13,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import sys
 import tempfile
@@ -206,8 +208,11 @@ class ParallelGenerationTests(unittest.TestCase):
                     "--loop",
                     "1",
                 ] + extra_argv
+                # main() 은 한글 진행로그를 쏟는다. 테스트 출력이 묻히고,
+                # cp1252 콘솔에서는 UnicodeEncodeError 로 죽는다.
                 try:
-                    gen.main()
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        gen.main()
                 except SystemExit:
                     pass
                 finally:

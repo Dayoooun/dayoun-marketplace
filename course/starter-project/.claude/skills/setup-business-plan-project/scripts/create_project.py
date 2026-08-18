@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 
 
 FOLDERS = (
@@ -463,6 +464,10 @@ def safe_write(path: Path, content: str, force: bool) -> str:
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="backslashreplace")
     parser = argparse.ArgumentParser(description="사업계획서 프로젝트 폴더 생성")
     parser.add_argument("--path", required=True, help="생성할 프로젝트 폴더")
     parser.add_argument(

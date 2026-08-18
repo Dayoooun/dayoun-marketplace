@@ -85,6 +85,10 @@ def prompt_block(name: str | None = None, accent: str | None = None) -> str:
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="backslashreplace")
     parser = argparse.ArgumentParser(description="스타일 프로파일 조회")
     parser.add_argument("--profile", help="프로파일 이름 (생략 시 기본값)")
     parser.add_argument("--accent", help="브랜드 강조색 (예: #0B5FFF)")

@@ -8,6 +8,7 @@ from typing import Any
 
 import fitz
 from PIL import Image
+import sys
 
 
 REQUIRED_CHECKS = {
@@ -161,6 +162,10 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="backslashreplace")
     args = parse_args()
     report = validate(args.hwpx, args.receipt)
     serialized = json.dumps(report, ensure_ascii=False, indent=2) + "\n"

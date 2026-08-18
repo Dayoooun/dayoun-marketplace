@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from create_project import FOLDERS, STAGES
+import sys
 
 
 STATE_PATH = Path("00. 시작하기") / "단계상태.json"
@@ -335,6 +336,10 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="backslashreplace")
     args = parser().parse_args()
     project = args.project.expanduser().resolve()
     try:

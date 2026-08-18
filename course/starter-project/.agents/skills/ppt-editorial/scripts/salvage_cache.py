@@ -7,6 +7,7 @@ import glob
 import json
 import os
 import shutil
+import sys
 
 
 def main():
@@ -16,6 +17,10 @@ def main():
       스모크 테스트가 이 스크립트를 import하자 '회수: 0'을 출력했고,
       부작용 없이 import되어야 검증에 쓸 수 있다.
     """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="backslashreplace")
     salvaged = []
     for tdir in glob.glob("themes/*/"):
         theme = os.path.basename(os.path.normpath(tdir))

@@ -13,6 +13,7 @@ import json
 import os
 import re
 from typing import Any
+import sys
 
 
 class IntakeBlocked(RuntimeError):
@@ -255,6 +256,10 @@ def save_brief(path: str | os.PathLike, brief: dict[str, Any]) -> str:
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="backslashreplace")
     parser = argparse.ArgumentParser(description="PPT 요구사항 인터뷰 상태 검사")
     parser.add_argument("brief_path")
     parser.add_argument("--confirm", action="store_true",

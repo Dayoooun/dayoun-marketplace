@@ -19,6 +19,10 @@ from approved_inputs import (
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="backslashreplace")
     ap = argparse.ArgumentParser()
     ap.add_argument("png_dir")
     ap.add_argument("out")

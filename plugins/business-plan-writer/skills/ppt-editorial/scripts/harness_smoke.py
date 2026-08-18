@@ -302,6 +302,10 @@ def selftest():
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="backslashreplace")
     if "--selftest" in sys.argv:
         print("=== 스모크 자체 회귀 (인메모리 주입) ===")
         sys.exit(0 if selftest() else 1)

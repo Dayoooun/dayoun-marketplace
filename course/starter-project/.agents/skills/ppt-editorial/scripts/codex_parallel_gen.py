@@ -644,6 +644,12 @@ def _hint(base_dir):
 
 
 def main():
+    # Windows 콘솔·CI 기본 인코딩은 cp1252/cp949 라 한글 진행로그에서
+    # UnicodeEncodeError 로 죽는다. 출력 스트림을 UTF-8 로 올린다.
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="backslashreplace")
     ap = argparse.ArgumentParser()
     ap.add_argument("jobs_json")
     ap.add_argument("--cap", type=int, default=0,

@@ -99,6 +99,10 @@ def validate_placement_receipt(path):
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="backslashreplace")
     ap = argparse.ArgumentParser()
     ap.add_argument("folder")
     ap.add_argument("--safe-top", type=float, default=0.163)
