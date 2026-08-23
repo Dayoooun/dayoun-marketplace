@@ -12,11 +12,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import fitz
-import numpy as np
-from PIL import Image, ImageDraw
-from pptx import Presentation
-from pptx.util import Inches
 
 from html_slide_renderer import HEIGHT, WIDTH, render_job, validate_graph
 
@@ -230,6 +225,8 @@ def _resolve_assets(spec: dict, catalog_dir: Path) -> dict:
 
 
 def _check_non_uniform(path: Path) -> bool:
+    import numpy as np
+    from PIL import Image
     with Image.open(path) as image:
         array = np.asarray(image.convert("RGB"), dtype=np.float32)
     return float(array.std()) >= 4.0
@@ -342,6 +339,7 @@ def _validate_receipt(scenario: dict, receipt: dict, contract: dict) -> list[str
 
 
 def _contact_sheet(images: list[tuple[str, Path]], out: Path) -> None:
+    from PIL import Image, ImageDraw
     thumb_w, thumb_h = 668, 376
     gap, label_h = 24, 30
     columns = 2
@@ -361,6 +359,9 @@ def _contact_sheet(images: list[tuple[str, Path]], out: Path) -> None:
 
 
 def _assemble(images: list[tuple[str, Path]], pptx_path: Path, pdf_path: Path) -> None:
+    import fitz
+    from pptx import Presentation
+    from pptx.util import Inches
     presentation = Presentation()
     presentation.slide_width = Inches(13.333)
     presentation.slide_height = Inches(7.5)
@@ -461,6 +462,8 @@ def run(catalog_path: Path, contract_path: Path, fewshots_path: Path, out_dir: P
     if quality_gate.get("requireContactSheet"):
         if not contact.is_file() or not _check_non_uniform(contact):
             artifact_errors.append("contact sheet missing or visually uniform")
+    import fitz
+    from pptx import Presentation
     pptx_pages = len(Presentation(pptx).slides) if pptx.is_file() else 0
     if quality_gate.get("requirePptxPagesMatch") and pptx_pages != len(scenarios):
         artifact_errors.append(

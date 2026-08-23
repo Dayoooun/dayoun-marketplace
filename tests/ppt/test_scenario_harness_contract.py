@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-import pytest
+import tempfile
 
 
 SKILL = (
@@ -195,9 +195,14 @@ def test_process_gap_rejects_non_finite_receipt() -> None:
     assert any("receipt contains non-finite values at $.footer.left" in error for error in errors)
 
 
-def test_strict_json_reader_rejects_nan_constant(tmp_path: Path) -> None:
-    path = tmp_path / "nan.json"
-    path.write_text('{"root": NaN}', encoding="utf-8")
+def test_strict_json_reader_rejects_nan_constant() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = Path(temp_dir) / "nan.json"
+        path.write_text('{"root": NaN}', encoding="utf-8")
 
-    with pytest.raises(harness.ScenarioHarnessError, match="non-finite JSON constant"):
-        harness._read_json(path)
+        try:
+            harness._read_json(path)
+        except harness.ScenarioHarnessError as error:
+            assert "non-finite JSON constant" in str(error)
+        else:
+            raise AssertionError("NaN JSON constant was accepted")

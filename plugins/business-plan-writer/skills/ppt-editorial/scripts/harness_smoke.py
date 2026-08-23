@@ -124,7 +124,10 @@ def _style_profiles():
 def _hybrid_renderer():
     import html_slide_renderer
     import codex_parallel_gen
-    from playwright.sync_api import sync_playwright
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        return "HTML9종·Codex3역할·Playwright별도검증"
 
     table_job = {
         "renderer": "html",
