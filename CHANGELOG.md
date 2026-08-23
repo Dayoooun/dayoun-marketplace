@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.9 RC
+
+- `deck_brief → content_report → design_spec → slide_blueprint` 네 기획 원문과 승인 상태를 강제하는 production plan 도입
+- 장별 visualRole·layout·styleVariant·3D 자산 의존성을 compiler가 fail-closed 검증
+- 승인 후 1차 Codex 3D·사진·재질 에셋 병렬생성, 2차 HTML 슬라이드 병렬렌더를 순서대로 실행
+- plan 및 기획 원문 digest, 장별 renderer 결정, assembly 순서를 `design-execution-plan.json`에 결속
+- draft·누락 기획서·중복 slide ID·레이아웃 충돌·없는 참조 자산은 제작 전 차단
+
 ### business-plan-writer 0.12.8 RC
 
 - HTML 슬라이드를 2배 supersampling한 뒤 1920×1080으로 내보내 작은 글자와 선명도를 개선
@@ -9,6 +17,7 @@
 - 그래프 viewBox를 실제 와이드 캔버스 비율에 맞춰 노드·엣지가 가로로 늘어나 보이던 문제 수정
 - 긴 한글 표의 어절 분리 방지, 그래프·overview 글자 크기 상향, 3D 자산 점유율 개선
 - 데이터 막대의 장식적 그라데이션을 제거하고 단일 강조색으로 통일
+
 ### business-plan-writer 0.12.7 RC
 
 - PPT 기본 디자인을 `toss-data-unified`로 통합하고 콘텐츠 역할에 따라 Toss 3D·아이콘 에디토리얼·데이터 에디토리얼로 자동 라우팅

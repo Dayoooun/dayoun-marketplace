@@ -161,6 +161,7 @@ def _hybrid_renderer():
 @check("실전 시나리오 계약")
 def _scenario_contract():
     import html_slide_renderer
+    import design_plan
 
     reference_dir = os.path.join(os.path.dirname(HERE), "references")
     paths = {
@@ -219,7 +220,21 @@ def _scenario_contract():
     }
     if not html_slide_renderer.validate_graph(invalid):
         raise AssertionError("잘못된 그래프를 통과시킴")
-    return f"{len(scenarios)}시나리오·{len(fewshots)}few-shot·그래프차단"
+    plan_template = os.path.join(
+        os.path.dirname(HERE),
+        "templates",
+        "design-production-plan.example.json",
+    )
+    with open(plan_template, encoding="utf-8") as handle:
+        plan = json.load(handle)
+    if plan.get("approvalStatus") != "draft":
+        raise AssertionError("예제 production plan은 미승인 상태여야 함")
+    if not callable(design_plan.compile_plan) or not callable(design_plan.execute_plan):
+        raise AssertionError("기획 후 병렬제작 compiler API 누락")
+    return (
+        f"{len(scenarios)}시나리오·{len(fewshots)}few-shot·"
+        "그래프차단·기획→2단병렬"
+    )
 
 
 @check("요구사항 확인 게이트")

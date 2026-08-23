@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "approvalStatus": "draft",
+  "planningSources": {
+    "deckBrief": "deck_brief.md",
+    "contentReport": "content_report.md",
+    "designSpec": "design_spec.md",
+    "slideBlueprint": "slide_blueprint.md"
+  },
+  "designSystem": {
+    "styleProfile": "toss-data-unified",
+    "accentColor": "#246BFD",
+    "fontFamily": "Pretendard",
+    "ratio": "16:9",
+    "continuityAnchor": "white editorial canvas, one accent, consistent camera and material language"
+  },
+  "slides": [
+    {
+      "id": "S01-cover",
+      "pageRole": "cover",
+      "visualRole": "3d-product",
+      "title": "정확한 운영을 시작합니다",
+      "coreMessage": "제품 개념을 하나의 고품질 3D 오브젝트로 보여줍니다",
+      "styleVariant": "toss-3d",
+      "asset": {
+        "mode": "generate",
+        "role": "3d-scene",
+        "prompt": "High-quality premium 3D clay object representing operational automation, isolated on white, consistent camera and studio light",
+        "refs": [],
+        "out": "assets/S01-cover-3d.png"
+      },
+      "htmlSpec": {
+        "layout": "image",
+        "eyebrow": "OPERATING SYSTEM",
+        "title": [
+          {"text": "정확한 운영을", "weight": "light"},
+          {"text": "시작합니다", "weight": "bold"}
+        ],
+        "subtitle": "정확한 문구는 HTML이, 제품 감각은 3D가 담당합니다",
+        "imageFit": "contain",
+        "imageScale": 1.5,
+        "imageAlt": "운영 자동화를 표현한 3D 오브젝트",
+        "callout": "생성 자산과 정보 구조를 분리합니다",
+        "caption": "3D 오브젝트에는 정확한 본문을 굽지 않습니다.",
+        "facts": ["Codex: 3D·재질·조명", "HTML: 제목·설명·정렬"],
+        "footer": "PROJECT · COVER"
+      },
+      "out": "slides/S01-cover.png"
+    },
+    {
+      "id": "S02-process",
+      "pageRole": "workflow",
+      "visualRole": "process",
+      "title": "다섯 단계로 연결됩니다",
+      "coreMessage": "각 단계의 산출물이 다음 단계의 입력이 됩니다",
+      "styleVariant": "icon-editorial",
+      "htmlSpec": {
+        "layout": "process",
+        "eyebrow": "WORKFLOW",
+        "title": [
+          {"text": "자동화는", "weight": "light"},
+          {"text": "다섯 단계로 연결됩니다", "weight": "bold"}
+        ],
+        "subtitle": "작은 UI 아이콘은 SVG로 정확하게 정렬합니다",
+        "active": 2,
+        "items": [
+          {"label": "01 진단", "detail": "반복 업무 확인", "icon": "search"},
+          {"label": "02 설계", "detail": "입력·처리·출력 정의", "icon": "nodes"},
+          {"label": "03 실행", "detail": "도구와 담당자 연결", "icon": "play"},
+          {"label": "04 측정", "detail": "시간·품질 추적", "icon": "chart"},
+          {"label": "05 개선", "detail": "기준 갱신", "icon": "refresh"}
+        ],
+        "note": "rail과 모든 dot 중심은 1px 이내로 일치해야 합니다",
+        "footer": "PROJECT · PROCESS"
+      },
+      "out": "slides/S02-process.png"
+    }
+  ]
+}

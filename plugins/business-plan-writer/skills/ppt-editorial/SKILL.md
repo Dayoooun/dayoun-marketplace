@@ -284,21 +284,38 @@ d = Deck.from_brief("deck_brief.md", domain="it", out_dir="deck_out")
 로고·인증서·작은 글자가 많은 표는 모델에게 다시 그리게 하면 반드시 깨진다.
 
 
-## ★★★ 2. 모드 A — 씬 덱 실행 (기본값 · 4단계 파이프라인)
+## ★★★ 2. 기획서 승인 후 2단 병렬제작
 **한 에이전트가 내용·디자인·생성·판단을 다 하면 깨진다.** 특히 "판단"에서 오케스트레이터의 자기 눈이 반복 실패한다(실측 3회 어긋남). 역할을 분리하라.
 
 | 단계 | 주체 | 산출물 |
 |------|------|--------|
-| 1. 입력 | 사용자 | 슬라이드별 내용 + 레퍼런스 이미지(원하는 룩) + 취향/톤 |
-| 2. **디자인 디렉터** | `Agent`(general-purpose) — `prompts/director.md` | 슬라이드별 codex 프롬프트 = `jobs.json` |
-| 3. **codex 병렬 생성** | `scripts/…/codex_parallel_gen.py` | 슬라이드 이미지 N장 |
-| 4. **디자인 크리틱** | `Agent`(general-purpose) — `prompts/critic.md` | 슬라이드별 PASS/FIX + 구체 수정지침 |
-| 5. 조립 | 오케스트레이터 | 크롬 합성 → 통합 PDF |
+| 1. 내용 기획 | 오케스트레이터 | `deck_brief.md` → `content_report.md` → `design_spec.md` → `slide_blueprint.md` |
+| 2. **디자인 디렉터** | `prompts/director.md` | 승인 전 `design-production-plan.json` (`approvalStatus: draft`) |
+| 3. **계획 compiler** | `scripts/design_plan.py` | 역할·레이아웃·렌더러·에셋 의존성을 잠근 `design-execution-plan.json` |
+| 4-A. **Codex 병렬제작** | `codex_parallel_gen.py` | 고품질 3D·사진·재질 에셋을 동시 생성 |
+| 4-B. **HTML 병렬제작** | 같은 생성기 | 에셋 완료 후 표·차트·아이콘·정확한 한글을 동시 렌더 |
+| 5. **디자인 크리틱·조립** | 독립 크리틱 + 오케스트레이터 | PASS/FIX 판정 → PNG/PPTX/PDF |
 
-**루프**: 크리틱이 FIX한 슬라이드만 → 2단계(디렉터, 크리틱 피드백 첨부)로 되돌려 프롬프트 재작성 → 3단계 재생성 → 4단계 재판정한다. 슬라이드별 최대 2회까지만 재생성하며, 시간·usage 컷오프에 닿거나 그 뒤에도 BLOCK이면 미검증 결과를 납품하지 않는다. 선택 PPT는 BLOCK으로 남기고 코드 전용 덱 또는 사전 생성본으로 설명한다.
+**루프**: 크리틱이 FIX한 슬라이드만 → 2단계 디렉터가 피드백을 반영해 plan을 수정 → 3단계 compiler 재실행 → 4단계 해당 잡만 재생성 → 5단계 재판정한다. 슬라이드별 최대 2회까지만 재생성하며, 시간·usage 컷오프에 닿거나 그 뒤에도 BLOCK이면 미검증 결과를 납품하지 않는다. 선택 PPT는 BLOCK으로 남기고 코드 전용 덱 또는 사전 생성본으로 설명한다.
 - **오케스트레이터는 미적 판단을 하지 않는다.** "예쁘다/괜찮다" 자평 금지 → 크리틱 에이전트에 위임.
 - 디렉터·크리틱은 반드시 **레퍼런스와 (있으면) 현재 결과물을 Read로 직접 보게** 하고, 취향을 판정 기준으로 넘긴다.
 - 실증(고객사 Q): 크리틱이 "하단 앵커 부재/세로중앙 부유 띠"를 systemic 문제로 한 번에 잡음 — 오케스트레이터 혼자선 3라운드 놓친 것.
+
+**실행 게이트:** 기획서가 네 planning source를 모두 가리키고
+`approvalStatus: "approved"`일 때만 compiler가 실행된다. draft, 누락 파일, 중복 slide ID,
+visualRole/layout 충돌, 참조 없는 생성 에셋은 `BLOCK`한다.
+
+```bash
+python scripts/design_plan.py design-production-plan.json --out-dir production
+# 승인된 계획을 실제로 제작할 때만:
+python scripts/design_plan.py design-production-plan.json --out-dir production --execute --cap 6 --effort high
+```
+
+`production/design-execution-plan.json`은 `planDigest`, 네 기획 원문 digest, 장별 renderer,
+`styleVariant`, asset dependency와 최종 assembly 순서를 기록한다. 실행은 반드시
+**1차 Codex 에셋 병렬 → 2차 HTML 슬라이드 병렬** 순서다. 3D 자산을 기다리지 않고
+이미지 슬라이드를 먼저 렌더하는 race를 허용하지 않는다. 시작 파일은
+`templates/design-production-plan.example.json`을 복사해 쓴다.
 
 ## ★★★ 3. 모드 B — 이미지 퍼스트 실행
 
