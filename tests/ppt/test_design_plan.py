@@ -43,7 +43,7 @@ def _plan(tmp_path: Path, approval: str = "approved") -> Path:
             {
                 "id": "S01",
                 "pageRole": "cover",
-                "visualRole": "3d-product",
+                "visualRole": "cover",
                 "title": "고품질 3D 제품",
                 "coreMessage": "제품 개념을 정확한 정보 구조에 결합합니다",
                 "asset": {
@@ -54,7 +54,7 @@ def _plan(tmp_path: Path, approval: str = "approved") -> Path:
                     "out": "assets/S01.png",
                 },
                 "htmlSpec": {
-                    "layout": "image",
+                    "layout": "cover",
                     "title": [{"text": "제품", "weight": "bold"}],
                     "callout": "3D는 자산만 담당합니다",
                     "facts": ["Codex asset", "HTML copy"],
@@ -106,6 +106,7 @@ def test_approved_plan_compiles_dependency_safe_parallel_batches(tmp_path: Path)
     assert asset_jobs[0]["styleVariant"] == "toss-3d"
     assert slide_jobs[0]["renderer"] == "html"
     assert slide_jobs[0]["htmlSpec"]["imagePath"] == "assets/S01.png"
+    assert slide_jobs[0]["layout"] == "cover"
     assert slide_jobs[1]["styleVariant"] == "icon-editorial"
     assert receipt["assemblyOrder"][1]["image"] == "slides/S02.png"
     assert all(source["digest"].startswith("sha256:") for source in receipt["planningSources"])

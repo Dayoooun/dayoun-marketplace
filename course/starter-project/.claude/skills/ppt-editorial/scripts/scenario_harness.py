@@ -89,7 +89,7 @@ def _source_manifest(
     }
     for scenario in catalog.get("scenarios", []):
         spec = scenario.get("spec", {})
-        if spec.get("layout") != "image" or not spec.get("imagePath"):
+        if spec.get("layout") not in {"image", "cover"} or not spec.get("imagePath"):
             continue
         asset = Path(spec["imagePath"])
         if not asset.is_absolute():
@@ -171,10 +171,10 @@ def _validate_semantics(scenario: dict, contract: dict, decision: dict) -> list[
         for node in spec.get("graph", {}).get("nodes", []):
             if "x" in node or "y" in node:
                 errors.append(f"node {node.get('id')!r} hardcodes x/y")
-    if layout == "image":
+    if layout in {"image", "cover"}:
         role = spec.get("assetRole")
         if role not in contract["rendererDecision"]["codexAssetRoles"]:
-            errors.append(f"image assetRole {role!r} is not admitted")
+            errors.append(f"visual assetRole {role!r} is not admitted")
         if role == "photo":
             focal = contract.get("photoFocal", {})
             if focal.get("requireImagePosition") and not spec.get("imagePosition"):
@@ -216,7 +216,7 @@ def _validate_semantics(scenario: dict, contract: dict, decision: dict) -> list[
 
 def _resolve_assets(spec: dict, catalog_dir: Path) -> dict:
     resolved = json.loads(json.dumps(spec, ensure_ascii=False, allow_nan=False))
-    if resolved.get("layout") == "image" and resolved.get("imagePath"):
+    if resolved.get("layout") in {"image", "cover"} and resolved.get("imagePath"):
         path = Path(resolved["imagePath"])
         if not path.is_absolute():
             path = (catalog_dir / path).resolve()
@@ -347,7 +347,7 @@ def _validate_receipt(scenario: dict, receipt: dict, contract: dict) -> list[str
                 f"{maximum_deviation}px"
             )
 
-    if layout == "image":
+    if layout in {"image", "cover"}:
         source = receipt.get("sourceAsset")
         digest = receipt.get("sourceAssetDigest")
         if not source:

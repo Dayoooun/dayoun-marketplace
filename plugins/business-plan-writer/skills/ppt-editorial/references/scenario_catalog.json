@@ -125,6 +125,27 @@
         "graph": {"forbidIsolated": true, "requireEdgeLabels": true, "nodes": [{"id": "plan", "label": "기준 설계", "entityType": "PLAN"}, {"id": "run", "label": "실행", "entityType": "ACTION", "primary": true}, {"id": "measure", "label": "측정", "entityType": "METRIC"}, {"id": "improve", "label": "개선", "entityType": "DECISION"}], "edges": [{"source": "plan", "target": "run", "direction": "forward", "label": "승인"}, {"source": "run", "target": "measure", "direction": "forward", "label": "기록"}, {"source": "measure", "target": "improve", "direction": "forward", "label": "판정"}, {"source": "improve", "target": "plan", "direction": "forward", "label": "갱신"}]},
         "footer": "SCENARIO S012 · CYCLIC GRAPH"
       }
+    },
+    {
+      "id": "S013-break",
+      "context": {"audience": "workshop-participant", "message": "휴식 후 팀 활동 재개", "evidenceType": "schedule", "density": "medium", "visualRole": "break"},
+      "spec": {
+        "layout": "break", "accent": "#13856F", "eyebrow": "BREAK", "title": [{"text": "15분 쉬고,", "weight": "light"}, {"text": "10:25에 팀별 자리에서 다시 시작합니다", "weight": "bold"}], "subtitle": "남은 시간과 복귀 뒤 할 일을 한 화면에서 확인합니다",
+        "duration": "15분", "window": "10:10–10:25", "purpose": "음료와 이동을 정리하고 10:25에 팀별 자리로 돌아옵니다.",
+        "actions": [{"time": "10:23", "label": "복귀 안내", "detail": "종료 2분 전 안내를 듣고 자리로 이동합니다."}, {"time": "10:25", "label": "팀별 재개", "detail": "팀 이름과 한 줄 선언을 작성합니다."}, {"time": "10:30", "label": "첫 공유", "detail": "팀별 결과를 한 문장으로 공유합니다."}],
+        "footer": "SCENARIO S013 · BREAK"
+      }
+    },
+    {
+      "id": "S014-cover",
+      "context": {"audience": "buyer", "message": "운영 자동화 제안 표지", "evidenceType": "generated-asset", "density": "low", "visualRole": "cover"},
+      "spec": {
+        "layout": "cover", "accent": "#246BFD", "eyebrow": "AUTOMATION OPERATING SYSTEM", "title": [{"text": "도구 도입을 넘어", "weight": "light"}, {"text": "운영 기준을 설계합니다", "weight": "bold"}], "subtitle": "업무 범위·책임자·예외 처리·측정을 하나의 실행 체계로 연결합니다",
+        "statement": "정확한 정보 구조와 고품질 3D 자산을 분리해 신뢰도와 제품 감각을 함께 만듭니다.",
+        "metadata": [{"label": "대상", "value": "운영·DX 책임자"}, {"label": "형식", "value": "제안 프레젠테이션"}, {"label": "버전", "value": "2026.08"}],
+        "imagePath": "automation-3d-asset.png", "imageFit": "contain", "imageScale": 1.75, "imagePosition": "center", "imageAlt": "운영 자동화 제품을 표현한 3D 오브젝트", "assetRole": "3d-scene",
+        "footer": ""
+      }
     }
   ]
 }

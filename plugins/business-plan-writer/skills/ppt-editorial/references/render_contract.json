@@ -2,12 +2,13 @@
   "schemaVersion": 1,
   "contractId": "ppt-editorial-hybrid-v1",
   "rendererDecision": {
-    "htmlLayouts": ["table", "kpi", "bars", "overview", "process", "modules", "roadmap", "network", "image"],
+    "htmlLayouts": ["cover", "table", "kpi", "bars", "overview", "process", "modules", "roadmap", "break", "network", "image"],
     "codexAssetRoles": ["3d-scene", "photo", "material-illustration"],
     "rule": "Use HTML for deterministic type, geometry, charts, entities and edges. Use Codex only to create non-deterministic visual assets, then place those assets in an HTML page when exact copy is required."
   },
   "contextRouting": {
     "visualRoleToLayout": {
+      "cover": "cover",
       "comparison-table": "table",
       "kpi": "kpi",
       "evidence-bars": "bars",
@@ -15,6 +16,7 @@
       "process": "process",
       "modules": "modules",
       "roadmap": "roadmap",
+      "break": "break",
       "entity-flow": "network",
       "entity-cycle": "network",
       "long-copy-table": "table",
@@ -22,6 +24,7 @@
       "photo": "image"
     },
     "rendererByLayout": {
+      "cover": "codex-asset-plus-html",
       "table": "html",
       "kpi": "html",
       "bars": "html",
@@ -29,6 +32,7 @@
       "process": "html",
       "modules": "html",
       "roadmap": "html",
+      "break": "html",
       "network": "html",
       "image": "codex-asset-plus-html"
     },

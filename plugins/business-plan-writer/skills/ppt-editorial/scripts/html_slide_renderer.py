@@ -36,6 +36,8 @@ SUPPORTED_LAYOUTS = {
     "bars",
     "process",
     "modules",
+    "break",
+    "cover",
     "overview",
     "image",
     "network",
@@ -150,6 +152,16 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 .roadmap-step p {{ margin: 0; color: #535963; font-size: 17px; line-height: 1.45; }}
 .roadmap-step .icon {{ margin-top: 24px; }}
 
+.break-layout {{ min-height: 530px; display: grid; grid-template-columns: 40% 56%; gap: 4%; }}
+.break-hero {{ padding: 44px 48px; background: color-mix(in srgb, var(--accent) 9%, #fff); display: flex; flex-direction: column; justify-content: space-between; }}
+.break-duration {{ color: var(--accent); font-size: 92px; font-weight: 760; line-height: 1; }}
+.break-window {{ margin-top: 18px; font-size: 28px; font-weight: 700; }}
+.break-purpose {{ margin-top: auto; padding-top: 26px; border-top: 1px solid color-mix(in srgb, var(--accent) 28%, #fff); font-size: 20px; line-height: 1.5; color: #414751; }}
+.break-actions {{ display: grid; grid-template-rows: repeat(var(--break-count), minmax(0, 1fr)); border-top: 1px solid #dfe3e9; }}
+.break-action {{ display: grid; grid-template-columns: 112px 1fr; align-items: center; padding: 24px 30px; border-bottom: 1px solid #dfe3e9; }}
+.break-action-time {{ color: var(--accent); font-size: 27px; font-weight: 760; }}
+.break-action h3 {{ margin: 0; font-size: 28px; line-height: 1.25; }}
+.break-action p {{ margin: 10px 0 0; color: #666c75; font-size: 17px; line-height: 1.45; }}
 .overview {{ display: grid; grid-template-columns: 25% 34% 41%; min-height: 520px; border-top: 1px solid #e2e5ea; }}
 .overview > section {{ padding: 30px 34px; border-right: 1px solid #e2e5ea; }}
 .overview > section:first-child {{ padding-left: 0; }}
@@ -172,6 +184,20 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 .dist-row.primary .dist-fill {{ background: var(--accent); }}
 .dist-value {{ text-align: right; color: #5c626b; }}
 
+#slide.layout-cover {{ padding-top: 72px; }}
+#slide.layout-cover .eyebrow {{ margin-bottom: 30px; }}
+#slide.layout-cover .title {{ max-width: 1280px; font-size: 74px; line-height: 1.08; }}
+#slide.layout-cover .subtitle {{ max-width: 980px; font-size: 25px; }}
+#slide.layout-cover .content {{ margin-top: 48px; }}
+.cover-layout {{ min-height: 450px; display: grid; grid-template-columns: 34% 62%; gap: 4%; }}
+.cover-copy {{ padding: 38px 42px; border-top: 3px solid var(--accent); background: #f6f7f9; display: flex; flex-direction: column; justify-content: space-between; }}
+.cover-statement {{ font-size: 26px; font-weight: 700; line-height: 1.45; word-break: keep-all; }}
+.cover-meta {{ display: grid; gap: 12px; }}
+.cover-meta-row {{ display: grid; grid-template-columns: 92px 1fr; gap: 14px; padding-top: 12px; border-top: 1px solid #dde1e7; font-size: 16px; }}
+.cover-meta-row span {{ color: #737983; }}
+.cover-meta-row strong {{ font-weight: 650; }}
+.cover-visual {{ min-height: 450px; overflow: hidden; background: #f7f8fa; }}
+.cover-visual img {{ width: 100%; height: 100%; object-fit: var(--image-fit, contain); object-position: var(--image-position, center); transform: scale(var(--image-scale, 1)); transform-origin: var(--image-position, center); display: block; }}
 .image-layout {{ min-height: 520px; display: grid; grid-template-columns: 38% 58%; gap: 4%; }}
 .image-copy {{ align-self: stretch; padding: 42px 44px; background: #f5f7fa; display: flex; flex-direction: column; justify-content: space-between; }}
 .image-copy h3 {{ margin: 0; font-size: 35px; line-height: 1.25; letter-spacing: -.035em; word-break: keep-all; overflow-wrap: normal; }}
@@ -388,6 +414,22 @@ def _roadmap(spec: dict) -> str:
     )
     return f'<div class="roadmap">{items}</div>'
 
+def _break(spec: dict) -> str:
+    actions = spec.get("actions", [])
+    if not 2 <= len(actions) <= 3:
+        raise ValueError("break layout requires 2 or 3 actions")
+    rows = "".join(
+        f'<div class="break-action"><div class="break-action-time">{_e(item.get("time"))}</div><div><h3>{_e(item.get("label"))}</h3><p>{_e(item.get("detail"))}</p></div></div>'
+        for item in actions
+    )
+    return (
+        '<div class="break-layout">'
+        f'<section class="break-hero"><div><div class="break-duration">{_e(spec.get("duration"))}</div><div class="break-window">{_e(spec.get("window"))}</div></div><div class="break-purpose">{_e(spec.get("purpose"))}</div></section>'
+        f'<section class="break-actions" style="--break-count:{len(actions)}">{rows}</section>'
+        '</div>'
+    )
+
+
 
 def _overview(spec: dict) -> str:
     metadata = "".join(
@@ -426,6 +468,22 @@ def _overview(spec: dict) -> str:
         '</div>'
     )
 
+
+def _cover(spec: dict) -> str:
+    source = spec.get("imageData", "")
+    if not source:
+        raise ValueError("cover layout requires imagePath or imageData")
+    meta = "".join(
+        f'<div class="cover-meta-row"><span>{_e(item.get("label"))}</span><strong>{_e(item.get("value"))}</strong></div>'
+        for item in spec.get("metadata", [])
+    )
+    fit = "cover" if spec.get("imageFit") == "cover" else "contain"
+    return (
+        '<div class="cover-layout">'
+        f'<section class="cover-copy"><div class="cover-statement">{_e(spec.get("statement"))}</div><div class="cover-meta">{meta}</div></section>'
+        f'<section class="cover-visual" style="--image-fit:{fit};--image-scale:{float(spec.get("imageScale", 1.0)):.3f};--image-position:{_e(spec.get("imagePosition", "center"))}"><img src="{source}" alt="{_e(spec.get("imageAlt", ""))}"></section>'
+        '</div>'
+    )
 
 def _image(spec: dict) -> str:
     source = spec.get("imageData", "")
@@ -578,7 +636,9 @@ LAYOUT_RENDERERS = {
     "modules": _modules,
     "overview": _overview,
     "image": _image,
+    "cover": _cover,
     "network": _network,
+    "break": _break,
     "roadmap": _roadmap,
 }
 
@@ -624,11 +684,11 @@ def build_html(spec: dict) -> str:
 
 
 def _prepare_image_data(spec: dict, base: Path) -> None:
-    if spec.get("layout") != "image" or spec.get("imageData"):
+    if spec.get("layout") not in {"image", "cover"} or spec.get("imageData"):
         return
     raw_path = spec.get("imagePath")
     if not raw_path:
-        raise ValueError("image layout requires imagePath")
+        raise ValueError(f"{spec.get('layout')} layout requires imagePath")
     path = Path(raw_path)
     if not path.is_absolute():
         path = (base / path).resolve()
@@ -661,8 +721,8 @@ def _layout_receipt(page, spec: dict) -> dict:
           };
           const meaningful = [...document.querySelectorAll(
             'table.report, .kpi-item, .interpretation, .bar-fill, .summary-box, .annotation, ' +
-            '.process-step, .module-feature, .module-row, .roadmap-step, .overview > section, ' +
-            '.image-copy, .image-frame, .graph-canvas, .rule-note'
+            '.process-step, .module-feature, .module-row, .roadmap-step, .break-hero, .break-action, .overview > section, ' +
+            '.image-copy, .image-frame, .cover-copy, .cover-visual, .graph-canvas, .rule-note'
           )].filter(el => getComputedStyle(el).display !== 'none');
           const overflow = [...document.querySelectorAll('#slide *')]
             .filter(el => {

@@ -18,7 +18,7 @@
     {
       "id": "S01-cover",
       "pageRole": "cover",
-      "visualRole": "3d-product",
+      "visualRole": "cover",
       "title": "정확한 운영을 시작합니다",
       "coreMessage": "제품 개념을 하나의 고품질 3D 오브젝트로 보여줍니다",
       "styleVariant": "toss-3d",
@@ -30,7 +30,7 @@
         "out": "assets/S01-cover-3d.png"
       },
       "htmlSpec": {
-        "layout": "image",
+        "layout": "cover",
         "eyebrow": "OPERATING SYSTEM",
         "title": [
           {"text": "정확한 운영을", "weight": "light"},
@@ -38,12 +38,15 @@
         ],
         "subtitle": "정확한 문구는 HTML이, 제품 감각은 3D가 담당합니다",
         "imageFit": "contain",
-        "imageScale": 1.5,
+        "imageScale": 1.75,
         "imageAlt": "운영 자동화를 표현한 3D 오브젝트",
-        "callout": "생성 자산과 정보 구조를 분리합니다",
-        "caption": "3D 오브젝트에는 정확한 본문을 굽지 않습니다.",
-        "facts": ["Codex: 3D·재질·조명", "HTML: 제목·설명·정렬"],
-        "footer": "PROJECT · COVER"
+        "statement": "정확한 정보 구조와 고품질 3D 자산을 분리해 신뢰도와 제품 감각을 함께 만듭니다.",
+        "metadata": [
+          {"label": "대상", "value": "운영·DX 책임자"},
+          {"label": "형식", "value": "제안 프레젠테이션"},
+          {"label": "버전", "value": "2026.08"}
+        ],
+        "footer": ""
       },
       "out": "slides/S01-cover.png"
     },

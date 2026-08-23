@@ -35,6 +35,12 @@ def test_hybrid_router_keeps_3d_in_codex() -> None:
     assert html_renderer.supports(
         {"renderer": "html", "layout": "image", "out": "image.png"}
     )
+    assert html_renderer.supports(
+        {"renderer": "html", "layout": "break", "out": "break.png"}
+    )
+    assert html_renderer.supports(
+        {"renderer": "html", "layout": "cover", "out": "cover.png"}
+    )
 
 
 def test_bar_widths_are_normalized_to_the_largest_value() -> None:

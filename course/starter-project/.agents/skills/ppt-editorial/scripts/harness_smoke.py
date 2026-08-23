@@ -132,7 +132,7 @@ def _hybrid_renderer():
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
-        return "HTML9종·Codex3역할·Playwright별도검증"
+        return "HTML11종·Codex3역할·Playwright별도검증"
 
     table_job = {
         "renderer": "html",
@@ -155,7 +155,7 @@ def _hybrid_renderer():
     with sync_playwright() as playwright:
         if not os.path.isfile(playwright.chromium.executable_path):
             raise AssertionError("Playwright Chromium 미설치")
-    return "HTML9종·Codex3역할"
+    return "HTML11종·Codex3역할"
 
 
 @check("실전 시나리오 계약")
@@ -177,7 +177,7 @@ def _scenario_contract():
             payloads[name] = json.load(handle)
     scenarios = payloads["catalog"].get("scenarios", [])
     fewshots = payloads["fewshots"].get("fewShots", [])
-    if len(scenarios) < 12 or len(fewshots) < 9:
+    if len(scenarios) < 14 or len(fewshots) < 11:
         raise AssertionError("시나리오 또는 few-shot 수량 부족")
     routing = payloads["contract"].get("contextRouting", {}).get(
         "visualRoleToLayout", {}

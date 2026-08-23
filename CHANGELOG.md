@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.10 RC
+
+- 전용 `cover` layout으로 정확한 제목·포지셔닝·메타데이터와 고품질 3D/사진 자산을 34/62 구조로 결합
+- 표지 제목 2줄, 단일 히어로 자산 65~80% 점유, 푸터 크롬·아이콘 콜라주·중앙 부유 제목 금지
+- 전용 `break` layout으로 시간 패널 40%와 복귀·재개 행동 56%를 채워 하단 빈 공간 제거
+- 작은 타이머 카드와 멀리 떨어진 하단 문장으로 빈 화면을 통과시키던 패턴 차단
+- 표지·휴식 시나리오와 few-shot 추가, 전체 하네스 14/14 PASS
+
 ### business-plan-writer 0.12.9 RC
 
 - `deck_brief → content_report → design_spec → slide_blueprint` 네 기획 원문과 승인 상태를 강제하는 production plan 도입
