@@ -39,7 +39,179 @@ def check(name):
 @check("모듈 import")
 def _import():
     import fonts, presets, layout_engine, photos, revise, deck, intake, platform_support  # noqa
-    return "8모듈"
+    import html_slide_renderer, codex_parallel_gen, scenario_harness  # noqa
+    return "11모듈"
+
+
+@check("스타일 프로파일")
+def _style_profiles():
+    import style_profile
+    name, profile = style_profile.resolve()
+    if name != "toss-data-unified" or not profile.get("variants"):
+        raise AssertionError("통합 전역 기본 프로파일 누락")
+
+    data_variant = style_profile.select_variant(
+        name,
+        "응답자 설문 KPI 58.4% 분포 차트",
+    )
+    toss_variant = style_profile.select_variant(
+        name,
+        "서비스 프로세스와 고객 여정을 보여주는 3D scene",
+    )
+    icon_variant = style_profile.select_variant(
+        name,
+        "핵심 기능 4가지와 단계별 체크리스트",
+    )
+    explicit = style_profile.select_variant(
+        name,
+        "표지에 KPI라는 단어가 있음",
+        requested="toss-3d",
+    )
+    if (data_variant, toss_variant, icon_variant, explicit) != (
+        "data-editorial",
+        "toss-3d",
+        "icon-editorial",
+        "toss-3d",
+    ):
+        raise AssertionError("스타일 변형 라우팅 실패")
+    if style_profile.select_variant(name, "표지") != "toss-3d":
+        raise AssertionError("전역 기본 변형이 Toss 3D가 아님")
+
+    assets = style_profile.reference_assets(name, data_variant)
+    if len(assets) != 3 or not all(os.path.isfile(path) for path in assets):
+        raise AssertionError("검증된 데이터 레퍼런스 3종 결속 실패")
+    toss_assets = style_profile.reference_assets(name, toss_variant)
+    if len(toss_assets) != 3 or not all(os.path.isfile(path) for path in toss_assets):
+        raise AssertionError("검증된 Toss 3D 레퍼런스 3종 결속 실패")
+    icon_assets = style_profile.reference_assets(name, icon_variant)
+    if len(icon_assets) != 3 or not all(os.path.isfile(path) for path in icon_assets):
+        raise AssertionError("아이콘 변형의 통합 DNA 앵커 결속 실패")
+    table_assets = style_profile.reference_assets(
+        name,
+        data_variant,
+        "세 열 데이터 테이블",
+    )
+    if (
+        len(table_assets) != 1
+        or not table_assets[0].endswith("toss-data-table.png")
+        or not os.path.isfile(table_assets[0])
+    ):
+        raise AssertionError("승인 표 전용 앵커 선택 실패")
+
+    data_prompt = style_profile.prompt_block(name, "#246BFD", data_variant)
+    for required in (
+        "SELECTED STYLE VARIANT: data-editorial",
+        "#246BFD",
+        "same-hue tints",
+        "semantic status colour",
+    ):
+        if required not in data_prompt:
+            raise AssertionError("데이터 변형 프롬프트 누락: %s" % required)
+
+    toss_prompt = style_profile.prompt_block(name, "#246BFD", toss_variant)
+    if "semantic status colour" in toss_prompt or "TOSS 3D SCENE" not in toss_prompt:
+        raise AssertionError("Toss 3D 변형 규칙 오염")
+    icon_prompt = style_profile.prompt_block(name, "#246BFD", icon_variant)
+    if (
+        "SEMANTIC ICON EDITORIAL" not in icon_prompt
+        or "NO equal repeated cards" not in icon_prompt
+    ):
+        raise AssertionError("아이콘 에디토리얼 규칙 누락")
+    return "전역통합·3방향라우팅·앵커7종"
+
+
+@check("하이브리드 렌더 라우팅")
+def _hybrid_renderer():
+    import html_slide_renderer
+    import codex_parallel_gen
+    from playwright.sync_api import sync_playwright
+
+    table_job = {
+        "renderer": "html",
+        "layout": "table",
+        "out": "table.png",
+    }
+    scene_job = {
+        "renderer": "codex",
+        "prompt": "Toss-style 3D product scene",
+        "out": "scene.png",
+    }
+    if not html_slide_renderer.supports(table_job):
+        raise AssertionError("HTML 표 라우팅 실패")
+    if html_slide_renderer.supports(scene_job):
+        raise AssertionError("3D 씬이 HTML 경로로 오염")
+    if not codex_parallel_gen.is_html_job(table_job):
+        raise AssertionError("통합 생성기 HTML 라우팅 실패")
+    if codex_parallel_gen.is_html_job(scene_job):
+        raise AssertionError("통합 생성기 Codex 라우팅 실패")
+    with sync_playwright() as playwright:
+        if not os.path.isfile(playwright.chromium.executable_path):
+            raise AssertionError("Playwright Chromium 미설치")
+    return "HTML9종·Codex3역할"
+
+
+@check("실전 시나리오 계약")
+def _scenario_contract():
+    import html_slide_renderer
+
+    reference_dir = os.path.join(os.path.dirname(HERE), "references")
+    paths = {
+        "contract": os.path.join(reference_dir, "render_contract.json"),
+        "fewshots": os.path.join(reference_dir, "scenario_fewshots.json"),
+        "catalog": os.path.join(reference_dir, "scenario_catalog.json"),
+    }
+    payloads = {}
+    for name, path in paths.items():
+        if not os.path.isfile(path):
+            raise AssertionError(f"{name} 파일 누락: {path}")
+        with open(path, encoding="utf-8") as handle:
+            payloads[name] = json.load(handle)
+    scenarios = payloads["catalog"].get("scenarios", [])
+    fewshots = payloads["fewshots"].get("fewShots", [])
+    if len(scenarios) < 12 or len(fewshots) < 9:
+        raise AssertionError("시나리오 또는 few-shot 수량 부족")
+    routing = payloads["contract"].get("contextRouting", {}).get(
+        "visualRoleToLayout", {}
+    )
+    covered_layouts = {
+        shot.get("decision", {}).get("layout")
+        for shot in fewshots
+    }
+    for scenario in scenarios:
+        role = scenario.get("context", {}).get("visualRole")
+        layout = scenario.get("spec", {}).get("layout")
+        if routing.get(role) != layout:
+            raise AssertionError(
+                f"context route mismatch: {scenario.get('id')}: "
+                f"{role}->{routing.get(role)} != {layout}"
+            )
+        if layout not in covered_layouts:
+            raise AssertionError(
+                f"few-shot coverage missing: {scenario.get('id')}: {layout}"
+            )
+    graph_scenarios = [
+        scenario for scenario in scenarios
+        if scenario.get("spec", {}).get("layout") == "network"
+    ]
+    for scenario in graph_scenarios:
+        graph = scenario["spec"]["graph"]
+        errors = html_slide_renderer.validate_graph(graph)
+        if errors:
+            raise AssertionError(f"그래프 계약 실패: {scenario['id']}: {errors}")
+        if any("x" in node or "y" in node for node in graph["nodes"]):
+            raise AssertionError(f"수동 좌표 발견: {scenario['id']}")
+    invalid = {
+        "nodes": [
+            {"id": "a", "label": "A", "entityType": "INPUT"},
+            {"id": "orphan", "label": "고립", "entityType": "SYSTEM"},
+        ],
+        "edges": [
+            {"source": "a", "target": "missing", "direction": "forward", "label": ""}
+        ],
+    }
+    if not html_slide_renderer.validate_graph(invalid):
+        raise AssertionError("잘못된 그래프를 통과시킴")
+    return f"{len(scenarios)}시나리오·{len(fewshots)}few-shot·그래프차단"
 
 
 @check("요구사항 확인 게이트")
@@ -58,7 +230,12 @@ def _intake_gate():
     brief["requirements_confirmed"] = True
     if not intake.assess(brief)["ready"]:
         raise AssertionError("승인된 요구사항이 준비 상태가 아님")
-    return "질문≤3·확인·승인"
+    if intake._recommended_mode(brief) != "image-first":
+        raise AssertionError("비편집 덱의 전역 기본 모드가 image-first가 아님")
+    editable = dict(brief, editable_text_required=True)
+    if intake._recommended_mode(editable) != "scene-deck":
+        raise AssertionError("편집 가능 덱이 scene-deck으로 라우팅되지 않음")
+    return "질문≤3·확인·승인·모드라우팅"
 
 
 @check("Windows/macOS 호환")

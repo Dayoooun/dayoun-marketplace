@@ -1,8 +1,130 @@
 {
-  "schemaVersion": "1.0.0",
-  "defaultProfile": "modern-flat",
-  "note": "산문 설명만으로는 프로파일이 매 실행 무시된다. 이 파일이 단일 출처이며 scripts/style_profile.py 가 프롬프트 블록으로 주입한다.",
+  "schemaVersion": "1.2.0",
+  "defaultProfile": "toss-data-unified",
+  "note": "산문 설명만으로는 프로파일이 매 실행 무시된다. 이 파일이 단일 출처이며 scripts/style_profile.py 가 슬라이드 역할에 맞는 스타일 변형과 기준 이미지를 주입한다.",
+  "renderPolicy": {
+    "default": "hybrid",
+    "htmlLayouts": ["table", "kpi", "bars", "process", "modules", "overview", "roadmap", "network", "image"],
+    "codexRoles": ["3d-scene", "photo", "material-illustration"],
+    "htmlTokens": {
+      "fontFamily": "Pretendard, 'Noto Sans KR', 'Malgun Gothic', sans-serif",
+      "accent": "#246BFD",
+      "background": "#FFFFFF",
+      "text": "#111318",
+      "muted": "#6D727B"
+    }
+  },
   "profiles": {
+    "toss-data-unified": {
+      "label": "Toss 3D + 데이터 리포트 통합",
+      "summary": "개념·제품은 작은 Toss형 3D 씬, 기능·단계는 시맨틱 아이콘, 설문·KPI·통계는 정밀한 데이터 에디토리얼로 자동 전환하는 전역 기본값.",
+      "typography": {
+        "family": "Pretendard 계열 고딕",
+        "forbidSerif": true,
+        "headline": "결론이 먼저 보이는 고딕 헤드라인",
+        "eyebrow": "작은 영문·숫자 섹션 라벨"
+      },
+      "surface": {
+        "background": "흰색 또는 아주 옅은 쿨그레이",
+        "dividers": "얇은 쿨그레이",
+        "density": "슬라이드 역할에 따라 낮음~중간"
+      },
+      "variantRouting": {
+        "default": "toss-3d",
+        "dataKeywords": [
+          "%",
+          "KPI",
+          "설문",
+          "응답",
+          "데이터",
+          "수치",
+          "지표",
+          "비율",
+          "분포",
+          "막대",
+          "도넛",
+          "차트",
+          "테이블",
+          "비교표",
+          "통계",
+          "성과",
+          "현황",
+          "대시보드"
+        ],
+        "iconKeywords": [
+          "아이콘",
+          "기능",
+          "단계",
+          "항목",
+          "체크리스트",
+          "역할",
+          "장점",
+          "요건",
+          "구성",
+          "모듈",
+          "feature",
+          "checklist",
+          "capability"
+        ],
+        "toss3dKeywords": [
+          "표지",
+          "cover",
+          "3D",
+          "scene",
+          "제품",
+          "서비스",
+          "프로세스",
+          "여정",
+          "로드맵",
+          "개념",
+          "구조",
+          "시스템"
+        ]
+      },
+      "variants": {
+        "toss-3d": {
+          "label": "Toss형 3D 씬",
+          "referenceAssets": [
+            "references/toss-3d-concept.png",
+            "references/toss-3d-process.png",
+            "references/toss-3d-product.png"
+          ],
+          "allowSemanticStatusColors": false,
+          "allowAccentTints": true,
+          "promptBlock": "★★ VARIANT — TOSS 3D SCENE:\nUse this for covers, concepts, products, services, processes, journeys and\nroadmaps. Keep the white editorial base and Pretendard-style Korean gothic type.\nUse one small, premium 3D isometric or clay object group that explains the\nmessage. Tuck it into a corner or one side with generous whitespace.\nUse soft matte materials, broad faint shadows and restrained same-hue tints.\nThe illustration must be semantically bound to the claim. Never enlarge a\nsmall icon into a hero scene. NO dashboard composition unless the slide is\nactually data-heavy. NO generic decorative icons or meaningless geometry.",
+          "indexChromeStyle": "folder-tab"
+        },
+        "icon-editorial": {
+          "label": "시맨틱 아이콘 에디토리얼",
+          "referenceAssets": [
+            "references/toss-data-kpi.png",
+            "references/toss-data-overview.png",
+            "references/toss-data-bars.png"
+          ],
+          "allowSemanticStatusColors": false,
+          "allowAccentTints": true,
+          "promptBlock": "★★ VARIANT — SEMANTIC ICON EDITORIAL:\nThe validated Data Editorial pages are the visual master. Icons are tiny labels\ninside an editorial information layout; they NEVER determine the layout.\nUse this for 3–6 repeated features, stages, roles, requirements or benefits.\nBuild a conclusion-led headline with a light/regular premise and bold finding\non the same baseline. Keep the title modest and the upper 25% calm. Start the\nbody between 28% and 34% of slide height and make the last meaningful body edge\nland between 78% and 84%. A structural page ending above 68% is under-filled.\nChoose exactly one recipe by content:\n- PROCESS (5 stages): one continuous rail or baseline with five small icon nodes,\n  no individual cards. Enlarge only the active stage label, not its container.\n- ROADMAP (4 periods): NEVER use a straight timeline or one horizontal period\n  line. Build four staggered editorial steps rising from lower-left to upper-right.\n  Each step is a flat phase slab with a large week marker, short title and tiny\n  icon. Use pale neutral fills and one accent step; no equal cards or boxes.\n- MODULES (4 capabilities): one 42% featured module plus three compact stacked\n  rows, or one continuous panel split by 1px rules. Never a 2x2 card grid.\nEvery icon shares one thin stroke, optical size and accent treatment, occupying\nless than 6% of slide height. Surfaces are near-white and almost borderless.\nHighlight through number, type weight, icon colour or a pale tint, NEVER a blue\noutline. NO equal repeated cards, dashboard tile grid, floating panels, thick\nconnectors, emoji, icon-font glyphs, oversized icons, hero 3D object, decorative\nfiller or mixed icon families.",
+          "indexChromeStyle": "folder-tab"
+        },
+        "data-editorial": {
+          "label": "데이터 리포트 에디토리얼",
+          "referenceAssets": [
+            "references/toss-data-kpi.png",
+            "references/toss-data-overview.png",
+            "references/toss-data-bars.png"
+          ],
+          "tableReferenceAssets": [
+            "references/toss-data-table.png"
+          ],
+          "allowSemanticStatusColors": true,
+          "allowAccentTints": true,
+          "promptBlock": "★★ VARIANT — DATA REPORT EDITORIAL:\nUse this for surveys, KPI, metrics, statistics, distributions, tables and\nperformance evidence. Data is the visual. Do not add a 3D illustration.\nUse a conclusion-led headline with a light premise and bold finding on the same\nbaseline. Structural content starts between 28% and 34% of slide height and its\nlast meaningful edge lands between 78% and 84%; ending above 68% is under-filled.\nUse precise bars, restrained donuts, direct labels, 1px rules and short evidence\nannotations. Highlight only the decisive 1–2 values with the accent and a lighter\nsame-hue tint; keep all other marks charcoal or cool grey.\nFor BAR REPORTS, normalize the largest bar to 100% of the plot width; never use\nthe raw percentage as CSS width. Give the bar plot 68% and KPI summaries 28% of\nthe content zone with a 4% gap. Their top and bottom edges should carry equal\nvisual weight. Put annotations directly below the plot, never floating between\nchart and KPI cards.\nFor TABLES, preserve this exact report grammar: one solid accent-blue header\nband with white labels; alternating white and very light cool-grey body rows;\nflat square corners; generous row height; faint 1px column separators; no outer\ncard, no row cards, no shadow. Left-align descriptive columns and center a short\noutput/status column. Recommended three-column proportion is 28% / 52% / 20%.\nUse one of the validated compositions shown in the attached references:\nKPI triad plus interpretation, metadata plus donut plus distributions, or\n65/35 bars plus summary KPI cards. Red is allowed only for a real warning or gap.\nNO full-background gradient, neon glow, generic icons or oversized dashboard tiles.",
+          "indexChromeStyle": "eyebrow-rule"
+        }
+      },
+      "promptBlock": "★★ STYLE PROFILE — TOSS 3D + ICON + DATA EDITORIAL UNIFIED:\nMaintain one deck identity across all three variants: pure or near-white canvas,\nPretendard-style Korean gothic typography, charcoal text, one supplied accent,\nsmall section eyebrow, wide margins, fine dividers and restrained soft shadows.\nThe validated Data Editorial pages define the master typography, card scale and\nwhitespace. Toss 3D and icons must adapt to that system, not replace it.\nFor HTML structural pages, begin the body at 28–34% of slide height and end its\nlast meaningful visual edge at 78–84%. Reserve only 10–14% for the footer band;\ndo not leave an empty lower quarter. Covers and closing slides are exceptions.\nRoute each slide by information role. Conceptual slides use Toss 3D; repeated\nfeatures, stages and checklists use Semantic Icon Editorial; data-heavy slides\nuse Data Editorial. Do not mix a 3D hero, an icon grid and a dense chart on the\nsame slide. Use modest report headlines and compact almost-borderless cards.\nTypography, accent and footer remain consistent across the deck.",
+      "indexChromeStyle": "folder-tab"
+    },
     "modern-flat": {
       "label": "모던 플랫 (Toss/Naver flat)",
       "summary": "밝고 친근한 정보 전달. 스타트업 IR·SaaS·이커머스·데이터 성과·심사 발표에 적합.",
@@ -40,6 +162,57 @@
       "accentColorPolicy": "브랜드색을 파라미터로 받는다. 레퍼런스가 블루여도 브랜드색을 강제하고 임의 블루를 금지한다.",
       "promptBlock": "★★ STYLE PROFILE — MODERN FLAT (Toss/Naver flat):\nBright clean editorial-tech look. White or very light warm-grey background.\nPretendard-style Korean gothic typeface — NEVER serif/myeongjo.\nOne message per slide. Generous airy whitespace, low information density.\nSoft rounded cards and pill shapes. Thin light-grey divider rules.\nSmall English eyebrow label above a modest bold gothic headline.\nOne large bold number when a metric matters.\n3D isometric / clay illustration and flat icons, rendered SMALL and tucked\ninto a corner — never large or heavy. Every illustration must be semantically\nbound to the slide message (customer=people/connection, strategy=growth\narrow/steps, roadmap=path/milestones, results=rising chart, brand=brand motif).\nNO generic decorative icons, NO meaningless geometric filler.\nREFINED & SMALL: modest headline, small tucked illustration, generous airy\nwhitespace, NOT big/heavy/crowded.",
       "indexChromeStyle": "folder-tab"
+    },
+    "data-report-editorial": {
+      "label": "데이터 리포트 에디토리얼",
+      "summary": "한국형 트렌드·설문·컨설팅 보고서. 큰 결론형 헤드라인, 정밀한 차트, 절제된 KPI 카드에 적합.",
+      "referenceAssets": [
+        "references/data-report-editorial.png"
+      ],
+      "tableReferenceAssets": [
+        "references/toss-data-table.png"
+      ],
+      "typography": {
+        "family": "Pretendard 계열 고딕",
+        "forbidSerif": true,
+        "headline": "한 줄 안에서 전제는 Light 또는 Regular, 핵심 결론은 Bold",
+        "eyebrow": "작은 영문·숫자 섹션 라벨, 넓은 자간",
+        "body": "짧은 해석문은 Medium, 근거 본문은 작은 Regular"
+      },
+      "surface": {
+        "background": "순백색",
+        "cards": "흰색 또는 아주 옅은 쿨그레이, 작은 라운드, 넓고 흐린 그림자",
+        "dividers": "1px 이하의 매우 옅은 쿨그레이",
+        "density": "중간. 데이터는 촘촘하지만 장식은 거의 없음"
+      },
+      "colour": {
+        "accent": "브랜드 강조색과 그 밝은 틴트로 만든 짧은 2-stop tonal gradient",
+        "neutral": "차콜 텍스트와 3단계 쿨그레이",
+        "status": "경고·격차 설명에만 작은 적색 주석 허용",
+        "forbid": [
+          "배경 전체 그라데이션",
+          "장식용 다색 그라데이션",
+          "네온 글로우"
+        ]
+      },
+      "layoutRecipes": {
+        "thesis-bars": "상단 25% 결론형 헤드라인, 좌측 65% 가로 막대와 주석, 우측 35% 요약 KPI 카드 2개",
+        "kpi-triad": "상단 중앙 헤드라인과 서브, 중단 동일 너비 KPI 3개, 하단 좌측 해석문과 근거 본문",
+        "respondent-overview": "좌측 메타데이터 패널, 중앙 조직 규모 도넛, 우측 직급·직무 가로 막대 2단",
+        "dashboard-grid": "하나의 바깥 테두리 안에서 차트 구역을 1px 선으로 분할하고 제목은 각 구역 좌상단에 정렬"
+      },
+      "chartGrammar": {
+        "bars": "최댓값을 plot 폭 100%로 정규화하고 나머지를 비례 배율로 그린다. raw 백분율을 CSS 폭으로 쓰지 않는다. plot 68%·KPI 28%·간격 4%, 양쪽 시각 높이를 맞춘다. 핵심 1~2개만 tonal gradient, 나머지는 연한 회색. 값은 막대 끝 안쪽에 정렬",
+        "donut": "3개 이하 조각, 가장 중요한 조각만 진한 강조색, 라벨은 조각 안에 직접 표기",
+        "annotation": "얇은 직각 connector와 짧은 한두 줄 주석. 경고일 때만 적색",
+        "summaryCards": "큰 수치, 짧은 명사형 캡션, 아이콘 없이 수치 중심",
+        "table": "브랜드 블루 헤더+흰 글자, 흰색/옅은 쿨그레이 지브라 행, 각진 모서리, 1px 열 구분선, 28/52/20 열 비율, 외곽 카드와 그림자 없음"
+      },
+      "allowSemanticStatusColors": true,
+      "allowAccentTints": true,
+      "accentColorPolicy": "지정한 브랜드색을 진한 끝점으로 쓰고 같은 hue의 밝은 틴트를 만든다. 적색은 경고 의미가 있을 때만 예외로 쓴다.",
+      "promptBlock": "★★ STYLE PROFILE — DATA REPORT EDITORIAL:\nPremium Korean research-report layout on a pure white 16:9 canvas.\nPretendard-style Korean gothic typeface — NEVER serif/myeongjo.\nBuild a conclusion-led headline: light/regular premise and bold finding on the\nsame baseline. Keep a small section eyebrow above it with generous tracking.\nUse a strict left grid and wide outer margins. Start the body at 28–34% and end\nthe last meaningful visual edge at 78–84% of slide height. Keep the footer band\nto 10–14%; an empty lower quarter is a layout failure.\nData is the visual: precise horizontal bars, a restrained donut, fine 1px\nrules, direct labels and short evidence annotations. No decorative illustration.\nFor bar reports, normalize the largest bar to the full plot width and scale all\nother bars against it. Never map a raw 31% value to only 31% of the available\nplot. Reserve 68% for bars and 28% for KPI summaries with a 4% gap; keep both\ncolumns equal in visual height and place annotations immediately under the plot.\nFor tables, use one solid accent-blue header band with white labels, alternating\nwhite and very light cool-grey rows, flat square corners, generous row height\nand faint 1px column separators. Never wrap a table in a card and never turn\nrows into rounded cards. Use 28% / 52% / 20% for a three-column report table;\nleft-align descriptions and center a short output/status column.\nHighlight only the decisive 1–2 values. Use the supplied accent colour as the\ndark endpoint and derive one lighter same-hue tint for a short tonal gradient.\nAll other marks use charcoal and three cool-grey levels. A small red annotation\nis allowed only for a genuine warning, gap or negative finding.\nCards are white or near-white with small corners and a broad, very faint shadow.\nPrefer asymmetric report compositions: 65/35 chart + KPI cards, KPI triad above\nan interpretation block, or metadata + donut + two stacked distributions.\nKeep footer metadata tiny and aligned to the bottom-right.\nNO full-background gradient, NO neon glow, NO 3D/clay illustration, NO generic\nicons, NO thick borders, NO oversized rounded dashboard tiles.",
+      "indexChromeStyle": "eyebrow-rule"
     },
     "paper-serif": {
       "label": "페이퍼화이트 명조",

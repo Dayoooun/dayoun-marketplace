@@ -134,6 +134,22 @@ delivery trucks, shelf displays. Materials: glossy cardboard, bright plastic.
 Lighting: energetic bright light, punchy contrast. Mood: dynamic, accessible, commercial.""",
         "eyebrow_style": "upper",
     },
+
+    # ── 뷰티 · 화장품 · 코스메틱
+    "beauty": {
+        "aliases": ["뷰티", "화장품", "코스메틱", "스킨케어", "세정", "미역", "해조류", "기장"],
+        "palette": {"hero": (27, 82, 99), "mid": (107, 162, 170), "pale": (224, 240, 239),
+                    "ink": (18, 30, 34), "grey": (118, 136, 138), "line": (226, 236, 236)},
+        "fonts": {"head": "pretendard", "body": "pretendard", "accent": None},
+        "tone": "warm",
+        "motif": """Objects: seaweed fronds, sea-salt crystals, solid cleansing bars,
+botanical extracts in glass vessels, kraft-paper packaging, coastal pebbles,
+ceramic dishes, linen pouches. Materials: hand-pressed soap surfaces,
+translucent dried kelp, unglazed stoneware, natural linen texture.
+Lighting: golden-hour warmth through a clean window, soft reflected light off
+water or stone. Mood: artisanal, coastal, quietly luxurious, honest.""",
+        "eyebrow_style": "mixed",
+    },
 }
 
 DEFAULT = "it"
@@ -212,6 +228,136 @@ BACKGROUND: pure white, generous empty space.
         "ink": hexc(pal["ink"]), "grey": hexc(pal["grey"]),
         "motif": p["motif"], "tone_line": tone_line,
     }
+
+
+# ══════════════════════════════════════════════════════════
+# 인포그래픽 프롬프트 (2026-08-19 확정)
+#
+# 실측 결과:
+#   v1 맨몸 flat → 한글 OK지만 디자인 밋밋
+#   v2~v4 빈 도형만 → Pillow가 0.1초에 하는 걸 15분 73k토큰으로 했다
+#   v5~v6 3D 일러스트 → 예쁘지만 정보 전달 기능 없음
+#   v7 flat 인포그래픽+한글 → 구조 좋고 깔끔 (문서 본문용)
+#   v8 3D 인포그래픽+한글 → 정보 전달 + 시각 임팩트 (표지·강조용)
+#
+# 핵심 원칙:
+#   1. "structured information graphic with Korean text" 선언
+#   2. 실제 한글 콘텐츠를 프롬프트에 전부 넣는다
+#   3. 라벨 분리(Pillow 합성) 불필요 — Codex가 한글을 직접 정확히 그린다
+#   4. 스타일은 사용자가 고른다. 임의로 정하지 않는다.
+# ══════════════════════════════════════════════════════════
+
+_STYLE_HEADER = """Generate a single premium infographic image for a business plan document.
+This is a STRUCTURED INFORMATION GRAPHIC with Korean text.
+"""
+
+STYLE_3D = """%(header)s
+VISUAL QUALITY — subtle 3D depth and tactile materiality,
+like a Toss or Apple keynote data card:
+- Cards and panels feel like frosted glass or soft matte ceramic floating above the surface.
+- Each element casts a realistic but gentle diffused shadow on the white ground.
+- Subtle inner glow or light edge at the top gives volume to every shape.
+- Rounded corners are generous, like physical objects you could pick up.
+- Light comes from upper-left, soft and warm, wrapping around edges.
+- The overall feel is premium product photography of data objects on a white table.
+- NOT flat vector. NOT cartoon. NOT isometric pixel art. Think Apple Vision Pro UI.
+
+PALETTE (strict — %(key)s domain):
+  Hero: %(hero)s (glossy or solid, for the most important element)
+  Mid: %(mid)s (matte, for secondary elements)
+  Pale: %(pale)s (frosted/translucent, for backgrounds and cards)
+  Ink: %(ink)s (text colour)
+  White ground, very subtle ambient occlusion near objects.
+
+RULES:
+- All Korean text MUST be perfectly rendered and correctly spelled. This is critical.
+- Numbers are extra-large display weight. Headings bold. Body regular weight.
+- Every element has realistic 3D depth — they are objects, not flat rectangles.
+- No decorative illustrations or icons unless the layout explicitly calls for them.
+- Background is pure white with subtle ground shadows.
+- No title area, no watermark, no logo, no page furniture.
+"""
+
+STYLE_FLAT = """%(header)s
+VISUAL QUALITY — clean flat editorial design, Toss app quality:
+- Typography leads. The text IS the design. No decorative texture.
+- Cards are solid flat fills with generous rounded corners and clean edges.
+- Shadows are minimal and neutral, or absent entirely. Elevation comes from
+  colour contrast and spacing, never from heavy drop shadows.
+- Thin hairline dividers where separation is needed. No borders on cards.
+- Generous whitespace between sections. Everything sits on a strict grid.
+- Calm, confident, trustworthy. Zero visual noise.
+- NOT 3D. NOT glossy. NOT textured. NOT skeuomorphic. Pure flat information design.
+
+PALETTE (strict — %(key)s domain):
+  Hero: %(hero)s (solid fill, for the most important element)
+  Mid: %(mid)s (secondary elements)
+  Pale: %(pale)s (card backgrounds)
+  Ink: %(ink)s (text colour)
+  Pure white ground.
+
+RULES:
+- All Korean text MUST be perfectly rendered and correctly spelled. This is critical.
+- Numbers are extra-large display weight. Headings bold. Body regular weight.
+- Alignment is precise. Equal spacing, shared baselines, consistent padding.
+- No decorative illustrations or icons unless the layout explicitly calls for them.
+- Background is pure white, completely flat.
+- No title area, no watermark, no logo, no page furniture.
+"""
+
+STYLES = {
+    "3d": STYLE_3D,
+    "flat": STYLE_FLAT,
+}
+
+STYLE_GUIDE = {
+    "3d": "입체감 있는 유리·세라믹 질감. 표지, 강조 페이지, 발표 자료에 어울린다.",
+    "flat": "깔끔한 평면 편집 디자인. 문서 본문, 여러 장 반복 삽입에 어울린다.",
+}
+
+
+def diagram_block(name=None, kind="flow", content="", style=None):
+    """인포그래픽 프롬프트 블록.
+
+    Codex 이미지 생성으로 한글 텍스트가 포함된 구조적 정보 디자인을 만든다.
+
+    Args:
+        name: 도메인 (beauty, it, food 등). 팔레트를 결정한다.
+        kind: 인포그래픽 유형 (현재 미사용, 향후 유형별 구조 지시 확장용).
+        content: 실제 한글 콘텐츠. 프롬프트의 CONTENT 섹션에 그대로 들어간다.
+        style: `3d` 또는 `flat`. **반드시 지정해야 한다.**
+              생략하면 ValueError로 막는다 — 에이전트가 사용자 대신
+              시각 스타일을 정하면 안 되기 때문이다(2026-08-19 사용자 지시).
+    """
+    if style is None:
+        raise ValueError(
+            "style을 지정해야 합니다. 사용자에게 먼저 물어보세요.\n"
+            + "\n".join(
+                "  %-5s : %s" % (key, STYLE_GUIDE[key]) for key in STYLES
+            )
+        )
+    if style not in STYLES:
+        raise ValueError(
+            "unknown style: %s (expected one of %s)"
+            % (style, ", ".join(sorted(STYLES)))
+        )
+
+    p = preset(name)
+    pal = p["palette"]
+
+    def hexc(c):
+        return "#%02X%02X%02X" % c
+
+    header = STYLES[style] % {
+        "header": _STYLE_HEADER.strip(),
+        "key": p["key"],
+        "hero": hexc(pal["hero"]), "mid": hexc(pal["mid"]),
+        "pale": hexc(pal["pale"]), "ink": hexc(pal["ink"]),
+    }
+
+    content_block = "\nCONTENT:\n%s\n" % content.strip() if content.strip() else ""
+
+    return header + content_block
 
 
 def listing():

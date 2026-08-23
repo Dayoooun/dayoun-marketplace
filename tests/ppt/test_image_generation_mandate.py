@@ -62,20 +62,13 @@ class ImageGenerationMandateTests(unittest.TestCase):
         # 프롬프트 조립 지점에서 상수를 붙여야 한다. 문서에만 적으면 누락된다.
         self.assertIn("+ IMAGE_GEN_MANDATE", source)
 
-    def test_missing_style_anchor_is_blocked(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            job = {
-                "label": "no-anchor",
-                "out": "out/s01.png",
-                "prompt": "토스 느낌의 표지",
-            }
-            with self.assertRaises(ValueError) as caught:
-                gen._run_one(job, temp, retry=0)
+    def test_default_profile_supplies_validated_style_anchors(self) -> None:
+        variant = gen.resolve_style_variant(None, "토스 느낌의 표지")
+        refs = gen.resolve_style_refs(None, variant)
 
-        message = str(caught.exception)
-        self.assertIn("스타일 앵커가 없습니다", message)
-        # 막기만 하고 대안을 안 주면 사용자가 우회한다.
-        self.assertIn("allowNoStyleAnchor", message)
+        self.assertEqual("toss-3d", variant)
+        self.assertEqual(3, len(refs))
+        self.assertTrue(all(Path(path).is_file() for path in refs))
 
     def test_declared_style_anchor_must_exist_on_disk(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -115,42 +108,83 @@ class ImageGenerationMandateTests(unittest.TestCase):
 
 
 class StyleProfileDefaultTests(unittest.TestCase):
-    """스타일 프로파일이 매 실행 흔들리지 않고 기본값으로 고정되는지.
+    """전역 통합 프로파일이 슬라이드 역할별 변형을 일관되게 고르는지."""
 
-    SKILL.md 에 "모던 플랫 (Toss/Naver flat)" 설명이 있어도 산문이라 실행 경로가
-    읽지 못했다. 그래서 사용자가 매번 토스 룩을 원해도 슬라이드마다 룩이 달랐다.
-    """
+    def test_unspecified_job_gets_unified_toss_default(self) -> None:
+        variant = gen.resolve_style_variant(None, "서비스 구조를 보여주는 표지")
+        block = gen.resolve_style_prompt(None, None, variant)
 
-    def test_unspecified_job_gets_modern_flat_default(self) -> None:
-        block = gen.resolve_style_prompt(None, None)
-
+        self.assertEqual("toss-3d", variant)
         for token in (
-            "MODERN FLAT",
+            "TOSS 3D + ICON + DATA EDITORIAL UNIFIED",
+            "SELECTED STYLE VARIANT: toss-3d",
             "Pretendard",
-            "NEVER serif",
-            "3D isometric",
-            "clay illustration",
-            "One message per slide",
+            "premium 3D isometric or clay object group",
+            "NO generic decorative icons",
         ):
             with self.subTest(token=token):
                 self.assertIn(token, block)
 
-    def test_illustration_must_be_semantically_bound_and_small(self) -> None:
-        block = gen.resolve_style_prompt(None, None)
+    def test_visual_role_router_selects_icons_and_charts(self) -> None:
+        icon_variant = gen.resolve_style_variant(
+            None,
+            "핵심 기능 4가지와 단계별 체크리스트",
+        )
+        data_variant = gen.resolve_style_variant(
+            None,
+            "응답자 설문 KPI 58.4% 분포 차트",
+        )
 
+        self.assertEqual("icon-editorial", icon_variant)
+        self.assertEqual("data-editorial", data_variant)
+        self.assertEqual(3, len(gen.resolve_style_refs(None, icon_variant)))
+        self.assertEqual(3, len(gen.resolve_style_refs(None, data_variant)))
+        negative_variant = gen.resolve_style_variant(
+            None,
+            "로드맵 단계와 아이콘. No chart, no 3D hero.",
+        )
+        self.assertEqual("icon-editorial", negative_variant)
+        icon_block = gen.resolve_style_prompt(None, None, icon_variant)
+        self.assertIn("SEMANTIC ICON EDITORIAL", icon_block)
+        self.assertIn("6% of slide height", icon_block)
+        self.assertIn("NO equal repeated cards", icon_block)
+        self.assertIn("NEVER use a straight timeline", icon_block)
+        self.assertIn("four staggered editorial steps", icon_block)
+        self.assertIn("last meaningful body edge", icon_block)
+        self.assertIn(
+            "DATA REPORT EDITORIAL",
+            gen.resolve_style_prompt(None, None, data_variant),
+        )
+        data_block = gen.resolve_style_prompt(None, None, data_variant)
+        self.assertIn("solid accent-blue header", data_block)
+        self.assertIn("28% / 52% / 20%", data_block)
+        self.assertIn("last meaningful edge lands between 78% and 84%", data_block)
+        table_refs = gen.resolve_style_refs(
+            None,
+            data_variant,
+            "세 열 데이터 테이블",
+        )
+        self.assertEqual(1, len(table_refs))
+        self.assertTrue(table_refs[0].endswith("toss-data-table.png"))
+
+    def test_illustration_must_be_semantically_bound_and_small(self) -> None:
+        variant = gen.resolve_style_variant(None, "제품 개념을 보여주는 3D scene")
+        block = gen.resolve_style_prompt(None, None, variant)
+
+        self.assertIn("semantically bound", block)
+        self.assertIn("Tuck it into a corner", block)
         self.assertIn("NO generic decorative icons", block)
-        self.assertIn("meaningless geometric filler", block)
-        # 크게 그리면 토스 룩이 아니라 흔한 AI 슬롭이 된다.
-        self.assertIn("tucked", block)
 
     def test_missing_accent_does_not_fall_back_to_generic_blue(self) -> None:
-        block = gen.resolve_style_prompt(None, None)
+        variant = gen.resolve_style_variant(None, "표지")
+        block = gen.resolve_style_prompt(None, None, variant)
 
         self.assertIn("NOT SUPPLIED", block)
         self.assertIn("generic tech blue", block)
 
     def test_supplied_accent_overrides_reference_colour(self) -> None:
-        block = gen.resolve_style_prompt(None, "#0B5FFF")
+        variant = gen.resolve_style_variant(None, "표지")
+        block = gen.resolve_style_prompt(None, "#0B5FFF", variant)
 
         self.assertIn("#0B5FFF", block)
         self.assertIn("Do NOT substitute a generic blue", block)

@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "contractId": "ppt-editorial-hybrid-v1",
+  "rendererDecision": {
+    "htmlLayouts": ["table", "kpi", "bars", "overview", "process", "modules", "roadmap", "network", "image"],
+    "codexAssetRoles": ["3d-scene", "photo", "material-illustration"],
+    "rule": "Use HTML for deterministic type, geometry, charts, entities and edges. Use Codex only to create non-deterministic visual assets, then place those assets in an HTML page when exact copy is required."
+  },
+  "contextRouting": {
+    "visualRoleToLayout": {
+      "comparison-table": "table",
+      "kpi": "kpi",
+      "evidence-bars": "bars",
+      "respondent-overview": "overview",
+      "process": "process",
+      "modules": "modules",
+      "roadmap": "roadmap",
+      "entity-flow": "network",
+      "entity-cycle": "network",
+      "long-copy-table": "table",
+      "3d-product": "image",
+      "photo": "image"
+    },
+    "rendererByLayout": {
+      "table": "html",
+      "kpi": "html",
+      "bars": "html",
+      "overview": "html",
+      "process": "html",
+      "modules": "html",
+      "roadmap": "html",
+      "network": "html",
+      "image": "codex-asset-plus-html"
+    },
+    "rule": "The harness derives the expected layout from context.visualRole and rejects a conflicting fixture spec.layout."
+  },
+  "context": {
+    "required": ["audience", "message", "evidenceType", "density", "visualRole"],
+    "optional": ["brandAccent", "sourceAsset", "warningMeaning", "editableSource"],
+    "forbiddenSubstitutions": [
+      "Do not replace a required photo or 3D asset with generic vectors.",
+      "Do not ask Codex to redraw exact tables, charts or graph labels.",
+      "Do not infer facts, metrics, names or relationships absent from the source."
+    ]
+  },
+  "verticalBalance": {
+    "structuralBodyTop": [0.26, 0.40],
+    "meaningfulBodyBottom": [0.80, 0.88],
+    "footerBand": [0.08, 0.14],
+    "underfilledBefore": 0.72,
+    "exceptions": ["cover", "closing", "full-bleed-photo"]
+  },
+  "internalGap": {
+    "processToNoteMax": 0.18,
+    "rule": "A distant footer note cannot make a shallow process rail look vertically complete."
+  },
+  "photoFocal": {
+    "requireImagePosition": true,
+    "minScaleWhenReframing": 1.05,
+    "rule": "Photo scenarios must declare a focal position and a deliberate crop scale."
+  },
+  "horizontalBalance": {
+    "outerMargin": [0.035, 0.065],
+    "barsPlotKpiGap": [0.68, 0.28, 0.04],
+    "tableColumns": [0.28, 0.52, 0.20]
+  },
+  "moduleFeatureBalance": {
+    "maxChildMargin": {"top": 0.18, "bottom": 0.18, "left": 0.18, "right": 0.18},
+    "rule": "Distribute semantic anchors across the feature panel. Do not leave the label cluster stranded in one quadrant."
+  },
+  "graphContract": {
+    "nodeRequired": ["id", "label", "entityType"],
+    "edgeRequired": ["source", "target", "direction", "label"],
+    "directions": ["forward", "bidirectional"],
+    "forbidMissingEndpoints": true,
+    "forbidSelfEdges": true,
+    "forbidIsolatedNodes": true,
+    "requireEdgeLabels": true,
+    "layoutRule": "Compute positions from topology. Scenario data never provides fixed x/y coordinates."
+  },
+  "proseContract": {
+    "headline": "One claim per slide. Use a regular premise and bold conclusion when the sentence supports it.",
+    "labels": "Use short noun phrases and preserve domain terminology.",
+    "warnings": "Use red only for a real negative finding, gap or risk.",
+    "protected": ["names", "dates", "numbers", "units", "URLs", "commands", "quotes", "legal text"]
+  },
+  "qualityGate": {
+    "size": [1672, 941],
+    "maxOverflowElements": 0,
+    "requireLayoutReceipt": true,
+    "requireGraphReceiptMatch": true,
+    "requireNonUniformImage": true,
+    "requireContactSheet": true,
+    "requirePptxPagesMatch": true,
+    "requirePdfPagesMatch": true,
+    "requireSourceHash": true,
+    "requireInputOutputDigests": true,
+    "requireVisibleGraphEdges": true
+  }
+}

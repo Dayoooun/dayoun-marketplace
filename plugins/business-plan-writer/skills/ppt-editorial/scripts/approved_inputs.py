@@ -17,6 +17,12 @@ SCENE_RENDERER_VERSION = "scene-deck-v3"
 IMAGE_RENDERER_VERSION = "image-first-v1"
 
 
+def configure_utf8_output(stream) -> None:
+    reconfigure = getattr(stream, "reconfigure", None)
+    if callable(reconfigure):
+        reconfigure(encoding="utf-8")
+
+
 class ApprovalError(ValueError):
     pass
 
@@ -58,10 +64,20 @@ def digest_bytes(data: bytes) -> str:
     return DIGEST_PREFIX + hashlib.sha256(data).hexdigest()
 
 
-def store_value(store: Path, value: Any) -> str:
+def _store_path(store: Path | str) -> Path:
+    """store 를 Path 로 정규화한다.
+
+    문서(SKILL.md, scene-deck/README.md)가 APPROVAL_STORE = "approval-store"
+    처럼 문자열을 쓰라고 안내한다. str 을 그대로 받으면 store / digest 에서
+    TypeError 로 죽으므로 경계에서 흡수한다.
+    """
+    return store if isinstance(store, Path) else Path(store)
+
+
+def store_value(store: Path | str, value: Any) -> str:
     canonical = canonical_bytes(value)
     digest = digest_bytes(canonical)
-    target = store / digest.removeprefix(DIGEST_PREFIX)
+    target = _store_path(store) / digest.removeprefix(DIGEST_PREFIX)
     target.parent.mkdir(parents=True, exist_ok=True)
     if target.exists() and target.read_bytes() != canonical:
         raise ApprovalError(f"content-address collision: {digest}")
@@ -69,10 +85,10 @@ def store_value(store: Path, value: Any) -> str:
     return digest
 
 
-def resolve_value(store: Path, digest: str) -> Any:
+def resolve_value(store: Path | str, digest: str) -> Any:
     if not digest.startswith(DIGEST_PREFIX) or len(digest) != 71:
         raise ApprovalError(f"invalid digest: {digest}")
-    path = store / digest.removeprefix(DIGEST_PREFIX)
+    path = _store_path(store) / digest.removeprefix(DIGEST_PREFIX)
     if not path.is_file():
         raise ApprovalError(f"approved input unavailable: {digest}")
     data = path.read_bytes()
@@ -155,7 +171,7 @@ def verify_approval_bundle(
 
 
 def resolve_approved_bundle(
-    store: Path,
+    store: Path | str,
     envelope: dict[str, Any],
     *,
     expected_mode: str | None = None,
@@ -186,7 +202,7 @@ def sha256_file(path: Path) -> str:
 
 def build_image_render_receipt(
     *,
-    store: Path,
+    store: Path | str,
     approval_digest: str,
     png_dir: Path,
 ) -> dict[str, Any]:
@@ -250,6 +266,7 @@ def verify_image_render_receipt(
 
 
 def main() -> int:
+    configure_utf8_output(sys.stdout)
     parser = argparse.ArgumentParser(description="Build or verify immutable PPT approval inputs")
     subparsers = parser.add_subparsers(dest="command", required=True)
     build = subparsers.add_parser("build")

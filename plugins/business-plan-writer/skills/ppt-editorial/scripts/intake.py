@@ -116,9 +116,9 @@ def _recommended_mode(data: dict[str, Any]) -> str:
     requested = str(data.get("mode", "auto")).lower()
     if requested in {"scene", "scene-deck", "image-first"}:
         return "scene-deck" if requested in {"scene", "scene-deck"} else "image-first"
-    if data.get("visual_first") and not data.get("editable_text_required"):
-        return "image-first"
-    return "scene-deck"
+    if data.get("editable_text_required"):
+        return "scene-deck"
+    return "image-first"
 
 
 def _page_range(data: dict[str, Any]) -> str:

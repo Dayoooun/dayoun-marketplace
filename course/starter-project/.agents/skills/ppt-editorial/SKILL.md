@@ -46,23 +46,40 @@ PPT의 수치·고유명사·주장·근거는 승인 bundle과 다시 대조한
 평가지표 기반 예상 질문과 근거가 있는 답변이 모두 있어야 한다.
 
 
-> ## 먼저 모드를 고른다
+> ## 먼저 렌더 경로를 고른다
 >
-> | | **A. 씬 덱** (기본값) | **B. 이미지 퍼스트** |
-> |---|---|---|
-> | 모델이 그리는 것 | 배경 씬·일러스트**만** | 슬라이드 **한 장 전체** |
-> | 텍스트 | **코드가 렌더** — 한글 정확, 폰트 고정 | 이미지 안에 그려짐 |
-> | 문구 수정 | 조립만 다시 — **수초** | 해당 장 재생성 |
-> | 산출 | PDF + 이미지형 PPTX + 재조립 가능한 `spec.json` | 이미지형 PPTX |
-> | 적합 | 제안서·결과보고·IR·강의 (텍스트가 계약·수치) | 콘셉트 제안·비주얼 우선 |
-> | PowerPoint 내부 텍스트 편집 | 불가 — 문구는 `spec.json`에서 고쳐 재조립 | 불가 — 해당 장 재생성 |
+> | | **A. HTML 구조 렌더** | **B. Codex 이미지 생성** | **C. 하이브리드** (전역 기본값) |
+> |---|---|---|---|
+> | 그리는 것 | 표·차트·KPI·응답자 개요·아이콘·프로세스·모듈·로드맵 | 3D 씬·사진·질감 일러스트 | 슬라이드 역할별로 A/B 자동 선택 |
+> | 텍스트 | Chromium이 렌더. 한글·정렬·폰트 고정 | 이미지 안에 생성 | 구조 페이지는 HTML, 3D 페이지만 Codex |
+> | 문구 수정 | HTML 스펙만 다시 렌더. 수초 | 해당 장 재생성 | 바뀐 경로만 재실행 |
+> | 산출 | PNG + 이미지형 PPTX/PDF | PNG + 이미지형 PPTX/PDF | 같은 크기의 PNG 세트로 통합 |
+> | 적합 | 보고서·표·설문·수치·아이콘 도식 | 표지·제품·개념·공간·감성 비주얼 | 제안서·결과보고·IR·강의 |
+> | PowerPoint 내부 텍스트 편집 | 불가. JSON 스펙에서 수정 | 불가. 해당 장 재생성 | 불가. 경로별 원본에서 수정 |
 >
-> **판단 기준 한 줄**: 글자가 틀리면 안 되거나 나중에 고칠 일이 있으면 **A**,
-> 그림이 전부이고 텍스트는 장식이면 **B**.
+> **판단 기준:** 브라우저가 정확히 그릴 수 있는 것은 HTML로 만든다. 표·차트·KPI·
+> 아이콘·프로세스·모듈·로드맵을 Codex에 통째로 그리게 하지 않는다. 3D 오브젝트,
+> 사진, 재질과 조명이 필요한 장면만 Codex 이미지 생성을 쓴다.
 >
-> 두 모드 모두 같은 이미지 생성 엔진을 쓴다. 차이는 **모델에게 무엇을 그리게 하느냐**다.
+> `codex_parallel_gen.py`는 `layout`이 `table|kpi|bars|process|modules|overview|roadmap|network|image`이면
+> Playwright HTML 렌더러로 보내고, 그 외 3D·생성 이미지 잡은 Codex로 보낸다.
+> 한 덱 안에서 두 경로를 섞되 최종 출력은 동일한 1672×941 PNG로 통일한다.
 
-> ⚠️ 스킬명 `ppt-editorial`은 초기 이름이 남은 것이다. 현재는 씬 덱과 이미지 퍼스트 두 모드를 모두 제공한다.
+### 실전 시나리오 하네스
+
+- `references/render_contract.json`은 `context.visualRole`에서 layout/renderer를 도출하고 수직·수평 균형·문체·그래프·품질 게이트를 묶는 단일 계약이다. catalog의 `spec.layout`이 맥락 결정과 다르면 렌더하지 않는다.
+- `references/scenario_fewshots.json`은 맥락 → 렌더 결정 → 구조 → 불변조건을 보여주는 layout별 few-shot이다. 좌표나 특정 슬라이드 문구를 복제하지 않는다.
+- `references/scenario_catalog.json`은 표·KPI·막대·도넛·프로세스·모듈·로드맵·긴 한글·엔티티 그래프·3D·사진 시나리오를 semantic data로 제공한다.
+- `network` 노드는 `id|label|entityType`, 엣지는 `source|target|direction|label`이 필수다. 위치는 위상으로 계산하고 수동 `x/y`, 누락 endpoint, self-edge, 무라벨 edge, 고립 노드를 차단한다.
+- 그래프 엣지는 노드 중심이 아니라 boundary port에서 끝난다. 우회 경로·marker·label·endpoint·노드 충돌을 `.layout.json`의 edge별 visibility receipt로 검증한다.
+- `image`는 Codex가 만든 `3d-scene|photo|material-illustration` 자산을 HTML의 정확한 문구·정렬과 결합한다. 사진은 focal 위치와 crop scale을 명시한다.
+- 모든 HTML 렌더는 body bbox, overflow, 내부 gap, 모듈 내부 여백, 그래프 관계, renderer/spec/asset digest를 receipt에 기록한다.
+
+```bash
+python scripts/scenario_harness.py --out-dir artifacts/scenario-harness
+```
+
+12개 시나리오 PNG, 콘택트시트, PPTX, PDF, `scenario-report.json`을 실제 생성한다. 보고서는 canonical input의 `sourceHash`, 모든 PNG/receipt와 조립 산출물 digest, PPTX/PDF page count를 결속한다. 하나라도 실패하면 exit 1이다.
 
 ### 씬 자산 모드 — `cutout`과 `canvas`
 
@@ -104,7 +121,7 @@ placed bbox, 면적·폭·높이 점유율, 충돌 결과를 기록한다. 제�
 쪽번호·하단 헤어라인·발신주체와 겹치거나 슬롯을 벗어나면 납품하지 않는다.
 콘택트시트만 보지 않고 COVER·L·S·W·A·CLOSING을 원본 16:9 크기로 각각 확인한다.
 
-이미지 퍼스트 모드에서만 레퍼런스를 기준으로 슬라이드 한 장 전체의 텍스트·아이콘·도식·사진을 codex(GPT Image)가 이미지 안에 렌더한다. 씬 덱 모드는 모델이 배경 씬·일러스트만 만들고 모든 정확한 텍스트·수치·고정 크롬은 코드가 렌더한다. 두 모드를 한 덱 안에서 임의로 섞지 않는다.
+하이브리드 모드에서는 구조화 가능한 페이지를 `html_slide_renderer.py`가 Chromium으로 렌더하고, 3D 씬·사진·질감 일러스트만 Codex가 생성한다. Codex가 만든 3D 자산과 HTML 페이지는 같은 PNG 세트에서 함께 조립할 수 있다. 전체 슬라이드를 Codex에 맡기는 경로는 사용자가 비주얼 전체 생성을 명시했거나 HTML로 표현할 수 없는 페이지에만 쓴다.
 
 ## ★★★ 0. 실행 전제조건 (없으면 먼저 설치한다)
 
@@ -114,7 +131,7 @@ placed bbox, 면적·폭·높이 점유율, 충돌 결과를 기록한다. 제�
 ### 한 줄 점검
 
 ```bash
-python -c "import PIL,cv2,fitz,numpy,pptx,shutil,sys;print('codex:',shutil.which('codex'),'| py:',sys.version.split()[0])"
+python -c "import PIL,cv2,fitz,numpy,pptx,playwright,shutil,sys;print('codex:',shutil.which('codex'),'| py:',sys.version.split()[0])"
 ```
 
 `codex: None`이거나 `ModuleNotFoundError`가 나면 해당 항목을 설치한다.
@@ -122,7 +139,8 @@ python -c "import PIL,cv2,fitz,numpy,pptx,shutil,sys;print('codex:',shutil.which
 ### 파이썬 패키지
 
 ```bash
-pip install pillow opencv-python pymupdf numpy python-pptx
+pip install pillow opencv-python pymupdf numpy python-pptx playwright
+python -m playwright install chromium
 ```
 
 | import | 설치명 | 쓰는 곳 | 없으면 |
@@ -132,6 +150,7 @@ pip install pillow opencv-python pymupdf numpy python-pptx
 | `numpy` | `numpy` | 여백 검사·레이아웃 계산 | QC·레이아웃 정지 |
 | `pptx` | `python-pptx` | 편집 가능 PPTX 출력 | PPTX만 불가 (PDF는 됨) |
 | `cv2` | `opencv-python` | `photos.py` 사진 자동 크롭 | 사진 슬라이드만 불가 |
+| `playwright` | `playwright` | HTML 표·차트·아이콘 렌더 | 구조 페이지 렌더 불가 |
 
 파이썬은 **3.10 이상**을 쓴다.
 
@@ -144,7 +163,8 @@ pip install pillow opencv-python pymupdf numpy python-pptx
 # Python 또는 Node가 없을 때만
 brew install python node
 
-python3 -m pip install pillow opencv-python pymupdf numpy python-pptx
+python3 -m pip install pillow opencv-python pymupdf numpy python-pptx playwright
+python3 -m playwright install chromium
 npm i -g @openai/codex
 codex login
 python3 scripts/harness_smoke.py
@@ -169,7 +189,7 @@ macOS에서 GUI 앱을 통해 실행해 Homebrew 경로가 `PATH`에서 빠져�
 `/opt/homebrew/bin`과 `/usr/local/bin`의 `codex`를 다시 찾는다.
 생성 종료도 Windows의 `taskkill` 또는 macOS의 POSIX 프로세스 그룹으로 자동 분기한다.
 
-### codex CLI — 씬 생성 전용
+### codex CLI — 3D·생성 이미지 전용
 
 ```bash
 npm i -g @openai/codex
@@ -179,21 +199,21 @@ codex --version
 
 **Claude Code에서 실행하더라도 이 CLI는 따로 설치해야 한다.**
 씬(배경 이미지) 생성은 codex를 통해 GPT-Image를 호출하기 때문이다.
-`scripts/codex_parallel_gen.py`의 `require_codex()`가 시작 시 검사하고,
-없으면 위 설치 명령을 출력하며 중단한다 — 원인 불명의 `FileNotFoundError`는 나지 않는다.
+`scripts/codex_parallel_gen.py`는 HTML로 처리할 수 없는 잡이 하나라도 있을 때만
+`require_codex()`를 실행한다. HTML 전용 덱은 codex 없이 완성된다.
 
 ### codex 없이 되는 것
 
-씬을 뺀 나머지는 전부 동작한다. 이미지 생성이 불가능한 환경이면
-`scene=` 인자를 비우고 진행한다. 레이아웃·타이포·표·차트·PDF·PPTX는
-모두 코드가 처리하므로 **글자 중심 덱은 codex 없이 완성된다.**
+3D·사진·생성 일러스트를 뺀 나머지는 전부 동작한다. 표·차트·KPI·아이콘·
+프로세스·모듈·로드맵은 Playwright Chromium이 렌더하므로 **구조 중심 덱은
+codex 없이 완성된다.**
 
 ### 선택 사항
 
 | 대상 | 용도 | 없을 때 |
 | --- | --- | --- |
 | 한글 폰트(Pretendard·G마켓산스 등) | 지정 서체 렌더 | `fonts.py`가 시스템 폰트로 자동 폴백 |
-| Chrome/Chromium | 일부 합성 경로 | 기본 경로는 Pillow만 쓰므로 불필요 |
+| Playwright Chromium | HTML 구조 슬라이드 렌더 | 구조 페이지 렌더 불가 |
 
 ## ★★★ 0-1. 요구사항 확인 게이트 (두 모드 공통)
 
@@ -229,6 +249,10 @@ d = Deck.from_brief("deck_brief.md", domain="it", out_dir="deck_out")
 콘텐츠 근거를 정리한 다음에만 밝기·전문/스타일리시 노선·프리뷰 개수를 짧게 맞춘다.
 상세 인터뷰 순서는 `references/image-first-workflow.md`의 Stage 1~1.5를 따른다.
 사용자·브랜드·공식 양식의 스타일 요구가 없으면 `references/style-system.md`의 Pretendard와 밝고 절제된 중립 기본값을 사용한다. 장식 이미지보다 승인된 주장·구조를 설명하는 다이어그램, 비교, 타임라인, KPI, 프로세스를 우선한다.
+
+**전역 모드 기본값:** 사용자가 편집 가능한 개별 도형·텍스트를 요구하지 않으면
+`image-first`로 생성하고 `toss-data-unified`를 적용한다. 편집 가능성이 필수이면
+`scene-deck`을 쓴다. 사용자가 모드를 직접 지정하면 그 선택이 최우선이다.
 
 ## ★★★ 1. 확인된 요구사항과 자료를 정리한다 (두 모드 공통)
 
@@ -328,7 +352,7 @@ OUTPUT                크기·형식
 ## 3-1. 스타일 프로파일 (모드 공통 · 검증된 디자인 DNA — 골라서 앵커로 먹임)
 원하는 룩을 **레퍼런스 세트 + 스타일 블록 + 승인된 예시 슬라이드**로 고정한다. "이 DNA 항상 잘 나오게"의 메커니즘 = 아래 3종을 `-i`로 먹이는 것.
 
-### ★★★ 0. 씬 덱 (Scene Deck) — **기본값. 고객 납품·피칭·제안은 여기서 시작** (2026-08-01 확정)
+### ★★★ 0. 씬 덱 (Scene Deck) — **편집 가능한 도형·텍스트가 필수일 때 사용**
 
 승인 기준본 = 납품처 기술해자 덱 · 납품처 결과보고.
 **사용법·규격·함정은 `scripts/scene-deck/README.md`(19절)에 전부 있다. 반드시 먼저 읽어라.**
@@ -402,6 +426,20 @@ d.build(APPROVAL_DIGEST, APPROVAL_STORE, pdf=True, pptx=True) # 조립 + PDF/PPT
 > ⚠️ **수정은 재생성이 아니다.** `Deck.load(spec).revise()` + `apply_command()`로 고친다.
 > 텍스트·구도·순서·색·폰트는 조립만 하고(수초), 씬 내용을 바꿀 때만 그 장을 재생성한다.
 
+### ★★★ 전역 기본값: Toss 3D + 데이터 리포트 통합
+
+`styleProfile`을 생략하면 `toss-data-unified`를 쓴다. 한 덱 안에서 표지·개념·제품·
+프로세스·여정·로드맵은 `toss-3d`, 기능·단계·역할·체크리스트는 `icon-editorial`,
+설문·KPI·수치·통계·분포·차트·표·성과 페이지는 `data-editorial`로 자동 전환한다.
+세 변형은 Pretendard 계열 고딕, 흰 배경, 같은 강조색, 작은 eyebrow, 넓은 여백,
+얇은 구분선과 절제된 그림자를 공유한다.
+
+- **자동 판정:** `scripts/style_profile.py::select_variant()`가 슬라이드 프롬프트의 역할어를 센다.
+- **명시 우선:** 자동 판정이 맞지 않으면 잡에 `"styleVariant": "toss-3d"`, `"icon-editorial"` 또는 `"data-editorial"`을 적는다.
+- **혼합 금지:** 한 슬라이드 안에 큰 3D 히어로와 촘촘한 차트 대시보드를 함께 넣지 않는다. 슬라이드 단위로 변형을 고른다.
+- **검증된 앵커 7종:** Toss 3D의 개념·프로세스·제품 3장, 데이터 에디토리얼의 KPI·응답자 개요·막대 차트 3장, 승인된 표 1장을 형식별로 자동 주입한다. 아이콘 페이지는 데이터 에디토리얼 3장을 기준으로 삼고 아이콘은 작은 의미 라벨로만 쓴다. 표 페이지는 승인된 표 1장만 단독 주입해 헤더·지브라 행·열 비율을 고정한다.
+- **기간 로드맵:** 일자형 수평 타임라인을 금지한다. 4개 기간은 좌하단에서 우상단으로 올라가는 계단형 phase slab으로 배치하고, 기간 숫자·짧은 제목·작은 아이콘만 남긴다.
+### A. 페이퍼화이트 명조
 - 페이퍼화이트 + **명조(serif)** + 미니멀 + 강조 1색 + 얇은 헤어라인 + (선택)수묵/잉크 모티프. 실물 사진 크게.
 - 톤: 차분·고급·정제된 여백. 결과보고·컨설팅·전통/식음 브랜드에 적합.
 - 실전: 고객사 Q 덱 · 고객사 P 오디션 덱.
@@ -414,14 +452,27 @@ d.build(APPROVAL_DIGEST, APPROVAL_STORE, pdf=True, pptx=True) # 조립 + PDF/PPT
 - ★★ **데코 오브제 관리 (은은 + 의미연결)**: 정제 스케일에서 생기는 dead zone은 **은은한(저대비·1~2개·과하지 않게) 데코**로만 균형 — 채움/클러터 금지. ★데코는 반드시 **슬라이드 주제와 의미 연결**(전략=성장 화살표/계단, 고객=사람/연결, 로드맵=경로, 성과=차트 힌트, 브랜드=브랜드 모티프, 주제 3D클레이를 빈 코너에). **무의미한 기하 필러 금지**. 옅은 배경도형·점선호·도트그리드는 주제를 echo할 때만.
 - 톤: 밝고 모던·친근·테크. 스타트업 IR·SaaS·이커머스·데이터 성과에 적합. 실전: 납품 덱.
 
-→ 프로파일 정의의 단일 출처는 `style_profiles.json`이다. 산문 설명만 두면 실행 경로가 읽지 못해 매번 다른 룩이 나온다. 기본값은 `modern-flat`(모던 플랫 / Toss·Naver flat)이며 `scripts/style_profile.py`가 프롬프트 블록으로 주입한다.
+### C. 데이터 리포트 에디토리얼
+
+- **핵심 인상:** 순백 배경, Pretendard 계열 고딕, 넓은 바깥 여백, 작은 섹션 eyebrow, 한 줄 안에서 Light 전제와 Bold 결론을 나누는 헤드라인.
+- **정보가 장식이다:** 가로 막대·도넛·직접 라벨·1px 구분선·짧은 주석으로 설명한다. 3D 일러스트와 제네릭 아이콘은 넣지 않는다.
+- **강조 규칙:** 결정적인 값 1~2개만 브랜드색과 같은 hue의 밝은 틴트로 만든 짧은 tonal gradient를 쓴다. 나머지는 차콜과 3단계 쿨그레이로 낮춘다. 적색은 실제 경고·격차·부정 결과 주석에만 허용한다.
+- **대표 구도:** `65/35 막대+KPI 카드`, `KPI 3개+하단 해석문`, `메타데이터+도넛+분포 차트 2단`. 카드보다 차트와 결론형 문장이 먼저 보이게 한다.
+- **막대 균형:** 막대 최댓값을 plot 폭 100%로 정규화하고 다른 값은 그에 비례시킨다. `31%`를 가용 폭의 31%로 바로 쓰지 않는다. 막대 영역 `68%`, KPI 영역 `28%`, 간격 `4%`를 기본으로 하고 두 열의 상·하단 시각 높이를 맞춘다. 경고 주석은 막대 영역 바로 아래에 붙이며 차트와 KPI 사이에 띄우지 않는다.
+- **수직 점유율:** 표지·클로징을 제외한 구조 페이지는 본문을 높이 `28~34%`에서 시작하고 마지막 의미 요소를 `78~84%`에 둔다. 하단 `10~14%`만 푸터 밴드로 남긴다. 본문이 `68%` 이전에 끝나거나 하단 25%가 통째로 비면 실패다. 내용이 적으면 글자를 키우기보다 행 높이·차트 높이·해석 블록 간격으로 점유율을 회복한다.
+- **표 규칙:** 사용자가 승인한 표 문법을 그대로 쓴다. 브랜드 블루 직사각 헤더와 흰 글자, 흰색/아주 옅은 쿨그레이 지브라 행, 각진 모서리, 넉넉한 행 높이, 1px 열 구분선이 기본이다. 3열은 `28/52/20`, 설명은 좌측 정렬, 짧은 산출물·상태 열은 가운데 정렬한다. 표 전체 카드·행별 라운드 카드·그림자는 금지한다.
+- **표면 처리:** 카드 모서리는 작게, 그림자는 넓고 아주 흐리게, 테두리는 거의 보이지 않게 한다. 배경 전체 그라데이션·네온 글로우·두꺼운 테두리·과도한 라운드는 금지한다.
+- 단독 실행 프로파일은 `data-report-editorial`이다. 전역 기본 통합 프로파일에서는 검증된 3페이지를 슬라이드 역할에 맞는 기준 세트로 자동 주입한다.
+
+→ 프로파일 정의의 단일 출처는 `style_profiles.json`이다. 전역 기본값은 `toss-data-unified`이며 `scripts/style_profile.py`가 변형을 고르고, `codex_parallel_gen.py`가 해당 프롬프트와 기준 이미지를 주입한다.
 
 ```powershell
 python "<스킬 루트>\scripts\style_profile.py" --list
-python "<스킬 루트>\scripts\style_profile.py" --accent "#0B5FFF"
+python "<스킬 루트>\scripts\style_profile.py" --prompt "응답자 설문 KPI 58.4% 분포 차트" --accent "#0B5FFF"
+python "<스킬 루트>\scripts\style_profile.py" --variant "toss-3d" --accent "#0B5FFF"
 ```
 
-잡에서 바꾸려면 `jobs.json`에 `"styleProfile": "paper-serif"`, `"accentColor": "#0B5FFF"`를 넣는다. 지정이 없으면 기본 프로파일이 적용된다.
+기본 통합 동작은 `styleProfile`을 생략해도 적용된다. 자동 판정을 덮어쓸 때만 `jobs.json`에 `"styleVariant": "toss-3d"`, `"icon-editorial"` 또는 `"data-editorial"`을 넣는다. 완전히 다른 룩이 필요할 때는 `"styleProfile": "paper-serif"` 같은 단독 프로파일을 지정한다.
 
 ### ★★★ 강조색·서체는 고정하지 않는다 (2026-07-06 지시)
 
@@ -432,10 +483,13 @@ python "<스킬 루트>\scripts\style_profile.py" --accent "#0B5FFF"
 
 ## ★★★ 4. 3대 철칙 (도메인 무관 · 어기면 깨짐)
 
-### 철칙 A — PIL 드로잉 금지 (텍스트 "???" 깨짐의 진짜 원인)
-프롬프트에 이미지생성 강제가 없으면 codex가 슬라이드를 **이미지 생성 대신 Python/PIL/matplotlib로 그려버린다**. PIL 기본 폰트엔 CJK 글리프가 없어 **모든 글자가 "?"로 렌더**된다(면도날 직선 헤어라인 = 드로잉 증거, 파일크기 18~50KB=드로잉 / 700KB~1MB=이미지생성).
-→ **모든 프롬프트 말미에**: `Use ONLY the image-generation capability — ABSOLUTELY NO Python/PIL/matplotlib/code drawing (renders text as broken '?'). Every glyph perfectly correct, no '?'.` 실측: 동일 슬라이드 45KB"???" → 923KB 완벽.
-→ 이 문구는 `codex_parallel_gen.py`가 `IMAGE_GEN_MANDATE`로 **항상 자동 주입**한다. 잡 프롬프트에 따로 쓰지 않아도 된다. 산출물이 60KB 미만이면 코드드로잉으로 보고 재시도하며, verify에서 `code-drawing-fallback`으로 불합격 처리한다.
+### 철칙 A — Codex 잡 안에서 코드 드로잉 금지
+
+Codex가 담당하는 3D·사진·생성 이미지 잡에서만 적용한다. 프롬프트에 이미지생성 강제가
+없으면 Codex가 Python/PIL/matplotlib로 그려 한글이 깨질 수 있다.
+`codex_parallel_gen.py`는 Codex 잡에만 `IMAGE_GEN_MANDATE`를 자동 주입하고,
+60KB 미만 결과를 `code-drawing-fallback`으로 불합격 처리한다. HTML 잡은
+`html_slide_renderer.py`가 Playwright Chromium으로 렌더하므로 이 금지 대상이 아니다.
 
 ### ★★★ 병렬 생성 강제 — 순차 실행 금지
 
@@ -539,43 +593,21 @@ The top 15% and bottom 15% must remain empty exactly as in the base.
 
 **언제 재생성인가**: 신규 덱, 컨셉 자체 변경, 슬라이드 신설. 그 외 기존 덱 수정은 전부 EDIT.
 
-### 철칙 D — 실사진은 **codex에 전달해 슬라이드 안에 함께 그리게 한다** (2026-07-27 최종)
-> ⚠️ 제목 주의: 2026-07-23까지는 "코드 후합성"이 정답이었고 아래 초기 서술이 그 흔적이다.
-> **현재 기본값은 codex 전달이다.** 실측 재발(2026-07-27 납품처 v2): 개정된 철칙을 잊고 후합성으로
-> 만들었다가 사용자에게 지적받아 6장을 재생성했다. 사진이 있는 슬라이드를 만들 때는
-> **먼저 이 문단 끝의 ★★ 반전을 읽고 시작할 것.**
-GPT-Image는 입력 사진을 **재해석해서 다시 그린다** — 제품·작품·인물의 디테일이 결정적이면 치명적이다.
-→ 프롬프트에서 사진 영역을 좌표로 지정해 **완전히 비우게** 하고(`Leave the region from x=NN% to x=NN%, y=NN% to y=NN% COMPLETELY EMPTY — no frame, no outline, no label, no placeholder. A real photograph will be composited there later.`), 원본을 PIL로 cover 합성한다.
+### 철칙 D — 실사진은 원본 자산으로 보존하고 HTML이 배치한다
 
-**핵심 이점**: 위치가 틀려도 **재생성 없이 좌표만 5초 만에 수정**. (납품 덱에서 5건을 이 방식으로 처리 — 모델이 그렸다면 장당 2~3분씩 재생성해야 했다.)
+실사진은 증거다. Codex에 원본 사진을 다시 그리게 하지 않는다. 재해석 과정에서 인물·제품·
+현장·색·로고·설치 상태가 달라질 수 있다. 현재 하이브리드 기본 경로는 다음과 같다.
 
-**★★ 반전 (2026-07-23 최종 확정) — 후합성보다 "codex에 사진 전달"이 낫다.** 후합성은 사진은 정확하지만 **모델이 만든 레이아웃과 따로 놀아** 옆에 어색한 여백이 남는다(납품 시안2 실측: 정규화로 콘텐츠가 축소되며 우측 대형 공백 발생). 사진을 codex에 넘겨 **레이아웃 안에 직접 배치**시키면 여백이 사라지고 통합이 자연스럽다. 관건은 **재해석 억제 프롬프트**:
-```
-★★★ REAL PHOTOGRAPHS — MUST BE INCLUDED (highest priority):
-FIRST open these actual photo file(s): "<절대경로>"
-These are DOCUMENTARY EVIDENCE of a real site / installed artwork the founder presents to judges.
-REPRODUCE THEM FAITHFULLY: same composition, objects, colours, lighting, background.
-STRICTLY FORBIDDEN: stylising, illustration/3D/clipart conversion, stock/imagined replacement,
-changing the flowers/branches/vessel/room, inventing a different arrangement.
-If a detail can't be reproduced, keep it simple and faithful rather than invent.
-PLACEMENT: integrate naturally at ~x NN%~NN%, y NN%~NN%, as a clean rounded photo block with subtle
-shadow; balance the composition so no side is left noticeably empty.
-```
-실측: 카페 설치·설문 현장·완성작·Before/After 사진이 원본과 **거의 완전 일치**로 재현됐고(스톡화 안 됨), 여백도 해소. refs에 사진 경로를 넣어야 codex가 파일을 연다.
-- **후합성이 나은 경우**: 픽셀 100% 보존이 계약·법적으로 결정적일 때(로고·서명·QR). 그 외 발표 증거 사진은 codex 전달이 낫다.
-- 파이프라인: 사진은 codex 생성분을 쓰므로 **후합성 단계는 건너뛴다**. normalize → 크롬만.
+1. 원본 사진 또는 Codex가 **새로 생성한 사진 자산**을 별도 PNG/JPEG로 준비한다.
+2. 정확한 제목·설명·출처·캡션은 HTML이 렌더한다.
+3. `image` 레이아웃에 `imagePath`, `assetRole: "photo"`, `imageFit`,
+   필요하면 `imageScale`과 focal 위치를 구조화해 전달한다.
+4. `.layout.json`에 원본 절대경로와 digest를 기록한다.
+5. 사진 피사체를 가리거나 자르지 않고, 중앙 공백·한쪽 쏠림은 focal/scale 검증으로 차단한다.
 
-**슬롯 자동 피팅 필수** — 모델이 비운 영역과 지정 좌표는 미묘하게 어긋난다(헤드라인이 예상보다 내려오거나 KPI 숫자가 슬롯을 침범). 하드코딩 대신 **빈 영역을 감지해 슬롯을 자동 축소**하라:
-```python
-def fit_empty(slide, px0, py0, px1, py1, pad=10, max_shrink=0.42):
- a = np.array(slide.convert("L")).astype(int)
- bg = int(np.bincount(a.ravel()).argmax()) # 배경 = 최빈값
- content = np.abs(a - bg) > 14
- # 슬롯의 각 변이 콘텐츠에 닿는 동안 안쪽으로 밀어넣는다 (max_shrink까지)
-```
-어두운 배경(네이비 표지 등)에 사진을 얹을 때는 **하드 엣지가 "붙여넣은 판"처럼 보인다** → `cover_blend()`: ①사진 전체에 배경색 20% 블렌드(색온도 정합) ②좌측 40% 페더 그라데이션 ③같은 곡선의 알파 dissolve.
-
-하단 밴드가 있는 레이아웃은 **밴드 상단을 자동 감지해 사진 하단을 클램프**하되, ⚠️밴드 안 흰 글씨 때문에 중앙 열은 오검출된다 → **우측 끝(x 0.90~0.98)에서 스캔**.
+Codex에 사진을 전달해 **새 슬라이드 전체를 재생성하는 경로는 기본값이 아니다.**
+사용자가 사진의 창의적 재해석을 명시한 경우에만 허용한다. 로고·서명·QR·계약 증거처럼
+픽셀 보존이 중요한 자산은 변형 없이 HTML `img`로 배치한다.
 
 ## 5. 디자인 원칙 (크리틱이 검사하는 것 = 프롬프트에 넣을 것)
 1. **프레임 채움 / 하단 앵커**: 콘텐츠가 세로 중앙 한 줄에만 뜨고 상·하단이 비면 "아마추어 미니멀"로 읽힌다. **모든 콘텐츠 슬라이드 하단에 레지스터**(스탯바/요약 한 줄+아이콘/이미지/그래픽)를 넣어 앵커. "정제된 여백" ≠ "빈 공간".

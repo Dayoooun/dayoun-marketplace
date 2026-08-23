@@ -62,7 +62,7 @@ DRAWING_FALLBACK_KB = 60
 MIN_PARALLEL_CAP = 4
 
 
-def resolve_style_prompt(profile_name, accent):
+def resolve_style_prompt(profile_name, accent, variant=None):
     """스타일 프로파일 프롬프트 블록. 지정이 없으면 기본 프로파일.
 
     style_profile 모듈이 없거나 정의가 깨졌으면 조용히 넘어가지 않는다.
@@ -70,7 +70,21 @@ def resolve_style_prompt(profile_name, accent):
     """
     from style_profile import prompt_block  # noqa: PLC0415 — 스킬 루트 경로 의존
 
-    return prompt_block(profile_name, accent)
+    return prompt_block(profile_name, accent, variant)
+
+
+def resolve_style_refs(profile_name, variant=None, prompt=""):
+    """프로파일 자체에 결속된 완성 슬라이드 앵커."""
+    from style_profile import reference_assets  # noqa: PLC0415 — 스킬 루트 경로 의존
+
+    return reference_assets(profile_name, variant, prompt)
+
+
+def resolve_style_variant(profile_name, prompt, requested=None):
+    """명시값을 우선하고, 없으면 슬라이드 내용으로 변형을 고른다."""
+    from style_profile import select_variant  # noqa: PLC0415 — 스킬 루트 경로 의존
+
+    return select_variant(profile_name, prompt, requested)
 
 
 def require_codex() -> str:
@@ -221,10 +235,49 @@ def _iso_home(work):
     return home
 
 
+def is_html_job(job):
+    """구조화된 표·차트·아이콘 잡은 브라우저 렌더러로 보낸다."""
+    from html_slide_renderer import supports  # noqa: PLC0415
+
+    return supports(job)
+
+
+def _run_one_html(job, base_dir):
+    """Playwright가 타이포그래피와 도형을 결정적으로 렌더한다."""
+    from html_slide_renderer import render_job  # noqa: PLC0415
+
+    out = render_job(job, base_dir)
+    return {
+        "label": job.get("label", out.stem),
+        "status": "OK",
+        "out": str(out),
+        "size_kb": out.stat().st_size // 1024,
+        "renderer": "html",
+    }
+
+
 def _run_one(job, base_dir, retry, idx=0, effort=None, model=None, timeout=590):
-    """단일 codex 생성 잡 (격리 폴더 + 격리 CODEX_HOME에서 실행)."""
+    """단일 HTML 또는 Codex 이미지 생성 잡."""
+    if is_html_job(job):
+        return _run_one_html(job, base_dir)
     prompt = job["prompt"]
-    refs = [os.path.join(base_dir, r) if not os.path.isabs(r) else r for r in job.get("refs", [])]
+    variant = resolve_style_variant(
+        job.get("styleProfile"),
+        prompt,
+        job.get("styleVariant"),
+    )
+    style_block = resolve_style_prompt(
+        job.get("styleProfile"),
+        job.get("accentColor"),
+        variant,
+    )
+    job_refs = [
+        os.path.join(base_dir, r) if not os.path.isabs(r) else r
+        for r in job.get("refs", [])
+    ]
+    refs = list(dict.fromkeys(
+        job_refs + resolve_style_refs(job.get("styleProfile"), variant, prompt)
+    ))
     # ★ 철칙 B 강제 (SKILL.md "3대 철칙").
     # 스타일 앵커 없이 프롬프트만 주면 모델이 매번 다른 룩을 만든다. "토스 느낌"
     # 같은 지시는 프롬프트 문장으로 재현되지 않는다 — 원하는 룩의 완성 덱을
@@ -270,11 +323,8 @@ def _run_one(job, base_dir, retry, idx=0, effort=None, model=None, timeout=590):
             # codex 가 슬라이드를 Python/PIL/matplotlib 로 그려버린다. PIL 기본 폰트에는
             # CJK 글리프가 없어 모든 한글이 "?" 로 렌더된다. 문서에만 적어 두면 잡 작성자가
             # 빠뜨리므로 실행 경로에서 무조건 덧붙인다.
-            # ★ 스타일 프로파일 강제. 산문 설명만 두면 매 실행 다른 룩이 나온다.
-            # 잡이 지정하지 않으면 style_profiles.json 의 기본값(modern-flat)을 쓴다.
-            style_block = resolve_style_prompt(
-                job.get("styleProfile"), job.get("accentColor")
-            )
+            # ★ 스타일 프로파일 강제. 기본 통합 프로파일은 슬라이드 역할에 따라
+            # Toss형 3D 또는 데이터 에디토리얼 변형을 고른다.
             full_prompt = (
                 prompt
                 + "\n\n"
@@ -521,8 +571,24 @@ def verify(jobs, base_dir, dup_check=False):
         lbl = j.get("label", out)
         if not os.path.exists(out):
             bad[lbl] = "missing"; continue
-        if os.path.getsize(out) < DRAWING_FALLBACK_KB * 1024:
-            bad[lbl] = f"code-drawing-fallback(<{DRAWING_FALLBACK_KB}KB)"; continue
+        if is_html_job(j):
+            try:
+                from PIL import Image
+                from html_slide_renderer import HEIGHT, WIDTH
+
+                with Image.open(out) as image:
+                    if image.size != (WIDTH, HEIGHT):
+                        bad[lbl] = f"html-size-mismatch({image.size})"
+                        continue
+                if os.path.getsize(out) < 10 * 1024:
+                    bad[lbl] = "html-render-too-small"
+                    continue
+            except Exception as error:
+                bad[lbl] = f"html-render-invalid({type(error).__name__})"
+                continue
+        elif os.path.getsize(out) < DRAWING_FALLBACK_KB * 1024:
+            bad[lbl] = f"code-drawing-fallback(<{DRAWING_FALLBACK_KB}KB)"
+            continue
         safe_zone = j.get("safe_zone")
         if safe_zone is not None:
             try:
@@ -572,7 +638,8 @@ def write_generation_receipt(base_dir, payload):
 
 
 def run_round(jobs, base_dir, cap, retry, effort, model, timeout=590):
-    require_codex()  # ★ 전제조건 — 없으면 설치 안내 후 중단
+    if any(not is_html_job(job) for job in jobs):
+        require_codex()
     results = []
     with ThreadPoolExecutor(max_workers=cap) as ex:
         futs = {ex.submit(_run_one, j, base_dir, retry, i, effort, model, timeout): j.get("label", i)

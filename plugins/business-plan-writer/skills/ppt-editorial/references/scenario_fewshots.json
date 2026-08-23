@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "fewShots": [
+    {
+      "id": "FS-TABLE-01",
+      "context": {"visualRole": "comparison-table", "evidenceType": "structured-facts", "density": "medium"},
+      "decision": {"renderer": "html", "layout": "table"},
+      "structure": {"columns": ["entity", "action", "output"], "columnRatios": [0.28, 0.52, 0.20], "zebraRows": true},
+      "invariants": ["solid accent header", "white header labels", "no outer card", "no row cards", "short output column centered"]
+    },
+    {
+      "id": "FS-BARS-01",
+      "context": {"visualRole": "evidence-bars", "evidenceType": "percentages", "density": "medium"},
+      "decision": {"renderer": "html", "layout": "bars"},
+      "structure": {"plotRatio": 0.68, "kpiRatio": 0.28, "gapRatio": 0.04, "normalizeToMaximum": true},
+      "invariants": ["largest bar fills plot width", "only decisive bars use accent", "annotation sits under plot", "plot and KPI stack share visual height"]
+    },
+    {
+      "id": "FS-GRAPH-01",
+      "context": {"visualRole": "entity-flow", "evidenceType": "relationships", "density": "medium"},
+      "decision": {"renderer": "html", "layout": "network"},
+      "structure": {
+        "nodeFields": ["id", "label", "entityType"],
+        "edgeFields": ["source", "target", "direction", "label"],
+        "positioning": "topology-derived"
+      },
+      "invariants": ["every endpoint exists", "every edge is directed and labelled", "no isolated nodes", "no manually supplied x/y"]
+    },
+    {
+      "id": "FS-ASSET-01",
+      "context": {"visualRole": "3d-product-or-photo", "evidenceType": "visual-asset", "density": "sparse"},
+      "decision": {"renderer": "codex-asset-plus-html", "layout": "image"},
+      "structure": {"assetRoles": ["3d-scene", "photo"], "copyRenderer": "html", "imageFit": "contain-or-cover-by-role"},
+      "invariants": ["Codex creates the asset only", "HTML owns exact copy and alignment", "asset source is recorded in the layout receipt", "no text baked into the generated asset"]
+    },
+    {
+      "id": "FS-KPI-01",
+      "context": {"visualRole": "kpi", "evidenceType": "single-claim", "density": "low"},
+      "decision": {"renderer": "html", "layout": "kpi"},
+      "structure": {"bodyTop": [0.26, 0.40], "bodyBottom": [0.80, 0.88], "interpretationRequired": true},
+      "invariants": ["do not inflate headline", "recover occupancy with card height and interpretation block", "no empty lower quarter"]
+    },
+    {
+      "id": "FS-OVERVIEW-01",
+      "context": {"visualRole": "respondent-overview", "evidenceType": "distribution", "density": "high"},
+      "decision": {"renderer": "html", "layout": "overview"},
+      "structure": {"regions": ["metadata", "donut", "distributions"], "normalizeBarsWithinGroup": true},
+      "invariants": ["direct labels", "one divider system", "metadata and plots share vertical span"]
+    },
+    {
+      "id": "FS-PROCESS-01",
+      "context": {"visualRole": "process", "evidenceType": "workflow", "density": "medium"},
+      "decision": {"renderer": "html", "layout": "process"},
+      "structure": {"rail": "continuous", "activeStages": 1, "noteAnchoredToBody": true},
+      "invariants": ["no repeated cards", "same icon family", "no disconnected lower note"]
+    },
+    {
+      "id": "FS-MODULES-01",
+      "context": {"visualRole": "modules", "evidenceType": "capabilities", "density": "medium"},
+      "decision": {"renderer": "html", "layout": "modules"},
+      "structure": {"featuredRatio": 0.42, "supportingRows": 3, "featureAnchors": ["number", "icon", "title", "detail"]},
+      "invariants": ["feature anchors occupy opposing corners", "child margins stay within contract", "no 2x2 tile grid"]
+    },
+    {
+      "id": "FS-ROADMAP-01",
+      "context": {"visualRole": "roadmap", "evidenceType": "periods", "density": "medium"},
+      "decision": {"renderer": "html", "layout": "roadmap"},
+      "structure": {"shape": "staircase", "activePeriods": 1, "straightTimeline": false},
+      "invariants": ["period slabs rise", "no one-line timeline", "condition note remains inside meaningful body"]
+    }
+  ]
+}

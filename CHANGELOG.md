@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.7 RC
+
+- PPT 기본 디자인을 `toss-data-unified`로 통합하고 콘텐츠 역할에 따라 Toss 3D·아이콘 에디토리얼·데이터 에디토리얼로 자동 라우팅
+- 표·KPI·차트·프로세스·모듈·로드맵·엔티티 그래프는 Playwright HTML로, 3D·사진 자산은 Codex로 생성하는 하이브리드 렌더 계약 도입
+- 12개 실제 시나리오를 PNG·PPTX·PDF·콘택트시트로 조립하고 layout receipt, source·asset·output digest, 페이지 수를 fail-closed 검증
+- 그래프 endpoint·direction·label·고립 노드·엣지 가시성 검증과 topology 기반 자동 배치 추가
+- `NaN`·`Infinity` 입력 및 receipt 내부 비유한값을 재귀 차단하고 모든 JSON 출력에 strict serialization 적용
+- 전역 정본·marketplace plugin·Claude/Codex course 복사본을 동일 파일 집합으로 생성·검증
+
 ### business-plan-writer 0.12.6 RC
 
 - Codex 이미지 생성을 항상 병렬로 강제. 잡이 2개 이상이면 `--cap` 1·2 를 줘도 최소 4로 상향한다. 슬라이드 1장에 수 분이 걸려 순차 실행은 23장 덱에서 70분을 넘겨 수업·납품 일정에서 실패한다

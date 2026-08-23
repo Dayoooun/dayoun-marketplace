@@ -252,16 +252,20 @@ Rules for this branch:
 - if the user chooses the single-candidate path, skip the candidate-picker stage entirely
 - if the user gives no clear preference, default to one final image per slide and go directly into review
 
-Generation in this skill should stay image-first.
+Generation in this skill should stay output-image-first but use a hybrid renderer.
 That means:
-- when image generation is available, use an available image-generation toolchain from the environment such as a tool, MCP server, or skill to produce the page visuals
-- do not silently fall back to a traditional element-by-element PPT workflow as the main rendering path when image generation is available
-- do not skip image generation and directly assemble the final deck only from default PPT shapes, text boxes, layout primitives, custom-drawn vectors, SVG-like code, or programmatic page reconstruction unless the user explicitly asks for that approach
-- if the confirmed direction depends on generated page visuals, actually generate those visuals and use them in the final deck
-- do not hand-build substitute page art yourself with code just because it is easier or more controllable than calling the image-generation path
-- do not silently switch to textless or background-only generated images just to avoid rendering text problems
-- if you choose to keep PPT text editable while using generated visuals, that must still preserve the confirmed style direction and must not collapse into generic background art plus ordinary default slides
-- treat generated page visuals as complete outputs by default, not as underlays for a second design pass
+- render tables, bars, KPI panels, respondent overviews, icon diagrams, processes, modules, roadmaps, and entity networks with the bundled Playwright HTML renderer
+- use Codex image generation for 3D scenes, photography, materials, lighting, and non-deterministic illustration
+- do not ask Codex to redraw exact tables, charts, labels, or repeated geometry that Chromium can render precisely
+- do not replace a required 3D or photographic asset with generic HTML shapes
+- let `codex_parallel_gen.py` mix both job types in one queue and normalize every output to the same 1672×941 PNG contract
+- derive the expected layout from `context.visualRole`, require a matching layout few-shot, and reject a conflicting fixture `spec.layout`
+- for generated 3D/photo assets, keep exact copy in HTML and record asset path plus digest; photo placement declares focal position and crop scale
+- require graph edges to terminate at visible node boundary ports, avoid intervening nodes, and emit edge-level marker/label/occlusion receipts
+- bind canonical inputs, renderer/style/assets, every PNG/receipt, contact sheet, PPTX, and PDF to source/output digests; page-count mismatch is a failed generation
+- keep the approved visual references authoritative: encode their spacing, type hierarchy, table grammar, chart grammar, and colour use in the HTML layout; pass visual art references to Codex jobs
+- treat each HTML or Codex result as one complete reviewed page image, not as an improvised background for unapproved overlays
+- on non-cover structural pages, start the body at 28–34% of slide height and end the last meaningful edge at 78–84%; an empty lower quarter is a failed layout
 - post-generation overlays should default to zero
 - do not treat generated images as mere background plates and then invent a second layer of titles, metrics, bullets, labels, callouts, captions, badges, or decorative elements on top unless those overlay contents were already defined by the confirmed content plan and are explicitly traceable to approved blueprint fields
 - do not add self-authored editable copy just because the generated page looks sparse or because editable text feels safer
