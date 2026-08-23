@@ -138,6 +138,25 @@ def compile_plan(plan_path: Path, out_dir: Path) -> dict:
         routing_text = " ".join(
             [visual_role, str(slide.get("pageRole", "")), title, core_message]
         )
+        headline_rule = contract.get("headlineLanguage", {})
+        if (
+            slide.get("headlineSource") != "user-provided"
+            and visual_role in headline_rule.get("directRoles", [])
+        ):
+            for phrase in headline_rule.get("forbiddenPhrases", []):
+                if phrase in title:
+                    raise DesignPlanError(
+                        f"{slide_id} headline contains generic AI phrase "
+                        f"{phrase!r}: {title}"
+                    )
+            if any(
+                title.endswith(ending)
+                for ending in headline_rule.get("forbidSentenceEndings", [])
+            ):
+                raise DesignPlanError(
+                    f"{slide_id} headline must be a direct label, not a sentence: "
+                    f"{title}"
+                )
         variant = select_variant(
             profile,
             routing_text,

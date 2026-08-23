@@ -19,8 +19,8 @@
       "id": "S01-cover",
       "pageRole": "cover",
       "visualRole": "cover",
-      "title": "정확한 운영을 시작합니다",
-      "coreMessage": "제품 개념을 하나의 고품질 3D 오브젝트로 보여줍니다",
+      "title": "업무 자동화 운영 기준 설계",
+      "coreMessage": "제품 개념은 3D 자산으로, 정확한 정보는 HTML로 분리",
       "styleVariant": "toss-3d",
       "asset": {
         "mode": "generate",
@@ -33,14 +33,14 @@
         "layout": "cover",
         "eyebrow": "OPERATING SYSTEM",
         "title": [
-          {"text": "정확한 운영을", "weight": "light"},
-          {"text": "시작합니다", "weight": "bold"}
+          {"text": "업무 자동화", "weight": "light"},
+          {"text": "운영 기준 설계", "weight": "bold"}
         ],
-        "subtitle": "정확한 문구는 HTML이, 제품 감각은 3D가 담당합니다",
+        "subtitle": "업무 범위·책임자·예외 처리·측정 기준",
         "imageFit": "contain",
         "imageScale": 1.75,
         "imageAlt": "운영 자동화를 표현한 3D 오브젝트",
-        "statement": "정확한 정보 구조와 고품질 3D 자산을 분리해 신뢰도와 제품 감각을 함께 만듭니다.",
+        "statement": "3D 자산은 제품 개념을, HTML은 정확한 정보 구조를 담당합니다.",
         "metadata": [
           {"label": "대상", "value": "운영·DX 책임자"},
           {"label": "형식", "value": "제안 프레젠테이션"},

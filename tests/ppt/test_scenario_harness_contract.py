@@ -222,6 +222,37 @@ def test_process_receipt_rejects_dot_line_misalignment() -> None:
     assert any("dot-to-line deviation 2px exceeds 1px" in error for error in errors)
 
 
+def test_cover_receipt_rejects_generic_pale_card_surface() -> None:
+    contract = _load("render_contract.json")
+    scenario = next(
+        item
+        for item in _load("scenario_catalog.json")["scenarios"]
+        if item["id"] == "S014-cover"
+    )
+    asset = REFERENCES / "automation-3d-asset.png"
+    receipt = {
+        "size": contract["qualityGate"]["size"],
+        "pixelSize": contract["qualityGate"]["pixelSize"],
+        "overflow": [],
+        "rendererDigest": harness._digest(SCRIPTS / "html_slide_renderer.py"),
+        "specDigest": "sha256:test",
+        "content": {"top": 0.33},
+        "meaningfulBody": {"bottom": 0.89},
+        "surfaceStyles": {
+            "coverCopy": {
+                "backgroundColor": "rgb(246, 247, 249)",
+                "borderTopWidth": "3px",
+            }
+        },
+        "sourceAsset": str(asset),
+        "sourceAssetDigest": harness._digest(asset),
+    }
+
+    errors = harness._validate_receipt(scenario, receipt, contract)
+
+    assert any("forbidden filled copy surface" in error for error in errors)
+    assert any("attached top rule" in error for error in errors)
+
 def test_strict_json_reader_rejects_nan_constant() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         path = Path(temp_dir) / "nan.json"

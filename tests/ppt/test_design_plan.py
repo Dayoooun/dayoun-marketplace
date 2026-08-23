@@ -124,3 +124,18 @@ def test_draft_plan_is_blocked_before_jobs_are_written(tmp_path: Path) -> None:
         raise AssertionError("draft design plan was compiled")
 
     assert not out_dir.exists()
+def test_cover_plan_blocks_generic_ai_headline(tmp_path: Path) -> None:
+    plan_path = _plan(tmp_path)
+    payload = json.loads(plan_path.read_text(encoding="utf-8"))
+    payload["slides"][0]["title"] = "도구 도입을 넘어 운영 기준을 설계합니다"
+    plan_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    try:
+        design_plan.compile_plan(plan_path, tmp_path / "production")
+    except design_plan.DesignPlanError as error:
+        assert "generic AI phrase" in str(error)
+    else:
+        raise AssertionError("generic AI headline was compiled")

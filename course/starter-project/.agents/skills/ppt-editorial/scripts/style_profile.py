@@ -198,6 +198,12 @@ def prompt_block(
     _, profile = resolve(name)
     config = variant_config(name, variant)
     blocks = [profile.get("promptBlock", "").strip()]
+    anti_slop = profile.get("antiSlopPrompt", "").strip()
+    if anti_slop:
+        blocks.append(anti_slop)
+    headline = profile.get("headlinePrompt", "").strip()
+    if headline:
+        blocks.append(headline)
     if variant:
         blocks.append(config.get("promptBlock", "").strip())
     blocks = [block for block in blocks if block]

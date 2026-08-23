@@ -73,14 +73,14 @@
       "context": {"visualRole": "break", "evidenceType": "schedule", "density": "medium"},
       "decision": {"renderer": "html", "layout": "break"},
       "structure": {"heroRatio": 0.40, "actionRatio": 0.56, "actionCount": "2-3"},
-      "invariants": ["duration and time window share one hero panel", "resume actions fill the right column", "no isolated small timer card", "no empty lower quarter"]
+      "invariants": ["duration and time window use naked typography and a hairline, not a tinted card", "resume actions fill the right column", "no isolated small timer card", "no empty lower quarter"]
     },
     {
       "id": "FS-COVER-01",
       "context": {"visualRole": "cover", "evidenceType": "generated-asset", "density": "low"},
       "decision": {"renderer": "codex-asset-plus-html", "layout": "cover"},
       "structure": {"titleLinesMax": 2, "copyRatio": 0.34, "visualRatio": 0.62, "metadataRows": "2-3"},
-      "invariants": ["exact title remains HTML", "one dominant 3D or photo asset", "asset occupies 65-80% of visual frame", "no footer chrome", "no icon collage", "no centered floating title without anchor"]
+      "invariants": ["exact title remains HTML", "one dominant 3D or photo asset", "asset occupies 65-80% of visual frame", "left copy has no pale card or attached accent-top rule", "no footer chrome", "no icon collage", "no centered floating title without anchor"]
     }
   ]
 }

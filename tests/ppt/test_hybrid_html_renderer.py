@@ -74,6 +74,26 @@ def test_bar_widths_are_normalized_to_the_largest_value() -> None:
             "callout": "생성 자산과 정보 구조를 분리합니다",
         }
     )
+    style_prompt = __import__("style_profile").prompt_block(
+        "toss-data-unified",
+        "#246BFD",
+        "toss-3d",
+    )
+    assert "EDITORIAL SURFACE RULE" in style_prompt
+    assert "HEADLINE LANGUAGE RULE" in style_prompt
+    assert "large pale-grey or pale-accent rectangular card" in style_prompt
+    assert "다시 시작합니다" in style_prompt
+    cover_markup = html_renderer.build_html(
+        {
+            "layout": "cover",
+            "imageData": "data:image/png;base64,AA==",
+            "statement": "포지셔닝",
+            "metadata": [{"label": "대상", "value": "책임자"}],
+        }
+    )
+    cover_copy_rule = cover_markup.split(".cover-copy {", 1)[1].split("}", 1)[0]
+    assert "background:" not in cover_copy_rule
+    assert "border-top:" not in cover_copy_rule
 
 
 def test_table_renders_with_real_chromium(tmp_path: Path) -> None:

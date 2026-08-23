@@ -166,6 +166,26 @@ def _validate_semantics(scenario: dict, contract: dict, decision: dict) -> list[
             f"context derives renderer {decision['renderer']!r}, "
             f"but contract maps layout to {expected_renderer!r}"
         )
+    visual_role = scenario.get("context", {}).get("visualRole")
+    headline_rule = contract.get("headlineLanguage", {})
+    if visual_role in headline_rule.get("directRoles", []):
+        title = " ".join(
+            str(part.get("text", "")).strip()
+            for part in spec.get("title", [])
+            if isinstance(part, dict)
+        ).strip()
+        for phrase in headline_rule.get("forbiddenPhrases", []):
+            if phrase in title:
+                errors.append(
+                    f"headline contains generic AI phrase {phrase!r}: {title}"
+                )
+        if any(
+            title.endswith(ending)
+            for ending in headline_rule.get("forbidSentenceEndings", [])
+        ):
+            errors.append(
+                f"operational headline must use a direct label, not sentence ending: {title}"
+            )
     if layout == "network":
         errors.extend(validate_graph(spec.get("graph", {})))
         for node in spec.get("graph", {}).get("nodes", []):
@@ -354,6 +374,31 @@ def _validate_receipt(scenario: dict, receipt: dict, contract: dict) -> list[str
             errors.append("image source asset missing from receipt")
         elif digest != _digest(Path(source)):
             errors.append("image source asset digest mismatch")
+    if layout in {"cover", "break"}:
+        surfaces = receipt.get("surfaceStyles") or {}
+        key = "coverCopy" if layout == "cover" else "breakHero"
+        surface = surfaces.get(key) or {}
+        allowed = contract.get("editorialSurface", {}).get(
+            "transparentColors", []
+        )
+        if surface.get("backgroundColor") not in allowed:
+            errors.append(
+                f"{layout} uses forbidden filled copy surface "
+                f"{surface.get('backgroundColor')}"
+            )
+        if layout == "cover":
+            border = surface.get("borderTopWidth")
+            maximum = contract.get("editorialSurface", {}).get(
+                "coverCopyBorderTopPx", 0
+            )
+            try:
+                border_px = float(str(border).removesuffix("px"))
+            except ValueError:
+                border_px = math.inf
+            if border_px > maximum:
+                errors.append(
+                    f"cover copy has attached top rule {border_px}px"
+                )
     return errors
 
 

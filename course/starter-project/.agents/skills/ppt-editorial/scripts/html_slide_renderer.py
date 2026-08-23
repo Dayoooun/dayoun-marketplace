@@ -153,10 +153,10 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 .roadmap-step .icon {{ margin-top: 24px; }}
 
 .break-layout {{ min-height: 530px; display: grid; grid-template-columns: 40% 56%; gap: 4%; }}
-.break-hero {{ padding: 44px 48px; background: color-mix(in srgb, var(--accent) 9%, #fff); display: flex; flex-direction: column; justify-content: space-between; }}
+.break-hero {{ padding: 34px 48px 34px 0; border-right: 1px solid #dfe3e9; display: flex; flex-direction: column; justify-content: space-between; }}
 .break-duration {{ color: var(--accent); font-size: 92px; font-weight: 760; line-height: 1; }}
 .break-window {{ margin-top: 18px; font-size: 28px; font-weight: 700; }}
-.break-purpose {{ margin-top: auto; padding-top: 26px; border-top: 1px solid color-mix(in srgb, var(--accent) 28%, #fff); font-size: 20px; line-height: 1.5; color: #414751; }}
+.break-purpose {{ margin-top: auto; padding-top: 26px; border-top: 1px solid #dfe3e9; font-size: 20px; line-height: 1.5; color: #414751; }}
 .break-actions {{ display: grid; grid-template-rows: repeat(var(--break-count), minmax(0, 1fr)); border-top: 1px solid #dfe3e9; }}
 .break-action {{ display: grid; grid-template-columns: 112px 1fr; align-items: center; padding: 24px 30px; border-bottom: 1px solid #dfe3e9; }}
 .break-action-time {{ color: var(--accent); font-size: 27px; font-weight: 760; }}
@@ -190,13 +190,13 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 #slide.layout-cover .subtitle {{ max-width: 980px; font-size: 25px; }}
 #slide.layout-cover .content {{ margin-top: 48px; }}
 .cover-layout {{ min-height: 450px; display: grid; grid-template-columns: 34% 62%; gap: 4%; }}
-.cover-copy {{ padding: 38px 42px; border-top: 3px solid var(--accent); background: #f6f7f9; display: flex; flex-direction: column; justify-content: space-between; }}
-.cover-statement {{ font-size: 26px; font-weight: 700; line-height: 1.45; word-break: keep-all; }}
-.cover-meta {{ display: grid; gap: 12px; }}
-.cover-meta-row {{ display: grid; grid-template-columns: 92px 1fr; gap: 14px; padding-top: 12px; border-top: 1px solid #dde1e7; font-size: 16px; }}
-.cover-meta-row span {{ color: #737983; }}
+.cover-copy {{ padding: 36px 30px 24px 0; display: flex; flex-direction: column; justify-content: space-between; }}
+.cover-statement {{ max-width: 500px; padding-left: 24px; border-left: 4px solid var(--accent); font-size: 24px; font-weight: 700; line-height: 1.5; word-break: keep-all; }}
+.cover-meta {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }}
+.cover-meta-row {{ display: block; padding-top: 14px; border-top: 1px solid #d9dde3; font-size: 15px; }}
+.cover-meta-row span {{ display: block; margin-bottom: 8px; color: #737983; }}
 .cover-meta-row strong {{ font-weight: 650; }}
-.cover-visual {{ min-height: 450px; overflow: hidden; background: #f7f8fa; }}
+.cover-visual {{ min-height: 450px; overflow: hidden; background: white; }}
 .cover-visual img {{ width: 100%; height: 100%; object-fit: var(--image-fit, contain); object-position: var(--image-position, center); transform: scale(var(--image-scale, 1)); transform-origin: var(--image-position, center); display: block; }}
 .image-layout {{ min-height: 520px; display: grid; grid-template-columns: 38% 58%; gap: 4%; }}
 .image-copy {{ align-self: stretch; padding: 42px 44px; background: #f5f7fa; display: flex; flex-direction: column; justify-content: space-between; }}
@@ -719,6 +719,16 @@ def _layout_receipt(page, spec: dict) -> dict:
               bottom: Math.max(...boxes.map(b => b.bottom))
             };
           };
+          const surfaceStyle = (selector) => {
+            const el = document.querySelector(selector);
+            if (!el) return null;
+            const style = getComputedStyle(el);
+            return {
+              backgroundColor: style.backgroundColor,
+              borderTopWidth: style.borderTopWidth,
+              borderRightWidth: style.borderRightWidth
+            };
+          };
           const meaningful = [...document.querySelectorAll(
             'table.report, .kpi-item, .interpretation, .bar-fill, .summary-box, .annotation, ' +
             '.process-step, .module-feature, .module-row, .roadmap-step, .break-hero, .break-action, .overview > section, ' +
@@ -851,6 +861,10 @@ def _layout_receipt(page, spec: dict) -> dict:
             processLineY,
             processDotCenters,
             processDotMaxDeviation,
+            surfaceStyles: {
+              coverCopy: surfaceStyle('.cover-copy'),
+              breakHero: surfaceStyle('.break-hero')
+            }
           };
         }"""
     )
@@ -931,6 +945,7 @@ def _layout_receipt(page, spec: dict) -> dict:
             ),
         },
         "processAlignment": process_alignment,
+        "surfaceStyles": metrics.get("surfaceStyles", {}),
         "rendererDigest": "sha256:" + hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "specDigest": spec_digest,
         "sourceAsset": source_asset,

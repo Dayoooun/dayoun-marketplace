@@ -62,6 +62,17 @@
     "maxDeviationPx": 1,
     "rule": "Every process dot center must sit on the shared rail, including the active dot."
   },
+  "editorialSurface": {
+    "transparentColors": ["rgba(0, 0, 0, 0)", "transparent"],
+    "coverCopyBorderTopPx": 0,
+    "rule": "Cover and break copy use naked typography and hairlines. Large pale text cards with an attached accent-top rule are forbidden."
+  },
+  "headlineLanguage": {
+    "directRoles": ["cover", "break"],
+    "forbiddenPhrases": ["를 넘어", "을 넘어", "가 아니라", "함께 만듭니다", "다시 시작합니다", "연결됩니다", "새로운 가능성"],
+    "forbidSentenceEndings": ["합니다", "입니다"],
+    "rule": "Operational and cover headlines use direct noun phrases or time-plus-action labels unless the user supplied the exact sentence."
+  },
   "photoFocal": {
     "requireImagePosition": true,
     "minScaleWhenReframing": 1.05,

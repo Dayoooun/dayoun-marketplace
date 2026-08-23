@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.11 RC
+
+- 옅은 큰 카드·상단 강조선·하단 밀어내기 메타데이터를 전형적인 AI 카드 패턴으로 명시 차단
+- 표지·휴식 layout을 naked typography, 비대칭 열, 헤어라인, 메타스트립 구조로 교체
+- 일정·휴식·목차·안내·상태 headline을 명사형 또는 `시간 + 행동` 형식으로 제한
+- `~를/을 넘어`, `~가 아니라`, `함께 만듭니다`, `다시 시작합니다`, `연결됩니다` 등 상투어 차단
+- production plan compiler와 scenario receipt가 금지 surface·상단선·상투적 headline을 fail-closed 검증
+- 전체 시나리오 하네스 14/14 PASS
+
 ### business-plan-writer 0.12.10 RC
 
 - 전용 `cover` layout으로 정확한 제목·포지셔닝·메타데이터와 고품질 3D/사진 자산을 34/62 구조로 결합
