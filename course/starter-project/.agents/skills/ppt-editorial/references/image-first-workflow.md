@@ -258,7 +258,7 @@ That means:
 - use Codex image generation for 3D scenes, photography, materials, lighting, and non-deterministic illustration
 - do not ask Codex to redraw exact tables, charts, labels, or repeated geometry that Chromium can render precisely
 - do not replace a required 3D or photographic asset with generic HTML shapes
-- let `codex_parallel_gen.py` mix both job types in one queue and normalize every output to the same 1672×941 PNG contract
+- let `codex_parallel_gen.py` mix both job types in one queue and normalize every assembled output to the same 1920×1080 Full HD PNG contract; HTML uses a 1672×941 CSS layout canvas rendered at 2× and downsampled once
 - derive the expected layout from `context.visualRole`, require a matching layout few-shot, and reject a conflicting fixture `spec.layout`
 - for generated 3D/photo assets, keep exact copy in HTML and record asset path plus digest; photo placement declares focal position and crop scale
 - require graph edges to terminate at visible node boundary ports, avoid intervening nodes, and emit edge-level marker/label/occlusion receipts

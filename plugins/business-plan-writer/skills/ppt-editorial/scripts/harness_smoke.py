@@ -124,6 +124,11 @@ def _style_profiles():
 def _hybrid_renderer():
     import html_slide_renderer
     import codex_parallel_gen
+    process_markup = html_slide_renderer._process(
+        {"active": -1, "items": [{"label": str(index)} for index in range(4)]}
+    )
+    if '--process-count:4' not in process_markup:
+        raise AssertionError("process 항목 수가 grid 열 수에 반영되지 않음")
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:

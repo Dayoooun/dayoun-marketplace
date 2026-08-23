@@ -54,6 +54,10 @@
     "processToNoteMax": 0.18,
     "rule": "A distant footer note cannot make a shallow process rail look vertically complete."
   },
+  "processAlignment": {
+    "maxDeviationPx": 1,
+    "rule": "Every process dot center must sit on the shared rail, including the active dot."
+  },
   "photoFocal": {
     "requireImagePosition": true,
     "minScaleWhenReframing": 1.05,
@@ -86,6 +90,7 @@
   },
   "qualityGate": {
     "size": [1672, 941],
+    "pixelSize": [1920, 1080],
     "maxOverflowElements": 0,
     "requireLayoutReceipt": true,
     "requireGraphReceiptMatch": true,

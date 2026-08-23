@@ -141,6 +141,9 @@ def test_network_render_receipt_binds_nodes_edges_and_labels(tmp_path: Path) -> 
         for field in ("startOccluded", "endOccluded", "pathOccluded", "labelOccluded")
     )
     assert receipt["rendererDigest"].startswith("sha256:")
+    assert abs(
+        renderer.GRAPH_WIDTH / renderer.GRAPH_HEIGHT - 1540 / 520
+    ) < 0.01
     assert receipt["specDigest"].startswith("sha256:")
     assert receipt["overflow"] == []
     assert 0.80 <= receipt["meaningfulBody"]["bottom"] <= 0.88
@@ -181,6 +184,7 @@ def test_process_gap_rejects_non_finite_receipt() -> None:
     )
     receipt = {
         "size": contract["qualityGate"]["size"],
+        "pixelSize": contract["qualityGate"]["pixelSize"],
         "overflow": [],
         "rendererDigest": harness._digest(SCRIPTS / "html_slide_renderer.py"),
         "specDigest": "sha256:test",
@@ -193,6 +197,29 @@ def test_process_gap_rejects_non_finite_receipt() -> None:
     errors = harness._validate_receipt(scenario, receipt, contract)
 
     assert any("receipt contains non-finite values at $.footer.left" in error for error in errors)
+
+def test_process_receipt_rejects_dot_line_misalignment() -> None:
+    contract = _load("render_contract.json")
+    scenario = next(
+        item
+        for item in _load("scenario_catalog.json")["scenarios"]
+        if item["id"] == "S005-process"
+    )
+    receipt = {
+        "size": contract["qualityGate"]["size"],
+        "pixelSize": contract["qualityGate"]["pixelSize"],
+        "overflow": [],
+        "rendererDigest": harness._digest(SCRIPTS / "html_slide_renderer.py"),
+        "specDigest": "sha256:test",
+        "content": {"top": 0.35},
+        "meaningfulBody": {"bottom": 0.82},
+        "internalGaps": {"processToNote": 0.1},
+        "processAlignment": {"maxDeviationPx": 2},
+    }
+
+    errors = harness._validate_receipt(scenario, receipt, contract)
+
+    assert any("dot-to-line deviation 2px exceeds 1px" in error for error in errors)
 
 
 def test_strict_json_reader_rejects_nan_constant() -> None:

@@ -25,7 +25,7 @@ PPT·PPTX·파워포인트·슬라이드·발표자료·피치덱·IR 덱·제�
 
 | 플러그인 | 버전 | 용도 |
 |---|---:|---|
-| `business-plan-writer` | `0.12.7` | 자연어 지시 리드, 사용자 수정 HWPX 보존, QUICK·SECTION·FULL, HTML·Codex 하이브리드 PPT와 digest 기반 시나리오 QA |
+| `business-plan-writer` | `0.12.8` | 자연어 지시 리드, 사용자 수정 HWPX 보존, QUICK·SECTION·FULL, Full HD HTML·Codex 하이브리드 PPT와 좌표·digest 기반 QA |
 | `business-documents` | `0.1.0` | 견적서·회사소개서·이력서·공문·안내문 HTML |
 
 stable `1.0`은 외부 프로바이더·화면검수·강의·베타 증거가 충족되기 전까지 설치 대상으로 안내하지 않습니다.
@@ -66,7 +66,7 @@ codex plugin list
 
 - marketplace 이름이 `dayoun`이다.
 - `business-plan-writer@dayoun`이 `installed, enabled`다.
-- writer 버전이 `0.12.7`이다.
+- writer 버전이 `0.12.8`이다.
 - 요청한 경우 `business-documents@dayoun`이 `installed, enabled`이고 `0.1.0`이다.
 
 marketplace가 이미 등록되어 있으면 추가 실패를 반복하지 않습니다. 다음 업데이트 명령으로 전환합니다.
@@ -100,7 +100,7 @@ claude plugin list
 
 - 두 플러그인의 scope가 의도한 사용자 또는 프로젝트 scope다.
 - 상태가 enabled다.
-- 버전이 각각 `0.12.7`, `0.1.0`이다.
+- 버전이 각각 `0.12.8`, `0.1.0`이다.
 - 설치 후 Claude Code 재시작이 필요하다고 안내한다.
 
 이미 등록된 marketplace는 중복 추가하지 않고 업데이트합니다.

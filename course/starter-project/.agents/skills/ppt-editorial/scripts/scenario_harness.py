@@ -242,6 +242,10 @@ def _validate_receipt(scenario: dict, receipt: dict, contract: dict) -> list[str
     gate = contract["qualityGate"]
     if receipt.get("size") != gate["size"]:
         errors.append(f"size mismatch: {receipt.get('size')} != {gate['size']}")
+    if receipt.get("pixelSize") != gate.get("pixelSize"):
+        errors.append(
+            f"pixel size mismatch: {receipt.get('pixelSize')} != {gate.get('pixelSize')}"
+        )
     if len(receipt.get("overflow", [])) > gate["maxOverflowElements"]:
         errors.append(f"overflow elements: {receipt['overflow']}")
     renderer_digest = _digest(HERE / "html_slide_renderer.py")
@@ -327,6 +331,21 @@ def _validate_receipt(scenario: dict, receipt: dict, contract: dict) -> list[str
             finite = isinstance(gap, (int, float)) and math.isfinite(float(gap))
             if not finite or gap > maximum:
                 errors.append(f"process-to-note gap {gap} exceeds {maximum}")
+        alignment = receipt.get("processAlignment") or {}
+        deviation = alignment.get("maxDeviationPx")
+        maximum_deviation = contract.get("processAlignment", {}).get("maxDeviationPx")
+        finite_deviation = (
+            isinstance(deviation, (int, float))
+            and math.isfinite(float(deviation))
+        )
+        if (
+            maximum_deviation is not None
+            and (not finite_deviation or deviation > maximum_deviation)
+        ):
+            errors.append(
+                f"process dot-to-line deviation {deviation}px exceeds "
+                f"{maximum_deviation}px"
+            )
 
     if layout == "image":
         source = receipt.get("sourceAsset")
@@ -428,6 +447,13 @@ def run(catalog_path: Path, contract_path: Path, fewshots_path: Path, out_dir: P
             if gate := contract.get("qualityGate"):
                 if gate.get("requireNonUniformImage") and not _check_non_uniform(out):
                     errors.append("rendered image is visually uniform")
+                from PIL import Image
+                with Image.open(out) as rendered:
+                    actual_pixel_size = list(rendered.size)
+                if actual_pixel_size != gate.get("pixelSize"):
+                    errors.append(
+                        f"rendered pixel size {actual_pixel_size} != {gate.get('pixelSize')}"
+                    )
             images.append((scenario_id, out))
         else:
             errors.append("render or layout receipt missing")

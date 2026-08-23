@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.8 RC
+
+- HTML 슬라이드를 2배 supersampling한 뒤 1920×1080으로 내보내 작은 글자와 선명도를 개선
+- 프로세스 rail과 모든 dot 중심을 같은 좌표로 고정하고 receipt에서 최대 1px 오차를 검증
+- 그래프 viewBox를 실제 와이드 캔버스 비율에 맞춰 노드·엣지가 가로로 늘어나 보이던 문제 수정
+- 긴 한글 표의 어절 분리 방지, 그래프·overview 글자 크기 상향, 3D 자산 점유율 개선
+- 데이터 막대의 장식적 그라데이션을 제거하고 단일 강조색으로 통일
 ### business-plan-writer 0.12.7 RC
 
 - PPT 기본 디자인을 `toss-data-unified`로 통합하고 콘텐츠 역할에 따라 Toss 3D·아이콘 에디토리얼·데이터 에디토리얼로 자동 라우팅

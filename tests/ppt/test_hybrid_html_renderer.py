@@ -52,6 +52,15 @@ def test_bar_widths_are_normalized_to_the_largest_value() -> None:
     assert "width:16.129" in markup
     assert "grid-template-columns: 68% 28%" in markup
     assert "min-height: 510px" in markup
+    assert "background: var(--accent)" in markup
+    assert "linear-gradient(90deg" not in markup
+    assert "word-break: keep-all" in html_renderer.build_html(
+        {
+            "layout": "table",
+            "columns": [{"label": "항목", "width": "100%"}],
+            "rows": [["운영 기준으로 연결합니다"]],
+        }
+    )
     assert "word-break: keep-all" in html_renderer.build_html(
         {
             "layout": "image",
@@ -89,8 +98,12 @@ def test_table_renders_with_real_chromium(tmp_path: Path) -> None:
     assert out.is_file()
     assert out.stat().st_size > 10 * 1024
     with Image.open(out) as image:
-        assert image.size == (html_renderer.WIDTH, html_renderer.HEIGHT)
+        assert image.size == (
+            html_renderer.OUTPUT_WIDTH,
+            html_renderer.OUTPUT_HEIGHT,
+        )
         assert image.format == "PNG"
     receipt = out.with_suffix(".layout.json")
     assert receipt.is_file()
     assert '"renderer": "html-playwright"' in receipt.read_text(encoding="utf-8")
+    assert '"pixelSize": [\n    1920,\n    1080\n  ]' in receipt.read_text(encoding="utf-8")

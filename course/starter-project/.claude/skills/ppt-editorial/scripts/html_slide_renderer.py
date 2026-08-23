@@ -25,6 +25,11 @@ def configure_utf8_output(stream) -> None:
 
 WIDTH = 1672
 HEIGHT = 941
+OUTPUT_WIDTH = 1920
+OUTPUT_HEIGHT = 1080
+OUTPUT_SCALE = 2
+GRAPH_WIDTH = 1480.0
+GRAPH_HEIGHT = 500.0
 SUPPORTED_LAYOUTS = {
     "table",
     "kpi",
@@ -78,7 +83,7 @@ body {{ font-family: var(--font-family); color: var(--text); }}
 table.report {{ width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 21px; }}
 table.report th {{ height: 76px; padding: 0 18px; background: var(--accent); color: white; text-align: left; font-weight: 700; border-right: 1px solid rgba(255,255,255,.4); }}
 table.report th:last-child {{ border-right: 0; text-align: center; }}
-table.report td {{ height: var(--row-height, 105px); padding: 0 18px; border-right: 1px solid #dfe3ea; border-bottom: 1px solid #edf0f4; vertical-align: middle; }}
+table.report td {{ height: var(--row-height, 105px); padding: 0 18px; border-right: 1px solid #dfe3ea; border-bottom: 1px solid #edf0f4; vertical-align: middle; word-break: keep-all; overflow-wrap: anywhere; }}
 table.report tr:nth-child(odd) td {{ background: #f5f6f9; }}
 table.report tr:nth-child(even) td {{ background: white; }}
 table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 650; }}
@@ -97,7 +102,7 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 .bar-row {{ display: grid; grid-template-columns: 255px 1fr; align-items: center; margin-bottom: 27px; }}
 .bar-label {{ font-size: 18px; color: #30343b; }}
 .bar-track {{ height: 48px; position: relative; }}
-.bar-fill {{ position: relative; height: 100%; min-width: 48px; background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 55%, #fff), var(--accent)); }}
+.bar-fill {{ position: relative; height: 100%; min-width: 48px; background: var(--accent); }}
 .bar-fill.neutral {{ background: #e6e8ec; }}
 .bar-value {{ position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 17px; color: #222; }}
 .bar-fill .bar-value {{ color: #fff; }}
@@ -108,12 +113,12 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 .summary-label {{ margin-top: 8px; font-size: 17px; }}
 .annotation {{ margin: 18px 0 0 255px; color: #d9333f; font-size: 15px; max-width: 610px; line-height: 1.4; }}
 
-.process {{ position: relative; display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 100px; transform: translateY(60px); }}
-.process::before {{ content: ''; position: absolute; left: 5%; right: 5%; top: 67px; height: 1px; background: #bfc4cc; }}
+.process {{ position: relative; display: grid; grid-template-columns: repeat(var(--process-count), minmax(0, 1fr)); margin-top: 100px; transform: translateY(15px); }}
+.process::before {{ content: ''; position: absolute; left: calc(50% / var(--process-count)); right: calc(50% / var(--process-count)); top: 78px; height: 1px; background: #bfc4cc; }}
 .process-step {{ position: relative; text-align: center; padding: 0 12px; }}
 .process-icon {{ margin: 0 auto 23px; width: 46px; height: 46px; color: #20242a; }}
 .process-dot {{ position: relative; z-index: 2; width: 18px; height: 18px; margin: 0 auto 25px; border: 2px solid #20242a; border-radius: 50%; background: white; }}
-.process-step.active .process-dot {{ width: 26px; height: 26px; margin-bottom: 17px; border-color: var(--accent); background: var(--accent); }}
+.process-step.active .process-dot {{ border-color: var(--accent); background: var(--accent); transform: scale(1.45); }}
 .process-step.active .process-icon, .process-step.active .process-label {{ color: var(--accent); }}
 .process-label {{ font-size: 25px; font-weight: 650; }}
 .process-step.active .process-label {{ font-size: 35px; font-weight: 760; }}
@@ -154,14 +159,14 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 .donut-title, .dist-title {{ margin-bottom: 28px; font-size: 18px; font-weight: 700; }}
 .donut-wrap {{ position: relative; width: 290px; height: 290px; margin: 22px auto 0; border-radius: 50%; background: var(--donut); }}
 .donut-wrap::after {{ content: ''; position: absolute; inset: 73px; border-radius: 50%; background: white; }}
-.donut-label {{ position: absolute; z-index: 2; font-size: 14px; line-height: 1.25; text-align: center; }}
+.donut-label {{ position: absolute; z-index: 2; font-size: 16px; line-height: 1.25; text-align: center; }}
 .donut-label strong {{ display: block; font-size: 18px; }}
 .donut-label:nth-child(1) {{ right: 26px; top: 104px; color: white; }}
 .donut-label:nth-child(2) {{ left: 72px; bottom: 28px; }}
 .donut-label:nth-child(3) {{ left: 30px; top: 52px; }}
 .dist-group {{ margin-bottom: 31px; }}
 .dist-group:last-child {{ margin-bottom: 0; }}
-.dist-row {{ display: grid; grid-template-columns: 105px 1fr 48px; align-items: center; gap: 9px; margin: 10px 0; font-size: 13px; }}
+.dist-row {{ display: grid; grid-template-columns: 112px 1fr 52px; align-items: center; gap: 10px; margin: 10px 0; font-size: 15px; }}
 .dist-track {{ height: 9px; background: #edf0f4; }}
 .dist-fill {{ height: 100%; background: #cfd4dc; }}
 .dist-row.primary .dist-fill {{ background: var(--accent); }}
@@ -180,11 +185,11 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 .graph-canvas svg {{ position: absolute; inset: 0; width: 100%; height: 100%; }}
 .graph-edge {{ stroke: #aeb6c2; stroke-width: 1.7; fill: none; }}
 .graph-edge.primary {{ stroke: var(--accent); stroke-width: 2.4; }}
-.graph-edge-label {{ fill: #666d77; font-size: 14px; text-anchor: middle; paint-order: stroke; stroke: #fafbfc; stroke-width: 5px; }}
-.graph-node {{ position: absolute; width: 156px; min-height: 84px; transform: translate(-50%, -50%); padding: 14px 16px; background: white; border: 1px solid #dce1e8; box-shadow: 0 10px 24px rgba(31,44,68,.055); }}
+.graph-edge-label {{ fill: #666d77; font-size: 16px; text-anchor: middle; paint-order: stroke; stroke: #fafbfc; stroke-width: 5px; }}
+.graph-node {{ position: absolute; width: 180px; min-height: 100px; transform: translate(-50%, -50%); padding: 17px 18px; background: white; border: 1px solid #dce1e8; box-shadow: 0 10px 24px rgba(31,44,68,.055); }}
 .graph-node.primary {{ border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, #fff); }}
-.graph-node-type {{ color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .04em; }}
-.graph-node-label {{ margin-top: 7px; font-size: 17px; font-weight: 700; line-height: 1.25; }}
+.graph-node-type {{ color: var(--accent); font-size: 13px; font-weight: 700; letter-spacing: .04em; }}
+.graph-node-label {{ margin-top: 8px; font-size: 20px; font-weight: 700; line-height: 1.25; }}
 """
 
 
@@ -295,8 +300,8 @@ def _graph_positions(graph: dict) -> dict[str, tuple[float, float]]:
         count = max(1, len(ordered))
         return {
             node_id: (
-                500 + 350 * math.cos(2 * math.pi * index / count),
-                250 + 170 * math.sin(2 * math.pi * index / count),
+                GRAPH_WIDTH / 2 + 520 * math.cos(2 * math.pi * index / count),
+                GRAPH_HEIGHT / 2 + 170 * math.sin(2 * math.pi * index / count),
             )
             for index, node_id in enumerate(ordered)
         }
@@ -306,7 +311,7 @@ def _graph_positions(graph: dict) -> dict[str, tuple[float, float]]:
         groups.setdefault(layer.get(node_id, 0), []).append(node_id)
     positions: dict[str, tuple[float, float]] = {}
     for layer_index, group in groups.items():
-        x = 120.0 if max_layer == 0 else 120.0 + 760.0 * layer_index / max_layer
+        x = 120.0 if max_layer == 0 else 120.0 + 1240.0 * layer_index / max_layer
         for row, node_id in enumerate(group):
             y = 250.0 if len(group) == 1 else 75.0 + 350.0 * row / (len(group) - 1)
             positions[node_id] = (x, y)
@@ -355,11 +360,13 @@ def _bars(spec: dict) -> str:
 
 def _process(spec: dict) -> str:
     active = int(spec.get("active", 0))
+    process_items = spec.get("items", [])
     items = "".join(
         f'<div class="process-step {"active" if index == active else ""}"><div class="process-icon">{_icon(item.get("icon"))}</div><div class="process-dot"></div><div class="process-label">{_e(item.get("label"))}</div><div class="process-detail">{_e(item.get("detail"))}</div></div>'
-        for index, item in enumerate(spec.get("items", []))
+        for index, item in enumerate(process_items)
     )
-    return f'<div class="process">{items}</div>'
+    count = max(1, len(process_items))
+    return f'<div class="process" style="--process-count:{count}">{items}</div>'
 
 
 def _modules(spec: dict) -> str:
@@ -437,8 +444,8 @@ def _image(spec: dict) -> str:
     )
 
 
-_NODE_HALF_X = 58.0
-_NODE_HALF_Y = 55.0
+_NODE_HALF_X = 87.0
+_NODE_HALF_Y = 50.0
 
 
 def _node_boundary_points(
@@ -547,13 +554,13 @@ def _network(spec: dict) -> str:
         x, y = positions[str(node["id"])]
         css_class = "graph-node primary" if node.get("primary") else "graph-node"
         nodes.append(
-            f'<div class="{css_class}" data-node-id="{_e(node.get("id"))}" style="left:{x / 10:.3f}%;top:{y / 5:.3f}%">'
+            f'<div class="{css_class}" data-node-id="{_e(node.get("id"))}" style="left:{x / GRAPH_WIDTH * 100:.3f}%;top:{y / GRAPH_HEIGHT * 100:.3f}%">'
             f'<div class="graph-node-type">{_e(node.get("entityType"))}</div>'
             f'<div class="graph-node-label">{_e(node.get("label"))}</div></div>'
         )
     return (
         '<div class="graph-canvas">'
-        '<svg viewBox="0 0 1000 500" preserveAspectRatio="none" aria-hidden="true">'
+        f'<svg viewBox="0 0 {GRAPH_WIDTH:.0f} {GRAPH_HEIGHT:.0f}" preserveAspectRatio="none" aria-hidden="true">'
         '<defs><marker id="arrow-end" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#8e98a6"/></marker>'
         '<marker id="arrow-start" markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto-start-reverse"><path d="M8,0 L0,4 L8,8 Z" fill="#8e98a6"/></marker></defs>'
         + "".join(edges)
@@ -659,6 +666,7 @@ def _layout_receipt(page, spec: dict) -> dict:
           )].filter(el => getComputedStyle(el).display !== 'none');
           const overflow = [...document.querySelectorAll('#slide *')]
             .filter(el => {
+              if (el instanceof SVGElement) return false;
               const style = getComputedStyle(el);
               const text = String(el.textContent || '').trim();
               if (style.display === 'none' || style.visibility === 'hidden' || !text) return false;
@@ -746,6 +754,22 @@ def _layout_receipt(page, spec: dict) -> dict:
           const processToNoteGap = processSteps && processNote
             ? Math.max(0, processNote.top - processSteps.bottom) / slide.getBoundingClientRect().height
             : null;
+          const process = document.querySelector('.process');
+          const processRect = process ? process.getBoundingClientRect() : null;
+          const processLineTop = process
+            ? parseFloat(getComputedStyle(process, '::before').top)
+            : null;
+          const processLineY = processRect && Number.isFinite(processLineTop)
+            ? processRect.top + processLineTop
+            : null;
+          const processDotCenters = [...document.querySelectorAll('.process-dot')]
+            .map(dot => {
+              const rect = dot.getBoundingClientRect();
+              return rect.top + rect.height / 2;
+            });
+          const processDotMaxDeviation = processLineY !== null && processDotCenters.length
+            ? Math.max(...processDotCenters.map(center => Math.abs(center - processLineY)))
+            : null;
           return {
             slide: box(slide),
             header: union([
@@ -763,7 +787,10 @@ def _layout_receipt(page, spec: dict) -> dict:
             graphEdgeCount: document.querySelectorAll('.graph-edge').length,
             graphEdgeLabelCount: document.querySelectorAll('.graph-edge-label').length,
             graphEdges,
-            processToNoteGap
+            processToNoteGap,
+            processLineY,
+            processDotCenters,
+            processDotMaxDeviation,
           };
         }"""
     )
@@ -799,6 +826,22 @@ def _layout_receipt(page, spec: dict) -> dict:
         else None
     )
     process_gap = metrics.get("processToNoteGap")
+    process_alignment = {
+        "lineY": (
+            round(float(metrics["processLineY"]) / slide["height"], 4)
+            if metrics.get("processLineY") is not None
+            else None
+        ),
+        "dotCenters": [
+            round(float(value) / slide["height"], 4)
+            for value in metrics.get("processDotCenters", [])
+        ],
+        "maxDeviationPx": (
+            round(float(metrics["processDotMaxDeviation"]), 2)
+            if metrics.get("processDotMaxDeviation") is not None
+            else None
+        ),
+    }
     if process_gap is not None and not math.isfinite(float(process_gap)):
         raise ValueError("layout receipt contains non-finite process gap")
     return {
@@ -806,6 +849,7 @@ def _layout_receipt(page, spec: dict) -> dict:
         "renderer": "html-playwright",
         "layout": spec.get("layout"),
         "size": [WIDTH, HEIGHT],
+        "pixelSize": [OUTPUT_WIDTH, OUTPUT_HEIGHT],
         "header": normalize(metrics.get("header")),
         "content": normalize(metrics.get("content")),
         "meaningfulBody": normalize(metrics.get("meaningfulBody")),
@@ -826,6 +870,7 @@ def _layout_receipt(page, spec: dict) -> dict:
                 else None
             ),
         },
+        "processAlignment": process_alignment,
         "rendererDigest": "sha256:" + hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "specDigest": spec_digest,
         "sourceAsset": source_asset,
@@ -855,11 +900,19 @@ def render_job(job: dict, base_dir: str | Path) -> Path:
     markup = build_html(spec)
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT}, device_scale_factor=1)
+        page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT}, device_scale_factor=OUTPUT_SCALE)
         page.set_content(markup, wait_until="load")
         page.evaluate("document.fonts.ready")
         receipt = _layout_receipt(page, spec)
-        page.locator("#slide").screenshot(path=str(out))
+        raw_out = out.with_name(out.stem + ".supersampled.png")
+        page.locator("#slide").screenshot(path=str(raw_out))
+        from PIL import Image
+        with Image.open(raw_out) as image:
+            image.convert("RGB").resize(
+                (OUTPUT_WIDTH, OUTPUT_HEIGHT),
+                Image.Resampling.LANCZOS,
+            ).save(out)
+        raw_out.unlink()
         receipt_path = out.with_suffix(".layout.json")
         receipt_path.write_text(
             json.dumps(receipt, ensure_ascii=False, indent=2, allow_nan=False) + "\n",

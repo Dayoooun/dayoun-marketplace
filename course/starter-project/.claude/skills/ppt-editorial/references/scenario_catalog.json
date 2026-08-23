@@ -6,7 +6,7 @@
       "id": "S001-table",
       "context": {"audience": "reviewer", "message": "기능과 산출물", "evidenceType": "structured-facts", "density": "medium", "visualRole": "comparison-table"},
       "spec": {
-        "layout": "table", "accent": "#536FE8", "eyebrow": "FUNCTION MAP",
+        "layout": "table", "accent": "#246BFD", "eyebrow": "FUNCTION MAP",
         "title": [{"text": "신청서 작성은", "weight": "light"}, {"text": "네 가지 기능으로 완성됩니다", "weight": "bold"}],
         "subtitle": "각 기능은 다음 단계가 바로 사용할 수 있는 산출물을 남깁니다",
         "columns": [{"label": "기능", "width": "28%"}, {"label": "무엇을 해주나", "width": "52%"}, {"label": "산출물", "width": "20%"}],
@@ -95,7 +95,7 @@
       "id": "S009-long-korean",
       "context": {"audience": "public-reviewer", "message": "긴 한글과 밀도", "evidenceType": "requirements", "density": "high", "visualRole": "long-copy-table"},
       "spec": {
-        "layout": "table", "accent": "#536FE8", "eyebrow": "LONG COPY STRESS TEST", "title": [{"text": "긴 문장도", "weight": "light"}, {"text": "열 경계를 넘지 않아야 합니다", "weight": "bold"}], "subtitle": "고유명사·숫자·단위를 보존하면서 줄바꿈과 행 높이를 검증합니다",
+        "layout": "table", "accent": "#246BFD", "eyebrow": "LONG COPY STRESS TEST", "title": [{"text": "긴 문장도", "weight": "light"}, {"text": "열 경계를 넘지 않아야 합니다", "weight": "bold"}], "subtitle": "고유명사·숫자·단위를 보존하면서 줄바꿈과 행 높이를 검증합니다",
         "columns": [{"label": "검증 항목", "width": "28%"}, {"label": "맥락과 판정 기준", "width": "52%"}, {"label": "상태", "width": "20%"}],
         "rows": [["1. 개인정보와 고유명사", "테스트 전용 가상사용자-A·2099.12.31·010-0000-0000 토큰은 임의로 바꾸지 않습니다", "보존"], ["2. 수치와 단위", "매출 400만원에서 910만원으로 증가한 값을 문장 길이와 무관하게 정확히 유지합니다", "검증"], ["3. 긴 설명", "자동화 실행 전에 업무 범위·책임자·예외 처리·승인 흐름·측정 지표를 하나의 운영 기준으로 연결합니다", "줄바꿈"], ["4. 기술 용어", "trust boundary·semantic graph·Playwright Chromium 같은 용어는 쉬운 풀이와 함께 보존합니다", "보존"], ["5. 오류 처리", "셀 경계를 넘거나 말줄임표로 핵심 근거가 사라지면 해당 시나리오를 실패로 판정합니다", "차단"]],
         "footer": "SCENARIO S009 · LONG KOREAN"
@@ -106,7 +106,7 @@
       "context": {"audience": "buyer", "message": "3D 제품 개념", "evidenceType": "generated-asset", "density": "low", "visualRole": "3d-product"},
       "spec": {
         "layout": "image", "accent": "#246BFD", "eyebrow": "3D PRODUCT", "title": [{"text": "정확한 문구는 HTML이,", "weight": "light"}, {"text": "제품 감각은 3D가 담당합니다", "weight": "bold"}], "subtitle": "Codex가 만든 3D 자산을 브라우저 레이아웃에 배치합니다",
-        "imagePath": "automation-3d-asset.png", "imageFit": "contain", "imageScale": 1.35, "imageAlt": "자동화 제품을 표현한 3D 오브젝트", "assetRole": "3d-scene", "callout": "생성 자산과 정보 구조를 분리합니다", "caption": "3D 오브젝트 안에는 정확한 본문을 굽지 않습니다.", "facts": ["Codex: 3D·재질·조명", "HTML: 제목·설명·정렬", "Receipt: 자산 경로·역할"], "footer": "SCENARIO S010 · CODEX ASSET + HTML"
+        "imagePath": "automation-3d-asset.png", "imageFit": "contain", "imageScale": 1.9, "imageAlt": "자동화 제품을 표현한 3D 오브젝트", "assetRole": "3d-scene", "callout": "생성 자산과 정보 구조를 분리합니다", "caption": "3D 오브젝트 안에는 정확한 본문을 굽지 않습니다.", "facts": ["Codex: 3D·재질·조명", "HTML: 제목·설명·정렬", "Receipt: 자산 경로·역할"], "footer": "SCENARIO S010 · CODEX ASSET + HTML"
       }
     },
     {

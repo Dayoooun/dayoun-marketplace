@@ -63,7 +63,7 @@ PPT의 수치·고유명사·주장·근거는 승인 bundle과 다시 대조한
 >
 > `codex_parallel_gen.py`는 `layout`이 `table|kpi|bars|process|modules|overview|roadmap|network|image`이면
 > Playwright HTML 렌더러로 보내고, 그 외 3D·생성 이미지 잡은 Codex로 보낸다.
-> 한 덱 안에서 두 경로를 섞되 최종 출력은 동일한 1672×941 PNG로 통일한다.
+> 한 덱 안에서 두 경로를 섞되 HTML 산출은 2배 supersampling 뒤 1920×1080 PNG로 내보내고, Codex 산출도 조립 전에 같은 Full HD 캔버스로 정규화한다.
 
 ### 실전 시나리오 하네스
 
