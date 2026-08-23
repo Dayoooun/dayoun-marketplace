@@ -178,8 +178,8 @@ from presets import preset, style_block
 style_block("식음료")     # 그 도메인용 STYLE 블록 전체를 반환
 ```
 
-9종: `it` `food` `manufacturing` `education` `welfare` `culture` `public` `medical` `retail`
-별칭 해석 — "협동조합"→welfare, "AI 스타트업"→it, "공연 기획"→culture.
+10종: `it` `food` `manufacturing` `education` `welfare` `culture` `public` `medical` `retail` `beauty`
+별칭 해석 — "협동조합"→welfare, "AI 스타트업"→it, "공연 기획"→culture, "화장품"→beauty.
 각 프리셋은 **팔레트 + 폰트조합 + 씬모티프 + 톤**을 함께 묶는다.
 
 ## 8. 구도 10종 — 내용이 결정한다

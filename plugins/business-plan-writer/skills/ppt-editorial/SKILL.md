@@ -396,7 +396,7 @@ d.build(APPROVAL_DIGEST, APPROVAL_STORE, pdf=True, pptx=True) # 조립 + PDF/PPT
 | **`scripts/intake.py`** | 필수 정보 질문·기준 판단·사용자 확인 게이트 |
 | **`scripts/platform_support.py`** | Windows/macOS 폰트·CLI·프로세스 공통 처리 |
 | **`scripts/scene-deck/deck.py`** | 진입점. `from_brief → cover/agenda/slide/photos/closing → generate → build` |
-| `scripts/scene-deck/presets.py` | 도메인 9종 — it/food/manufacturing/education/welfare/culture/public/medical/retail |
+| `scripts/scene-deck/presets.py` | 도메인 10종 — it/food/manufacturing/education/welfare/culture/public/medical/retail/beauty |
 | `scripts/scene-deck/layout_engine.py` | 씬 구도 10종 + 강조요소 + 오버플로우 방어 |
 | `scripts/scene-deck/info_layouts.py` | TABLE·EXAMPLE·MATRIX·BAR·FLOW·GENEALOGY·PROMPT 정보 레이아웃 7종 |
 | `scripts/scene-deck/fonts.py` | 폰트 풀 11종 + 황금비 스케일 + 운영체제 폴백 |
@@ -411,7 +411,7 @@ d.build(APPROVAL_DIGEST, APPROVAL_STORE, pdf=True, pptx=True) # 조립 + PDF/PPT
 - **구도 10종** — 본문 `L`(좌텍/우씬) `S`(반전) `W`(프로세스) `C`(비교·교집합)
  `A`(비대칭대형) `F`(전면) `T`(3분할) / 실무 `COVER` `AGENDA` `CLOSING`.
  **연속 3장 이상 같은 구도 금지.**
-- **정보 구도 7종** — 순서·의존관계는 `FLOW`, 개념 확장 관계는 `GENEALOGY`, 복사용 요청문은 `PROMPT`를 쓴다. `GENEALOGY` 번호 timeline은 카드 밖 gutter에 둔다. 표·흐름·계보·프롬프트가 24px 이상 투사용 글자 크기에서 body/footer 경계에 맞지 않으면 축소하지 말고 BLOCK한 뒤 슬라이드를 나눈다. 투사용 표는 `font_sizes=[...]`로 후보 크기를 지정한다.
+- **정보 레이아웃 7종** — 순서·의존관계는 `FLOW`, 개념 확장 관계는 `GENEALOGY`, 복사용 요청문은 `PROMPT`를 쓴다. `GENEALOGY` 번호 timeline은 카드 밖 gutter에 둔다. 표·흐름·계보·프롬프트가 24px 이상 투사용 글자 크기에서 body/footer 경계에 맞지 않으면 축소하지 말고 BLOCK한 뒤 슬라이드를 나눈다. 투사용 표는 `font_sizes=[...]`로 후보 크기를 지정한다.
 - **씬 안전여백** — 모든 화면·카드·버튼·연결선·라벨·그림자는 상하좌우 18%를 비우고 중앙 64% 안에 완전히 들어와야 한다. `codex_parallel_gen.py`가 생성본을 중앙 64%로 framing하고 실제 foreground bbox를 검사해 `.safe.json`과 scene receipt에 결속한다. receipt가 없거나 이미지 digest가 바뀌면 재생성·조립을 BLOCK한다.
 - 크롬은 미니멀: 상단 파란 대시 + 영문 eyebrow / 우측 쪽번호, 하단 얇은 라인 + 회사명.
  **파란 풀블리드 밴드 금지**(촌스러움, 실측 반려). 표지는 크롬 없음.
