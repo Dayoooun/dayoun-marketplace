@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.13 RC
+
+- 기본 `toss-data-unified`뿐 아니라 `modern-flat`, `data-report-editorial`, `paper-serif`에도 AI 카드·상투적 headline 금지 prompt를 강제
+- 명시적 legacy style을 골라도 큰 옅은 카드와 결론형 상투 문장으로 되돌아가지 않도록 회귀검사 추가
+
 ### business-plan-writer 0.12.12 RC
 
 - 한글 어절 내부 줄내림을 전역 금지하고 글자별 line-box 검사를 receipt에 추가

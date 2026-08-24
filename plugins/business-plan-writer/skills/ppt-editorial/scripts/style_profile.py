@@ -209,10 +209,20 @@ def prompt_block(
     _, profile = resolve(name)
     config = variant_config(name, variant)
     blocks = [profile.get("promptBlock", "").strip()]
-    anti_slop = profile.get("antiSlopPrompt", "").strip()
+    data = load_profiles()
+    default_profile = data.get("profiles", {}).get(data.get("defaultProfile"), {})
+    anti_slop = (
+        profile.get("antiSlopPrompt")
+        or default_profile.get("antiSlopPrompt")
+        or ""
+    ).strip()
     if anti_slop:
         blocks.append(anti_slop)
-    headline = profile.get("headlinePrompt", "").strip()
+    headline = (
+        profile.get("headlinePrompt")
+        or default_profile.get("headlinePrompt")
+        or ""
+    ).strip()
     if headline:
         blocks.append(headline)
     if variant:

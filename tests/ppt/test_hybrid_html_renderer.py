@@ -83,6 +83,12 @@ def test_bar_widths_are_normalized_to_the_largest_value() -> None:
     assert "HEADLINE LANGUAGE RULE" in style_prompt
     assert "large pale-grey or pale-accent rectangular card" in style_prompt
     assert "다시 시작합니다" in style_prompt
+    legacy_prompt = __import__("style_profile").prompt_block(
+        "modern-flat",
+        "#D45745",
+    )
+    assert "EDITORIAL SURFACE RULE" in legacy_prompt
+    assert "HEADLINE LANGUAGE RULE" in legacy_prompt
     cover_markup = html_renderer.build_html(
         {
             "layout": "cover",
