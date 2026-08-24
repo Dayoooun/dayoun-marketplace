@@ -113,6 +113,19 @@ def test_bar_widths_are_normalized_to_the_largest_value() -> None:
             }
         )
         assert f"preset-{preset}" in markup
+    for module_preset in ("feature-left", "feature-right", "feature-top", "ledger"):
+        module_markup = html_renderer.build_html(
+            {
+                "layout": "modules",
+                "modulePreset": module_preset,
+                "featured": 0,
+                "items": [
+                    {"label": f"모듈 {index}", "detail": "검수 기준", "icon": "check"}
+                    for index in range(4)
+                ],
+            }
+        )
+        assert f"modules-{module_preset}" in module_markup
     cover_markup = html_renderer.build_html(
         {
             "layout": "cover",

@@ -145,6 +145,30 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 .module-row .number {{ color: var(--accent); font-size: 27px; font-weight: 700; }}
 .module-row h3 {{ margin: 0; font-size: 28px; }}
 .module-row p {{ color: #666c75; font-size: 17px; }}
+.modules-feature-right {{ grid-template-columns: 1fr 42%; }}
+.modules-feature-right .module-feature {{ order: 2; }}
+.modules-feature-right .module-rows {{ order: 1; }}
+.modules-feature-top {{ grid-template-columns: 1fr; grid-template-rows: 42% 1fr; gap: 34px; }}
+.modules-feature-top .module-feature {{ display: grid; grid-template-columns: 100px 1fr 2fr 80px; align-items: center; padding: 34px 42px; }}
+.modules-feature-top .module-feature .number {{ grid-column: 1; grid-row: 1; }}
+.modules-feature-top .module-feature h3 {{ grid-column: 2; grid-row: 1; margin: 0; }}
+.modules-feature-top .module-feature p {{ grid-column: 3; grid-row: 1; margin: 0; }}
+.modules-feature-top .module-feature > .icon {{ position: static; grid-column: 4; grid-row: 1; justify-self: end; }}
+.modules-feature-top .module-rows {{ grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr; }}
+.modules-feature-top .module-row {{ grid-template-columns: 42px 48px 1fr; grid-template-rows: auto auto; align-content: center; padding: 20px 28px; border-right: 1px solid #dfe3e9; border-bottom: 0; }}
+.modules-feature-top .module-row:last-child {{ border-right: 0; }}
+.modules-feature-top .module-row .icon {{ grid-column: 1; grid-row: 1 / span 2; }}
+.modules-feature-top .module-row .number {{ grid-column: 2; grid-row: 1; }}
+.modules-feature-top .module-row h3 {{ grid-column: 3; grid-row: 1; font-size: 24px; }}
+.modules-feature-top .module-row p {{ grid-column: 2 / 4; grid-row: 2; margin-top: 10px; }}
+.modules-ledger {{ grid-template-columns: 1fr; grid-template-rows: 1fr 3fr; gap: 0; border-top: 1px solid #dfe3e9; }}
+.modules-ledger .module-feature {{ display: grid; grid-template-columns: 70px 70px 250px 1fr; align-items: center; padding: 24px 18px; background: color-mix(in srgb, var(--accent) 7%, #fff); border-bottom: 1px solid #dfe3e9; }}
+.modules-ledger .module-feature > .icon {{ position: static; grid-column: 1; }}
+.modules-ledger .module-feature .number {{ grid-column: 2; font-size: 32px; }}
+.modules-ledger .module-feature h3 {{ grid-column: 3; margin: 0; font-size: 30px; }}
+.modules-ledger .module-feature p {{ grid-column: 4; margin: 0; font-size: 18px; }}
+.modules-ledger .module-rows {{ grid-template-rows: repeat(3, 1fr); }}
+.modules-ledger .module-row {{ grid-template-columns: 70px 70px 250px 1fr; padding: 0 18px; }}
 
 .roadmap {{ position: relative; height: 500px; margin-top: 14px; }}
 .roadmap-step {{ position: absolute; width: 23%; min-height: 260px; padding: 34px 28px; background: #f3f4f7; }}
@@ -436,12 +460,16 @@ def _process(spec: dict) -> str:
 def _modules(spec: dict) -> str:
     items = spec.get("items", [])
     featured = int(spec.get("featured", 0))
+    preset = str(spec.get("modulePreset") or "feature-left")
+    allowed = {"feature-left", "feature-right", "feature-top", "ledger"}
+    if preset not in allowed:
+        raise ValueError(f"unsupported modulePreset: {preset!r}")
     hero = items[featured]
     rows = "".join(
         f'<div class="module-row">{_icon(item.get("icon"))}<div class="number">{index+1:02d}</div><h3>{_e(item.get("label"))}</h3><p>{_e(item.get("detail"))}</p></div>'
         for index, item in enumerate(items) if index != featured
     )
-    return f'<div class="modules"><div class="module-feature">{_icon(hero.get("icon"))}<div class="number">{featured+1:02d}</div><h3>{_e(hero.get("label"))}</h3><p>{_e(hero.get("detail"))}</p></div><div class="module-rows">{rows}</div></div>'
+    return f'<div class="modules modules-{preset}"><div class="module-feature">{_icon(hero.get("icon"))}<div class="number">{featured+1:02d}</div><h3>{_e(hero.get("label"))}</h3><p>{_e(hero.get("detail"))}</p></div><div class="module-rows">{rows}</div></div>'
 
 
 def _roadmap(spec: dict) -> str:
@@ -1028,6 +1056,11 @@ def _layout_receipt(page, spec: dict) -> dict:
         "surfaceStyles": metrics.get("surfaceStyles", {}),
         "koreanMidWordBreaks": metrics.get("koreanMidWordBreaks", []),
         "designPreset": spec.get("designPreset"),
+        "modulePreset": (
+            (spec.get("modulePreset") or "feature-left")
+            if spec.get("layout") == "modules"
+            else None
+        ),
         "rendererDigest": "sha256:" + hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "specDigest": spec_digest,
         "sourceAsset": source_asset,

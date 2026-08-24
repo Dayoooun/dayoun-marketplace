@@ -186,6 +186,11 @@ def _validate_semantics(scenario: dict, contract: dict, decision: dict) -> list[
             errors.append(
                 f"operational headline must use a direct label, not sentence ending: {title}"
             )
+    if layout == "modules":
+        module_presets = contract.get("modulePresets", {})
+        selected = spec.get("modulePreset") or module_presets.get("default")
+        if selected not in module_presets.get("allowed", []):
+            errors.append(f"unsupported modulePreset {selected!r}")
     if layout == "network":
         errors.extend(validate_graph(spec.get("graph", {})))
         for node in spec.get("graph", {}).get("nodes", []):

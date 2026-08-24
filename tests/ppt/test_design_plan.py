@@ -181,3 +181,42 @@ def test_three_consecutive_same_layouts_are_blocked(tmp_path: Path) -> None:
         assert "repeats layout 'process'" in str(error)
     else:
         raise AssertionError("three consecutive process layouts were compiled")
+
+
+def test_module_preset_is_bound_and_invalid_value_is_blocked(tmp_path: Path) -> None:
+    plan_path = _plan(tmp_path)
+    payload = json.loads(plan_path.read_text(encoding="utf-8"))
+    slide = payload["slides"][1]
+    slide["visualRole"] = "modules"
+    slide["htmlSpec"] = {
+        "layout": "modules",
+        "modulePreset": "ledger",
+        "featured": 0,
+        "items": [
+            {"label": f"모듈 {index}", "detail": "검수 기준", "icon": "check"}
+            for index in range(4)
+        ],
+    }
+    plan_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    out_dir = tmp_path / "production"
+    receipt = design_plan.compile_plan(plan_path, out_dir)
+    jobs = json.loads((out_dir / "slide-jobs.json").read_text(encoding="utf-8"))
+
+    assert jobs[1]["htmlSpec"]["modulePreset"] == "ledger"
+    assert receipt["decisions"][1]["modulePreset"] == "ledger"
+
+    payload["slides"][1]["htmlSpec"]["modulePreset"] = "card-grid"
+    plan_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    try:
+        design_plan.compile_plan(plan_path, tmp_path / "invalid")
+    except design_plan.DesignPlanError as error:
+        assert "unsupported modulePreset" in str(error)
+    else:
+        raise AssertionError("unsupported module preset was compiled")

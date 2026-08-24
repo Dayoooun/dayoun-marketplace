@@ -188,7 +188,7 @@ def _scenario_contract():
             payloads[name] = json.load(handle)
     scenarios = payloads["catalog"].get("scenarios", [])
     fewshots = payloads["fewshots"].get("fewShots", [])
-    if len(scenarios) < 14 or len(fewshots) < 11:
+    if len(scenarios) < 14 or len(fewshots) < 14:
         raise AssertionError("시나리오 또는 few-shot 수량 부족")
     routing = payloads["contract"].get("contextRouting", {}).get(
         "visualRoleToLayout", {}

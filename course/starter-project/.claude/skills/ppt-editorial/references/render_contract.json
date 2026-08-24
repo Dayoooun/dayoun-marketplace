@@ -87,6 +87,11 @@
     "maxChildMargin": {"top": 0.18, "bottom": 0.18, "left": 0.18, "right": 0.18},
     "rule": "Distribute semantic anchors across the feature panel. Do not leave the label cluster stranded in one quadrant."
   },
+  "modulePresets": {
+    "allowed": ["feature-left", "feature-right", "feature-top", "ledger"],
+    "default": "feature-left",
+    "rule": "Choose one module composition from content direction. Do not repeat feature-left by default across the deck."
+  },
   "graphContract": {
     "nodeRequired": ["id", "label", "entityType"],
     "edgeRequired": ["source", "target", "direction", "label"],

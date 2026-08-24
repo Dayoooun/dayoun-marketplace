@@ -141,6 +141,18 @@ def compile_plan(plan_path: Path, out_dir: Path) -> dict:
             )
         html_spec = dict(html_spec)
         html_spec["layout"] = expected_layout
+        if expected_layout == "modules":
+            module_contract = contract.get("modulePresets", {})
+            module_preset = str(
+                html_spec.get("modulePreset")
+                or module_contract.get("default")
+                or "feature-left"
+            )
+            if module_preset not in module_contract.get("allowed", []):
+                raise DesignPlanError(
+                    f"{slide_id} unsupported modulePreset {module_preset!r}"
+                )
+            html_spec["modulePreset"] = module_preset
         color_role = str(slide.get("colorRole") or "primary")
         if slide.get("accentColor"):
             slide_accent = str(slide["accentColor"])
@@ -260,6 +272,7 @@ def compile_plan(plan_path: Path, out_dir: Path) -> dict:
             "palettePreset": palette_name,
             "colorRole": color_role,
             "accentColor": slide_accent,
+            "modulePreset": html_spec.get("modulePreset"),
             "assetDependency": asset_label,
         })
         assembly_order.append({"slide": index, "id": slide_id, "image": out})

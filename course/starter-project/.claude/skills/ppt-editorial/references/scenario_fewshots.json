@@ -62,6 +62,27 @@
       "invariants": ["feature anchors occupy opposing corners", "child margins stay within contract", "no 2x2 tile grid"]
     },
     {
+      "id": "FS-MODULES-RIGHT",
+      "context": {"visualRole": "modules", "evidenceType": "capabilities", "density": "medium"},
+      "decision": {"renderer": "html", "layout": "modules", "modulePreset": "feature-right"},
+      "structure": {"supportingRowsFirst": true, "featuredRatio": 0.42},
+      "invariants": ["supporting rows converge on the right-side feature", "no mirrored text", "no 2x2 card grid"]
+    },
+    {
+      "id": "FS-MODULES-TOP",
+      "context": {"visualRole": "modules", "evidenceType": "principle-and-support", "density": "medium"},
+      "decision": {"renderer": "html", "layout": "modules", "modulePreset": "feature-top"},
+      "structure": {"featuredBand": "top", "supportingColumns": 3},
+      "invariants": ["one horizontal feature band", "supporting modules use hairline divisions", "no equal cards"]
+    },
+    {
+      "id": "FS-MODULES-LEDGER",
+      "context": {"visualRole": "modules", "evidenceType": "operating-ledger", "density": "high"},
+      "decision": {"renderer": "html", "layout": "modules", "modulePreset": "ledger"},
+      "structure": {"continuousRows": 4, "featuredRows": 1},
+      "invariants": ["one continuous ledger", "selected row uses tint only", "no floating panels"]
+    },
+    {
       "id": "FS-ROADMAP-01",
       "context": {"visualRole": "roadmap", "evidenceType": "periods", "density": "medium"},
       "decision": {"renderer": "html", "layout": "roadmap"},

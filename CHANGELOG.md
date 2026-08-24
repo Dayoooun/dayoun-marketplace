@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.16 RC
+
+- modules layout에 `feature-left`, `feature-right`, `feature-top`, `ledger` composition preset 추가
+- production compiler와 scenario contract가 지원하지 않는 `modulePreset`을 제작 전에 차단
+- 동일 콘텐츠 4종 contact sheet에서 좌우 핵심·상단 밴드·연속 원장 구도를 비교 검증
+- receipt에 실제 `modulePreset` 기록, modules few-shot을 4종으로 확장
+
 ### business-plan-writer 0.12.15 RC
 
 - 실제 HTML surface까지 달라지는 `swiss-grid`, `warm-editorial`, `technical-blueprint`, `photo-documentary` profile 추가

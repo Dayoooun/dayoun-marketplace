@@ -443,6 +443,7 @@ d.build(APPROVAL_DIGEST, APPROVAL_STORE, pdf=True, pptx=True) # 조립 + PDF/PPT
 > **표지 디자인:** 표지는 `visualRole: "cover"`와 `layout: "cover"`를 쓴다. 제목은 2줄 이내, 정확한 제목·부제·메타데이터는 HTML로 유지한다. 우측 62%에는 고품질 3D 또는 사진 자산 하나만 두고 자산은 프레임 폭의 65~80%를 차지하게 한다. 좌측 34%는 박스 없이 캔버스 위에 포지셔닝 문장과 대상·형식·버전 메타스트립만 정렬한다. 옅은 회색 큰 카드, 카드 상단 강조선, 중앙 부유 제목, 작은 아이콘 콜라주, 본문용 카드 그리드, 푸터 크롬, 의미 없는 장식은 금지한다.
 > **휴식 안내:** 작은 타이머 카드 하나와 멀리 떨어진 하단 문장으로 여백을 메우지 않는다. 좌측 40%에는 박스 없이 시간·구간·휴식 목적을 타이포그래피와 헤어라인으로 묶고, 우측 56%에는 복귀 안내·재개 활동 2~3개를 배치한다. 본문은 29~84%를 사용하며 하단 25%가 비면 실패다. `visualRole: "break"`와 `layout: "break"`를 쓴다.
 > **AI 카드 금지:** 평범한 문장을 큰 옅은 회색·옅은 브랜드색 직사각형 안에 넣고, 상단에 강조색 선을 붙이고, 남은 공간을 비운 채 메타데이터를 카드 하단으로 미는 구성을 금지한다. 카드가 허용되는 경우는 표·경고·선택된 모듈·이미지 크롭처럼 실제 의미 경계가 있을 때뿐이다. 기본 문법은 naked typography, 비대칭 열, 1px 헤어라인, 메타스트립과 단일 시각 앵커다.
+> **모듈 composition preset:** `layout: "modules"`는 `modulePreset`으로 구도를 선택한다. `feature-left`는 핵심 모듈을 왼쪽에, `feature-right`는 지원 항목을 먼저 읽고 오른쪽 핵심으로 수렴시킨다. `feature-top`은 상단 핵심 밴드와 하단 3열, `ledger`는 선택 행 하나와 연속 원장형 행을 사용한다. 한 덱에서 modules 페이지가 반복되면 같은 preset을 연속 사용하지 않는다.
 > **헤드라인 문체:** 일정·휴식·목차·안내·상태 페이지는 결론형 문장을 만들지 말고 명사형 또는 `시간 + 행동` 형식으로 쓴다. 짧게 쓸 수 있는데 `합니다/입니다`를 붙이지 않는다. 사용자가 직접 준 문구가 아니라면 `~를 넘어/~을 넘어`, `~가 아니라`, `함께 만듭니다`, `다시 시작합니다`, `연결됩니다`, `새로운 가능성`을 금지한다. Light 전제 + Bold 결론 구문은 데이터 해석처럼 실제 결론이 있을 때만 쓴다. 예: `15분 휴식 · 10:25 팀별 활동 재개`, `이번 주 실행 항목`, `업무 자동화 운영 기준 설계`.
 > ⚠️ **수정은 재생성이 아니다.** `Deck.load(spec).revise()` + `apply_command()`로 고친다.
 > 텍스트·구도·순서·색·폰트는 조립만 하고(수초), 씬 내용을 바꿀 때만 그 장을 재생성한다.
@@ -451,7 +452,7 @@ d.build(APPROVAL_DIGEST, APPROVAL_STORE, pdf=True, pptx=True) # 조립 + PDF/PPT
 
 > **줄내림:** 한글 어절 내부 줄내림을 금지한다. `검수 요청`은 `검수`와 `요청` 사이에서만, `존재하지 않는 노드`는 공백에서만 줄을 바꾼다. 제목·설명·프로세스·모듈·로드맵은 `word-break: keep-all; overflow-wrap: normal`을 사용한다. 긴 코드 경로는 `/`, `.`, `_`, `(` 같은 기술 구분자에서만 나누며, 공간이 부족하면 어절을 쪼개지 말고 열 폭·글자 크기·슬라이드 수를 조정한다. receipt에서 한글 단어의 글자들이 서로 다른 line box에 놓이면 실패한다.
 
-> **디자인 루틴 수:** 스타일 프로파일 8종, 기본 통합 프로파일 내부 변형 3종, HTML 역할 레이아웃 11종, 검증 시나리오 14종, few-shot 11종이다. 프로파일은 `toss-data-unified`, `modern-flat`, `data-report-editorial`, `paper-serif`, `swiss-grid`, `warm-editorial`, `technical-blueprint`, `photo-documentary`다. 각 프로파일은 HTML preset class와 Codex prompt를 함께 바꾼다.
+> **디자인 루틴 수:** 스타일 프로파일 8종, 기본 통합 프로파일 내부 변형 3종, HTML 역할 레이아웃 11종, 모듈 composition preset 4종, 검증 시나리오 14종, few-shot 14종이다. 프로파일은 `toss-data-unified`, `modern-flat`, `data-report-editorial`, `paper-serif`, `swiss-grid`, `warm-editorial`, `technical-blueprint`, `photo-documentary`다. 각 프로파일은 HTML preset class와 Codex prompt를 함께 바꾼다.
 
 > **팔레트:** 미지정 기본은 `editorial-blue`이며 초록은 자동 기본값이 아니다. 기획서에서 `palettePreset`을 `editorial-blue`, `navy-cyan`, `ink-coral`, `violet-slate`, `forest-sand`, `mono-red`, `cobalt-yellow`, `burgundy-cream`, `teal-orange`, `black-white` 중 하나로 잠근다. `forest-sand`는 환경·지역·식품 맥락에서만 사용한다. 장별 `colorRole`은 `primary|secondary`이며, 같은 layout은 3장 연속 사용할 수 없다. 8장 이상 덱은 최소 2개, 12장 이상은 최소 3개, 16장 이상은 최소 4개 layout을 사용한다.
 `styleProfile`을 생략하면 `toss-data-unified`를 쓴다. 한 덱 안에서 표지·개념·제품·
