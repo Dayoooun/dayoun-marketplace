@@ -81,6 +81,8 @@ body {{ font-family: var(--font-family); color: var(--text); }}
 .title, .subtitle, .kpi-label, .kpi-detail, .bar-label, .process-label, .process-detail,
 .module-feature h3, .module-feature p, .module-row h3, .module-row p,
 .roadmap-step h3, .roadmap-step p, .break-action h3, .break-action p,
+.break-purpose, .meta-row, .donut-label, .dist-row, .graph-node-label,
+.graph-edge-label, .image-fact, table.report th, table.report td,
 .cover-statement, .image-copy h3, .image-copy p {{
   word-break: keep-all;
   overflow-wrap: normal;
@@ -92,12 +94,12 @@ body {{ font-family: var(--font-family); color: var(--text); }}
 table.report {{ width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 21px; }}
 table.report th {{ height: 76px; padding: 0 18px; background: var(--accent); color: white; text-align: left; font-weight: 700; border-right: 1px solid rgba(255,255,255,.4); }}
 table.report th:last-child {{ border-right: 0; text-align: center; }}
-table.report td {{ height: var(--row-height, 105px); padding: 0 18px; border-right: 1px solid #dfe3ea; border-bottom: 1px solid #edf0f4; vertical-align: middle; word-break: keep-all; overflow-wrap: anywhere; }}
+table.report td {{ height: var(--row-height, 105px); padding: 0 18px; border-right: 1px solid #dfe3ea; border-bottom: 1px solid #edf0f4; vertical-align: middle; word-break: keep-all; overflow-wrap: normal; }}
 table.report tr:nth-child(odd) td {{ background: #f5f6f9; }}
 table.report tr:nth-child(even) td {{ background: white; }}
 table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 650; }}
 
-.kpi-layout {{ min-height: 530px; display: flex; flex-direction: column; }}
+.kpi-layout {{ min-height: 500px; display: flex; flex-direction: column; }}
 .kpi-grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }}
 .kpi-item {{ min-height: 230px; padding: 42px 28px 34px; text-align: center; background: #fff; border: 1px solid #eef0f4; box-shadow: 0 14px 34px rgba(24,35,55,.055); }}
 .kpi-value {{ color: var(--accent); font-size: 67px; font-weight: 760; line-height: 1; }}
@@ -247,6 +249,88 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 .graph-node.primary {{ border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, #fff); }}
 .graph-node-type {{ color: var(--accent); font-size: 13px; font-weight: 700; letter-spacing: .04em; }}
 .graph-node-label {{ margin-top: 8px; font-size: 20px; font-weight: 700; line-height: 1.25; }}
+#slide.layout-cover.composition-hero-left .cover-layout {{ grid-template-columns: 62% 34%; }}
+#slide.layout-cover.composition-hero-left .cover-visual {{ order: 1; }}
+#slide.layout-cover.composition-hero-left .cover-copy {{ order: 2; padding: 36px 0 24px 30px; }}
+#slide.layout-cover.composition-stacked .cover-layout {{ grid-template-columns: 1fr; grid-template-rows: 58% 1fr; gap: 24px; }}
+#slide.layout-cover.composition-stacked .cover-visual {{ order: 1; min-height: 260px; }}
+#slide.layout-cover.composition-stacked .cover-copy {{ order: 2; padding: 0; display: grid; grid-template-columns: 48% 1fr; gap: 5%; }}
+#slide.layout-cover.composition-stacked .cover-meta {{ align-self: end; }}
+#slide.layout-table.composition-entity-led .report col:nth-child(1) {{ width: 40% !important; }}
+#slide.layout-table.composition-entity-led .report col:nth-child(2) {{ width: 40% !important; }}
+#slide.layout-table.composition-entity-led .report col:nth-child(3) {{ width: 20% !important; }}
+#slide.layout-table.composition-outcome-led .report col:nth-child(1) {{ width: 24% !important; }}
+#slide.layout-table.composition-outcome-led .report col:nth-child(2) {{ width: 44% !important; }}
+#slide.layout-table.composition-outcome-led .report col:nth-child(3) {{ width: 32% !important; }}
+#slide.layout-kpi .kpi-item {{ background: transparent; box-shadow: none; border: 0; border-top: 1px solid #dfe3e9; }}
+#slide.layout-kpi.composition-lead-left .kpi-grid,
+#slide.layout-kpi.composition-lead-right .kpi-grid {{ grid-template-columns: 56% 1fr; grid-template-rows: repeat(2, 1fr); gap: 0; min-height: 300px; }}
+#slide.layout-kpi.composition-lead-left .kpi-item:first-child,
+#slide.layout-kpi.composition-lead-right .kpi-item:first-child {{ grid-row: 1 / 3; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; text-align: left; border-right: 1px solid #dfe3e9; }}
+#slide.layout-kpi.composition-lead-right .kpi-item:first-child {{ grid-column: 2; border-right: 0; border-left: 1px solid #dfe3e9; }}
+#slide.layout-kpi.composition-lead-left .kpi-item:not(:first-child),
+#slide.layout-kpi.composition-lead-right .kpi-item:not(:first-child) {{ min-height: 0; padding: 14px 24px; text-align: left; }}
+#slide.layout-kpi:is(.composition-lead-left,.composition-lead-right) .kpi-item:not(:first-child) .kpi-value {{ font-size: 44px; }}
+#slide.layout-kpi:is(.composition-lead-left,.composition-lead-right) .kpi-item:not(:first-child) .kpi-label {{ margin-top: 8px; font-size: 18px; }}
+#slide.layout-kpi:is(.composition-lead-left,.composition-lead-right) .kpi-item:not(:first-child) .kpi-detail {{ margin-top: 6px; font-size: 14px; }}
+#slide.layout-kpi.composition-lead-right .kpi-item:not(:first-child) {{ grid-column: 1; }}
+#slide.layout-kpi.composition-lead-left .kpi-item:first-child .kpi-value,
+#slide.layout-kpi.composition-lead-right .kpi-item:first-child .kpi-value {{ font-size: 88px; }}
+#slide.layout-kpi.composition-interpretation-left .kpi-layout {{ display: grid; grid-template-columns: 34% 62%; gap: 4%; }}
+#slide.layout-kpi.composition-interpretation-left .interpretation {{ order: 1; margin: 0; align-self: stretch; }}
+#slide.layout-kpi.composition-interpretation-left .kpi-grid {{ order: 2; grid-template-columns: 1fr; gap: 0; border-bottom: 1px solid #dfe3e9; }}
+#slide.layout-kpi.composition-interpretation-left .kpi-item {{ min-height: 0; display: grid; grid-template-columns: 170px 220px 1fr; align-items: center; text-align: left; padding: 24px 20px; }}
+#slide.layout-kpi.composition-interpretation-left .kpi-value {{ font-size: 52px; }}
+#slide.layout-kpi.composition-interpretation-left .kpi-label {{ margin: 0; }}
+#slide.layout-bars.composition-plot-right .bars-layout {{ grid-template-columns: 28% 68%; }}
+#slide.layout-bars.composition-plot-right .summary-stack {{ order: 1; }}
+#slide.layout-bars.composition-plot-right .bars-layout > div:first-child {{ order: 2; }}
+#slide.layout-bars.composition-summary-bottom .bars-layout {{ grid-template-columns: 1fr; grid-template-rows: 1fr auto; gap: 28px; }}
+#slide.layout-bars.composition-summary-bottom .summary-stack {{ min-height: 0; grid-template-columns: repeat(2, 1fr); grid-template-rows: 1fr; gap: 22px; }}
+#slide.layout-bars.composition-summary-bottom .summary-box {{ min-height: 112px; padding: 22px 28px; display: grid; grid-template-columns: 150px 1fr; align-items: center; text-align: left; }}
+#slide.layout-overview.composition-donut-stage .overview {{ grid-template-columns: 42% 25% 33%; }}
+#slide.layout-overview.composition-donut-stage .overview > section:nth-child(2) {{ order: 1; }}
+#slide.layout-overview.composition-donut-stage .overview > section:nth-child(1) {{ order: 2; }}
+#slide.layout-overview.composition-donut-stage .overview > section:nth-child(3) {{ order: 3; }}
+#slide.layout-overview.composition-distribution-stage .overview {{ grid-template-columns: 48% 22% 30%; }}
+#slide.layout-overview.composition-distribution-stage .overview > section:nth-child(3) {{ order: 1; }}
+#slide.layout-overview.composition-distribution-stage .overview > section:nth-child(1) {{ order: 2; }}
+#slide.layout-overview.composition-distribution-stage .overview > section:nth-child(2) {{ order: 3; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process {{ grid-template-columns: 1fr; margin-top: 18px; transform: none; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process::before {{ left: 79px; right: auto; top: 34px; bottom: 34px; width: 1px; height: auto; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process-step {{ display: grid; grid-template-columns: 70px 18px 240px 1fr; align-items: center; min-height: 72px; text-align: left; padding: 0; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process-icon {{ margin: 0; width: 34px; height: 34px; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process-dot {{ top: auto; left: auto; margin: 0; justify-self: center; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process-label {{ margin: 0; font-size: 24px; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process-detail {{ margin: 0; }}
+#slide.layout-process.composition-vertical-focus .process-step.active {{ min-height: 112px; padding: 18px 0; background: color-mix(in srgb, var(--accent) 7%, #fff); }}
+#slide.layout-process.composition-vertical-focus .process-step.active .process-label {{ color: var(--accent); font-size: 31px; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .rule-note {{ bottom: 120px; }}
+#slide.layout-roadmap.composition-staircase-fall .roadmap-step:nth-child(1) {{ bottom: 144px; }}
+#slide.layout-roadmap.composition-staircase-fall .roadmap-step:nth-child(2) {{ bottom: 96px; }}
+#slide.layout-roadmap.composition-staircase-fall .roadmap-step:nth-child(3) {{ bottom: 48px; }}
+#slide.layout-roadmap.composition-staircase-fall .roadmap-step:nth-child(4) {{ bottom: 0; }}
+#slide.layout-roadmap.composition-phase-ledger .roadmap {{ display: grid; grid-template-rows: repeat(4, 1fr); height: 500px; margin-top: 0; border-top: 1px solid #dfe3e9; }}
+#slide.layout-roadmap.composition-phase-ledger .roadmap-step {{ position: static; width: auto; min-height: 0; display: grid; grid-template-columns: 170px 240px 1fr 60px; align-items: center; padding: 18px 24px; background: transparent; border-bottom: 1px solid #dfe3e9; }}
+#slide.layout-roadmap.composition-phase-ledger .roadmap-step h3,
+#slide.layout-roadmap.composition-phase-ledger .roadmap-step p {{ margin: 0; }}
+#slide.layout-roadmap.composition-phase-ledger .roadmap-step .icon {{ position: static; justify-self: end; }}
+#slide.layout-break.composition-time-right .break-layout {{ grid-template-columns: 56% 40%; }}
+#slide.layout-break.composition-time-right .break-actions {{ order: 1; }}
+#slide.layout-break.composition-time-right .break-hero {{ order: 2; border-right: 0; border-left: 1px solid #dfe3e9; padding: 34px 0 34px 48px; }}
+#slide.layout-break.composition-return-band .break-layout {{ grid-template-columns: 1fr; grid-template-rows: 42% 1fr; gap: 26px; }}
+#slide.layout-break.composition-return-band .break-hero {{ padding: 18px 0 28px; border-right: 0; border-bottom: 1px solid #dfe3e9; display: grid; grid-template-columns: 36% 1fr; align-items: end; }}
+#slide.layout-break.composition-return-band .break-purpose {{ margin: 0; }}
+#slide.layout-break.composition-return-band .break-actions {{ grid-template-columns: repeat(var(--break-count), 1fr); grid-template-rows: 1fr; }}
+#slide.layout-break.composition-return-band .break-action {{ grid-template-columns: 1fr; align-content: center; border-right: 1px solid #dfe3e9; }}
+#slide.layout-network.composition-vertical-flow .graph-node {{ width: 160px; min-height: 62px; padding: 8px 12px; }}
+#slide.layout-network.composition-vertical-flow .graph-node-label {{ margin-top: 4px; font-size: 17px; }}
+#slide.layout-image.composition-copy-right .image-layout {{ grid-template-columns: 58% 38%; }}
+#slide.layout-image.composition-copy-right .image-frame {{ order: 1; }}
+#slide.layout-image.composition-copy-right .image-copy {{ order: 2; border-right: 0; border-left: 1px solid #dfe3e9; padding: 36px 0 30px 40px; }}
+#slide.layout-image.composition-visual-top .image-layout {{ grid-template-columns: 1fr; grid-template-rows: 62% 1fr; gap: 26px; }}
+#slide.layout-image.composition-visual-top .image-frame {{ order: 1; min-height: 300px; }}
+#slide.layout-image.composition-visual-top .image-copy {{ order: 2; border-right: 0; border-top: 1px solid #dfe3e9; padding: 24px 0 0; display: grid; grid-template-columns: 42% 1fr; gap: 5%; }}
 #slide.preset-modern-flat .title {{ font-size: 62px; }}
 #slide.preset-modern-flat .eyebrow {{ padding: 6px 10px; width: fit-content; background: color-mix(in srgb, var(--accent) 10%, #fff); }}
 #slide.preset-data-report-editorial .title {{ font-size: 54px; }}
@@ -460,10 +544,7 @@ def _process(spec: dict) -> str:
 def _modules(spec: dict) -> str:
     items = spec.get("items", [])
     featured = int(spec.get("featured", 0))
-    preset = str(spec.get("modulePreset") or "feature-left")
-    allowed = {"feature-left", "feature-right", "feature-top", "ledger"}
-    if preset not in allowed:
-        raise ValueError(f"unsupported modulePreset: {preset!r}")
+    preset = _composition_preset(spec)
     hero = items[featured]
     rows = "".join(
         f'<div class="module-row">{_icon(item.get("icon"))}<div class="number">{index+1:02d}</div><h3>{_e(item.get("label"))}</h3><p>{_e(item.get("detail"))}</p></div>'
@@ -612,10 +693,15 @@ def _edge_route(
     source_id: str,
     target_id: str,
     positions: dict[str, tuple[float, float]],
+    orientation: str = "horizontal",
 ) -> tuple[str, tuple[float, float]]:
     source = positions[source_id]
     target = positions[target_id]
     start, end = _node_boundary_points(source, target)
+    if orientation == "vertical":
+        direction = 1.0 if target[1] >= source[1] else -1.0
+        start = (source[0], source[1] + direction * 31.0)
+        end = (target[0], target[1] - direction * 31.0)
     blockers = [
         center
         for node_id, center in positions.items()
@@ -627,8 +713,35 @@ def _edge_route(
         if abs(end[0] - start[0]) >= abs(end[1] - start[1]):
             label = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2 - 72)
         else:
-            label = ((start[0] + end[0]) / 2 + 24, (start[1] + end[1]) / 2)
+            label = (
+                (start[0] + end[0]) / 2 + (120 if orientation == "vertical" else 24),
+                (start[1] + end[1]) / 2,
+            )
         return path, label
+    if orientation == "vertical":
+        centers = list(positions.values())
+        candidates = [
+            max(26.0, min(center[0] for center in centers) - 120.0),
+            min(GRAPH_WIDTH - 26.0, max(center[0] for center in centers) + 120.0),
+        ]
+        lane = max(
+            candidates,
+            key=lambda value: min(
+                abs(value - center[0]) - _NODE_HALF_X
+                for center in centers
+            ),
+        )
+        first_y = start[1] + (4.0 if end[1] >= start[1] else -4.0)
+        last_y = end[1] - (4.0 if end[1] >= start[1] else -4.0)
+        path = (
+            f"M {start[0]:.2f} {start[1]:.2f} "
+            f"L {start[0]:.2f} {first_y:.2f} "
+            f"L {lane:.2f} {first_y:.2f} "
+            f"L {lane:.2f} {last_y:.2f} "
+            f"L {end[0]:.2f} {last_y:.2f} "
+            f"L {end[0]:.2f} {end[1]:.2f}"
+        )
+        return path, (lane + 24, (first_y + last_y) / 2)
     centers = list(positions.values())
     candidates = [
         max(26.0, min(center[1] for center in centers) - 78.0),
@@ -660,12 +773,64 @@ def _network(spec: dict) -> str:
     errors = validate_graph(graph)
     if errors:
         raise ValueError("invalid graph: " + "; ".join(errors))
+    preset = _composition_preset(spec)
+    if preset == "hub-spoke":
+        primary_nodes = [
+            str(node["id"])
+            for node in graph.get("nodes", [])
+            if node.get("primary")
+        ]
+        if len(primary_nodes) != 1:
+            raise ValueError("hub-spoke requires exactly one primary hub node")
+        hub = primary_nodes[0]
+        edges = graph.get("edges", [])
+        spokes = {str(node["id"]) for node in graph.get("nodes", []) if str(node["id"]) != hub}
+        connected = set()
+        for edge in edges:
+            source = str(edge["source"])
+            target = str(edge["target"])
+            if hub not in {source, target}:
+                raise ValueError("hub-spoke requires every edge to touch the primary hub")
+            connected.add(target if source == hub else source)
+        if connected != spokes or len(edges) != len(spokes):
+            raise ValueError("hub-spoke requires one edge per spoke")
     positions = _graph_positions(graph)
+    if preset == "vertical-flow":
+        positions = {
+            node_id: (
+                120.0 + (y / GRAPH_HEIGHT) * 1240.0,
+                45.0 + (x / GRAPH_WIDTH) * 410.0,
+            )
+            for node_id, (x, y) in positions.items()
+        }
+    elif preset == "hub-spoke":
+        node_ids = [str(node["id"]) for node in graph.get("nodes", [])]
+        primary = next(
+            (
+                str(node["id"])
+                for node in graph.get("nodes", [])
+                if node.get("primary")
+            ),
+            node_ids[0],
+        )
+        spokes = [node_id for node_id in node_ids if node_id != primary]
+        positions = {primary: (GRAPH_WIDTH / 2, GRAPH_HEIGHT / 2)}
+        for index, node_id in enumerate(spokes):
+            angle = -math.pi / 2 + 2 * math.pi * index / max(1, len(spokes))
+            positions[node_id] = (
+                GRAPH_WIDTH / 2 + 520 * math.cos(angle),
+                GRAPH_HEIGHT / 2 + 170 * math.sin(angle),
+            )
     edges = []
     for index, edge in enumerate(graph.get("edges", [])):
         source_id = str(edge["source"])
         target_id = str(edge["target"])
-        path, label_point = _edge_route(source_id, target_id, positions)
+        path, label_point = _edge_route(
+            source_id,
+            target_id,
+            positions,
+            orientation="vertical" if preset == "vertical-flow" else "horizontal",
+        )
         marker_start = ' marker-start="url(#arrow-start)"' if edge.get("direction") == "bidirectional" else ""
         css_class = "graph-edge primary" if edge.get("primary") else "graph-edge"
         edge_id = f"edge-{index}-{source_id}-{target_id}"
@@ -707,6 +872,32 @@ LAYOUT_RENDERERS = {
     "break": _break,
     "roadmap": _roadmap,
 }
+COMPOSITION_PRESETS = {
+    "cover": ("hero-right", "hero-left", "stacked"),
+    "table": ("evidence-wide", "entity-led", "outcome-led"),
+    "kpi": ("lead-left", "lead-right", "interpretation-left"),
+    "bars": ("plot-left", "plot-right", "summary-bottom"),
+    "overview": ("metadata-rail", "donut-stage", "distribution-stage"),
+    "process": ("horizontal-rail", "vertical-ledger", "vertical-focus"),
+    "modules": ("feature-left", "feature-right", "feature-top", "ledger"),
+    "roadmap": ("staircase-rise", "staircase-fall", "phase-ledger"),
+    "break": ("time-left", "time-right", "return-band"),
+    "network": ("horizontal-flow", "vertical-flow", "hub-spoke"),
+    "image": ("copy-left", "copy-right", "visual-top"),
+}
+
+
+def _composition_preset(spec: dict) -> str:
+    layout = str(spec.get("layout") or "")
+    allowed = COMPOSITION_PRESETS.get(layout)
+    if not allowed:
+        raise ValueError(f"unsupported HTML slide layout: {layout!r}")
+    if "modulePreset" in spec:
+        raise ValueError("modulePreset is obsolete; use compositionPreset")
+    preset = str(spec.get("compositionPreset") or allowed[0])
+    if preset not in allowed:
+        raise ValueError(f"unsupported compositionPreset for {layout}: {preset!r}")
+    return preset
 
 
 def supports(job: dict) -> bool:
@@ -738,11 +929,14 @@ def build_html(spec: dict) -> str:
     layout = spec.get("layout")
     if layout not in LAYOUT_RENDERERS:
         raise ValueError(f"unsupported HTML slide layout: {layout!r}")
+    spec = dict(spec)
+    composition = _composition_preset(spec)
+    spec["compositionPreset"] = composition
     tokens = _html_tokens()
     accent = _e(spec.get("accent", tokens["accent"]))
     note = f'<div class="rule-note">{_e(spec.get("note"))}</div>' if spec.get("note") else ""
     content = LAYOUT_RENDERERS[layout](spec)
-    classes = [f"layout-{layout}"]
+    classes = [f"layout-{layout}", f"composition-{composition}"]
     preset = "".join(
         character
         for character in str(spec.get("designPreset") or "")
@@ -807,7 +1001,10 @@ def _layout_receipt(page, spec: dict) -> dict:
             '.title, .subtitle, .kpi-label, .kpi-detail, .bar-label, ' +
             '.process-label, .process-detail, .module-feature h3, .module-feature p, ' +
             '.module-row h3, .module-row p, .roadmap-step h3, .roadmap-step p, ' +
-            '.break-action h3, .break-action p, .cover-statement, .image-copy h3, .image-copy p'
+            '.break-action h3, .break-action p, .break-purpose, .meta-row, ' +
+            '.donut-label, .dist-row, .graph-node-label, .graph-edge-label, ' +
+            '.image-fact, table.report th, table.report td, .cover-statement, ' +
+            '.image-copy h3, .image-copy p'
           );
           for (const el of koreanTargets) {
             const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -928,7 +1125,7 @@ def _layout_receipt(page, spec: dict) -> dict:
           const processSteps = union([...document.querySelectorAll('.process-step')]);
           const processNote = box(document.querySelector('#slide.layout-process .rule-note'));
           const processToNoteGap = processSteps && processNote
-            ? Math.max(0, processNote.top - processSteps.bottom) / slide.getBoundingClientRect().height
+            ? (processNote.top - processSteps.bottom) / slide.getBoundingClientRect().height
             : null;
           const process = document.querySelector('.process');
           const processRect = process ? process.getBoundingClientRect() : null;
@@ -946,6 +1143,32 @@ def _layout_receipt(page, spec: dict) -> dict:
           const processDotMaxDeviation = processLineY !== null && processDotCenters.length
             ? Math.max(...processDotCenters.map(center => Math.abs(center - processLineY)))
             : null;
+          const processLineLeft = process
+            ? parseFloat(getComputedStyle(process, '::before').left)
+            : null;
+          const processLineX = processRect && Number.isFinite(processLineLeft)
+            ? processRect.left + processLineLeft
+            : null;
+          const processDotCenterXs = [...document.querySelectorAll('.process-dot')]
+            .map(dot => {
+              const rect = dot.getBoundingClientRect();
+              return rect.left + rect.width / 2;
+            });
+          const processDotMaxDeviationX = processLineX !== null && processDotCenterXs.length
+            ? Math.max(...processDotCenterXs.map(center => Math.abs(center - processLineX)))
+            : null;
+          const compositionRegions = {};
+          for (const selector of [
+            '.cover-copy', '.cover-visual', '.table-wrap', '.kpi-grid',
+            '.interpretation', '.bars-layout > div:first-child', '.summary-stack',
+            '.overview > section:nth-child(1)', '.overview > section:nth-child(2)',
+            '.overview > section:nth-child(3)', '.process', '.module-feature',
+            '.module-rows', '.roadmap', '.break-hero', '.break-actions',
+            '.graph-canvas', '.image-copy', '.image-frame'
+          ]) {
+            const rect = union([...document.querySelectorAll(selector)]);
+            if (rect) compositionRegions[selector] = rect;
+          }
           return {
             slide: box(slide),
             header: union([
@@ -967,7 +1190,11 @@ def _layout_receipt(page, spec: dict) -> dict:
             processLineY,
             processDotCenters,
             processDotMaxDeviation,
+            processLineX,
+            processDotCenterXs,
+            processDotMaxDeviationX,
             koreanMidWordBreaks,
+            compositionRegions,
             surfaceStyles: {
               coverCopy: surfaceStyle('.cover-copy'),
               breakHero: surfaceStyle('.break-hero'),
@@ -1023,6 +1250,20 @@ def _layout_receipt(page, spec: dict) -> dict:
             if metrics.get("processDotMaxDeviation") is not None
             else None
         ),
+        "lineX": (
+            round(float(metrics["processLineX"]) / slide["width"], 4)
+            if metrics.get("processLineX") is not None
+            else None
+        ),
+        "dotCenterXs": [
+            round(float(value) / slide["width"], 4)
+            for value in metrics.get("processDotCenterXs", [])
+        ],
+        "maxDeviationXPx": (
+            round(float(metrics["processDotMaxDeviationX"]), 2)
+            if metrics.get("processDotMaxDeviationX") is not None
+            else None
+        ),
     }
     if process_gap is not None and not math.isfinite(float(process_gap)):
         raise ValueError("layout receipt contains non-finite process gap")
@@ -1056,11 +1297,11 @@ def _layout_receipt(page, spec: dict) -> dict:
         "surfaceStyles": metrics.get("surfaceStyles", {}),
         "koreanMidWordBreaks": metrics.get("koreanMidWordBreaks", []),
         "designPreset": spec.get("designPreset"),
-        "modulePreset": (
-            (spec.get("modulePreset") or "feature-left")
-            if spec.get("layout") == "modules"
-            else None
-        ),
+        "compositionPreset": spec.get("compositionPreset"),
+        "compositionRegions": {
+            selector: normalize(rect)
+            for selector, rect in metrics.get("compositionRegions", {}).items()
+        },
         "rendererDigest": "sha256:" + hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "specDigest": spec_digest,
         "sourceAsset": source_asset,
@@ -1080,6 +1321,7 @@ def render_job(job: dict, base_dir: str | Path) -> Path:
         spec["accent"] = job["accentColor"]
     if "designPreset" not in spec and job.get("styleProfile"):
         spec["designPreset"] = job["styleProfile"]
+    spec["compositionPreset"] = _composition_preset(spec)
     _prepare_image_data(spec, base)
     out_value = job.get("out") or spec.get("out")
     if not out_value:

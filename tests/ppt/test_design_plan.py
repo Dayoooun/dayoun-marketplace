@@ -190,7 +190,7 @@ def test_module_preset_is_bound_and_invalid_value_is_blocked(tmp_path: Path) -> 
     slide["visualRole"] = "modules"
     slide["htmlSpec"] = {
         "layout": "modules",
-        "modulePreset": "ledger",
+        "compositionPreset": "ledger",
         "featured": 0,
         "items": [
             {"label": f"모듈 {index}", "detail": "검수 기준", "icon": "check"}
@@ -206,10 +206,10 @@ def test_module_preset_is_bound_and_invalid_value_is_blocked(tmp_path: Path) -> 
     receipt = design_plan.compile_plan(plan_path, out_dir)
     jobs = json.loads((out_dir / "slide-jobs.json").read_text(encoding="utf-8"))
 
-    assert jobs[1]["htmlSpec"]["modulePreset"] == "ledger"
-    assert receipt["decisions"][1]["modulePreset"] == "ledger"
+    assert jobs[1]["htmlSpec"]["compositionPreset"] == "ledger"
+    assert receipt["decisions"][1]["compositionPreset"] == "ledger"
 
-    payload["slides"][1]["htmlSpec"]["modulePreset"] = "card-grid"
+    payload["slides"][1]["htmlSpec"]["compositionPreset"] = "card-grid"
     plan_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -217,6 +217,23 @@ def test_module_preset_is_bound_and_invalid_value_is_blocked(tmp_path: Path) -> 
     try:
         design_plan.compile_plan(plan_path, tmp_path / "invalid")
     except design_plan.DesignPlanError as error:
-        assert "unsupported modulePreset" in str(error)
+        assert "unsupported compositionPreset" in str(error)
     else:
         raise AssertionError("unsupported module preset was compiled")
+
+
+def test_obsolete_module_preset_is_blocked(tmp_path: Path) -> None:
+    plan_path = _plan(tmp_path)
+    payload = json.loads(plan_path.read_text(encoding="utf-8"))
+    payload["slides"][1]["htmlSpec"]["modulePreset"] = "feature-left"
+    plan_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    try:
+        design_plan.compile_plan(plan_path, tmp_path / "production")
+    except design_plan.DesignPlanError as error:
+        assert "modulePreset is obsolete" in str(error)
+    else:
+        raise AssertionError("obsolete modulePreset was compiled")

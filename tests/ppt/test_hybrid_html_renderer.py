@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import sys
 from pathlib import Path
 
@@ -117,7 +119,7 @@ def test_bar_widths_are_normalized_to_the_largest_value() -> None:
         module_markup = html_renderer.build_html(
             {
                 "layout": "modules",
-                "modulePreset": module_preset,
+                "compositionPreset": module_preset,
                 "featured": 0,
                 "items": [
                     {"label": f"모듈 {index}", "detail": "검수 기준", "icon": "check"}
@@ -126,6 +128,14 @@ def test_bar_widths_are_normalized_to_the_largest_value() -> None:
             }
         )
         assert f"modules-{module_preset}" in module_markup
+    contract = json.loads(
+        (SKILL / "references" / "render_contract.json").read_text(encoding="utf-8")
+    )
+    contract_presets = contract["compositionPresets"]
+    assert set(contract_presets) == set(html_renderer.COMPOSITION_PRESETS)
+    assert sum(len(value["allowed"]) for value in contract_presets.values()) == 34
+    for layout, allowed in html_renderer.COMPOSITION_PRESETS.items():
+        assert tuple(contract_presets[layout]["allowed"]) == allowed
     cover_markup = html_renderer.build_html(
         {
             "layout": "cover",

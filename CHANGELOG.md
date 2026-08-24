@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.17 RC
+
+- 11개 HTML section에 총 34개 `compositionPreset`을 도입
+- 표 열 비율, KPI lead/interpretation, bars summary, overview stage, process orientation, roadmap, break, network topology, image reading order를 실제 geometry로 변경
+- 옛 `modulePreset`을 제거하고 공통 `compositionPreset`으로 단일화
+- receipt에 named composition region geometry와 수평·수직 process rail alignment 기록
+- hub-spoke star topology와 vertical graph occlusion을 fail-closed 검증
+- 사용자가 발견한 vertical process note overlap을 signed gap gate로 차단
+- 34개 preset 전수 렌더: overflow 0, 한글 어절 내부 줄내림 0, rail·graph occlusion 0
+
 ### business-plan-writer 0.12.16 RC
 
 - modules layout에 `feature-left`, `feature-right`, `feature-top`, `ledger` composition preset 추가

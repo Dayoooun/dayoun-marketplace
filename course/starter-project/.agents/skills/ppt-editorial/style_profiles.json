@@ -4,7 +4,7 @@
   "note": "산문 설명만으로는 프로파일이 매 실행 무시된다. 이 파일이 단일 출처이며 scripts/style_profile.py 가 슬라이드 역할에 맞는 스타일 변형과 기준 이미지를 주입한다.",
   "renderPolicy": {
     "default": "hybrid",
-    "htmlLayouts": ["table", "kpi", "bars", "process", "modules", "overview", "roadmap", "network", "image"],
+    "htmlLayouts": ["cover", "table", "kpi", "bars", "process", "modules", "overview", "roadmap", "break", "network", "image"],
     "codexRoles": ["3d-scene", "photo", "material-illustration"],
     "htmlTokens": {
       "fontFamily": "Pretendard, 'Noto Sans KR', 'Malgun Gothic', sans-serif",

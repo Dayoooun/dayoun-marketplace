@@ -186,11 +186,12 @@ def _validate_semantics(scenario: dict, contract: dict, decision: dict) -> list[
             errors.append(
                 f"operational headline must use a direct label, not sentence ending: {title}"
             )
-    if layout == "modules":
-        module_presets = contract.get("modulePresets", {})
-        selected = spec.get("modulePreset") or module_presets.get("default")
-        if selected not in module_presets.get("allowed", []):
-            errors.append(f"unsupported modulePreset {selected!r}")
+    preset_contract = contract.get("compositionPresets", {}).get(layout, {})
+    selected = spec.get("compositionPreset") or preset_contract.get("default")
+    if selected not in preset_contract.get("allowed", []):
+        errors.append(
+            f"unsupported compositionPreset {selected!r} for {layout!r}"
+        )
     if layout == "network":
         errors.extend(validate_graph(spec.get("graph", {})))
         for node in spec.get("graph", {}).get("nodes", []):
@@ -283,6 +284,18 @@ def _validate_receipt(scenario: dict, receipt: dict, contract: dict) -> list[str
         errors.append(f"Korean mid-word line breaks: {mid_word_breaks}")
 
     layout = scenario["spec"]["layout"]
+    preset_contract = contract.get("compositionPresets", {}).get(layout, {})
+    expected_preset = (
+        scenario["spec"].get("compositionPreset")
+        or preset_contract.get("default")
+    )
+    if receipt.get("compositionPreset") != expected_preset:
+        errors.append(
+            f"composition preset mismatch: {receipt.get('compositionPreset')} "
+            f"!= {expected_preset}"
+        )
+    if not receipt.get("compositionRegions"):
+        errors.append("composition geometry missing from receipt")
     if layout not in contract["verticalBalance"]["exceptions"]:
         content = receipt.get("content") or {}
         body = receipt.get("meaningfulBody") or {}
@@ -357,10 +370,12 @@ def _validate_receipt(scenario: dict, receipt: dict, contract: dict) -> list[str
         maximum = contract.get("internalGap", {}).get("processToNoteMax")
         if maximum is not None:
             finite = isinstance(gap, (int, float)) and math.isfinite(float(gap))
-            if not finite or gap > maximum:
-                errors.append(f"process-to-note gap {gap} exceeds {maximum}")
+            if not finite or gap < 0 or gap > maximum:
+                errors.append(f"process-to-note gap {gap} outside [0, {maximum}]")
         alignment = receipt.get("processAlignment") or {}
-        deviation = alignment.get("maxDeviationPx")
+        vertical = expected_preset in {"vertical-ledger", "vertical-focus"}
+        deviation_key = "maxDeviationXPx" if vertical else "maxDeviationPx"
+        deviation = alignment.get(deviation_key)
         maximum_deviation = contract.get("processAlignment", {}).get("maxDeviationPx")
         finite_deviation = (
             isinstance(deviation, (int, float))
@@ -372,7 +387,7 @@ def _validate_receipt(scenario: dict, receipt: dict, contract: dict) -> list[str
         ):
             errors.append(
                 f"process dot-to-line deviation {deviation}px exceeds "
-                f"{maximum_deviation}px"
+                f"{maximum_deviation}px for {expected_preset}"
             )
 
     if layout in {"image", "cover"}:

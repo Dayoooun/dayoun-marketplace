@@ -87,11 +87,20 @@
     "maxChildMargin": {"top": 0.18, "bottom": 0.18, "left": 0.18, "right": 0.18},
     "rule": "Distribute semantic anchors across the feature panel. Do not leave the label cluster stranded in one quadrant."
   },
-  "modulePresets": {
-    "allowed": ["feature-left", "feature-right", "feature-top", "ledger"],
-    "default": "feature-left",
-    "rule": "Choose one module composition from content direction. Do not repeat feature-left by default across the deck."
+  "compositionPresets": {
+    "cover": {"default": "hero-right", "allowed": ["hero-right", "hero-left", "stacked"]},
+    "table": {"default": "evidence-wide", "allowed": ["evidence-wide", "entity-led", "outcome-led"]},
+    "kpi": {"default": "lead-left", "allowed": ["lead-left", "lead-right", "interpretation-left"]},
+    "bars": {"default": "plot-left", "allowed": ["plot-left", "plot-right", "summary-bottom"]},
+    "overview": {"default": "metadata-rail", "allowed": ["metadata-rail", "donut-stage", "distribution-stage"]},
+    "process": {"default": "horizontal-rail", "allowed": ["horizontal-rail", "vertical-ledger", "vertical-focus"]},
+    "modules": {"default": "feature-left", "allowed": ["feature-left", "feature-right", "feature-top", "ledger"]},
+    "roadmap": {"default": "staircase-rise", "allowed": ["staircase-rise", "staircase-fall", "phase-ledger"]},
+    "break": {"default": "time-left", "allowed": ["time-left", "time-right", "return-band"]},
+    "network": {"default": "horizontal-flow", "allowed": ["horizontal-flow", "vertical-flow", "hub-spoke"]},
+    "image": {"default": "copy-left", "allowed": ["copy-left", "copy-right", "visual-top"]}
   },
+  "compositionPresetRule": "Every HTML section chooses one validated spatial composition. A preset changes reading order or geometry, never colour alone.",
   "graphContract": {
     "nodeRequired": ["id", "label", "entityType"],
     "edgeRequired": ["source", "target", "direction", "label"],

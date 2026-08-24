@@ -141,18 +141,24 @@ def compile_plan(plan_path: Path, out_dir: Path) -> dict:
             )
         html_spec = dict(html_spec)
         html_spec["layout"] = expected_layout
-        if expected_layout == "modules":
-            module_contract = contract.get("modulePresets", {})
-            module_preset = str(
-                html_spec.get("modulePreset")
-                or module_contract.get("default")
-                or "feature-left"
+        if "modulePreset" in html_spec:
+            raise DesignPlanError(
+                f"{slide_id} modulePreset is obsolete; use compositionPreset"
             )
-            if module_preset not in module_contract.get("allowed", []):
-                raise DesignPlanError(
-                    f"{slide_id} unsupported modulePreset {module_preset!r}"
-                )
-            html_spec["modulePreset"] = module_preset
+        preset_contract = contract.get("compositionPresets", {}).get(
+            expected_layout, {}
+        )
+        composition_preset = str(
+            html_spec.get("compositionPreset")
+            or preset_contract.get("default")
+            or ""
+        )
+        if composition_preset not in preset_contract.get("allowed", []):
+            raise DesignPlanError(
+                f"{slide_id} unsupported compositionPreset "
+                f"{composition_preset!r} for {expected_layout!r}"
+            )
+        html_spec["compositionPreset"] = composition_preset
         color_role = str(slide.get("colorRole") or "primary")
         if slide.get("accentColor"):
             slide_accent = str(slide["accentColor"])
@@ -272,7 +278,7 @@ def compile_plan(plan_path: Path, out_dir: Path) -> dict:
             "palettePreset": palette_name,
             "colorRole": color_role,
             "accentColor": slide_accent,
-            "modulePreset": html_spec.get("modulePreset"),
+            "compositionPreset": html_spec.get("compositionPreset"),
             "assetDependency": asset_label,
         })
         assembly_order.append({"slide": index, "id": slide_id, "image": out})
