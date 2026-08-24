@@ -50,6 +50,30 @@
       "primary": "#C53A45",
       "secondary": "#23262B",
       "use": "감사·위험·정책"
+    },
+    "cobalt-yellow": {
+      "label": "코발트·옐로",
+      "primary": "#2454D6",
+      "secondary": "#D6A514",
+      "use": "교육·공공·캠페인"
+    },
+    "burgundy-cream": {
+      "label": "버건디·크림",
+      "primary": "#8E3346",
+      "secondary": "#9C7A46",
+      "use": "브랜드·컨설팅·전통"
+    },
+    "teal-orange": {
+      "label": "틸·오렌지",
+      "primary": "#087E8B",
+      "secondary": "#D86A32",
+      "use": "서비스·프로덕트·커뮤니티"
+    },
+    "black-white": {
+      "label": "블랙·화이트",
+      "primary": "#111318",
+      "secondary": "#6D727B",
+      "use": "감사·법률·미니멀 보고"
     }
   },
   "profiles": {
@@ -275,6 +299,38 @@
       },
       "promptBlock": "★★ STYLE PROFILE — PAPER SERIF:\nPaper-white background, refined Korean serif (myeongjo) typography,\nminimal composition with a single accent colour, thin hairline rules,\noptional ink/sumi motif. Large real photography.\nCalm, premium, generous negative space.",
       "indexChromeStyle": "eyebrow-rule"
+    },
+    "swiss-grid": {
+      "label": "스위스 그리드",
+      "summary": "검정 타이포그래피, 강한 좌측 정렬, 빨간 구조선으로 만드는 정밀한 정보 포스터.",
+      "referenceAssets": ["references/toss-data-table.png", "references/toss-data-bars.png"],
+      "allowSemanticStatusColors": true,
+      "allowAccentTints": false,
+      "promptBlock": "★★ STYLE PROFILE — SWISS GRID:\nUse a white canvas, strict asymmetric modular grid, black typography and one red or cobalt accent. Use large direct noun-phrase headlines, visible baseline logic, square geometry and thin black rules. Prefer numbered sections, cropped alignment and strong left edges. No soft cards, no gradients, no clay decoration, no centered symmetry."
+    },
+    "warm-editorial": {
+      "label": "웜 에디토리얼",
+      "summary": "아이보리 바탕, 코럴·버건디 강조, 잡지형 비대칭 조판.",
+      "referenceAssets": ["references/data-report-editorial.png", "references/team-workflow-photo.png"],
+      "allowSemanticStatusColors": false,
+      "allowAccentTints": true,
+      "promptBlock": "★★ STYLE PROFILE — WARM EDITORIAL:\nUse an ivory paper canvas, warm charcoal text, restrained coral or burgundy accent and editorial magazine spacing. Build asymmetric text columns, large cropped photography or one material object, hairline rules and compact captions. Keep Korean body text sans-serif and precise. No generic pastel cards, no tech blue default, no dashboard grid."
+    },
+    "technical-blueprint": {
+      "label": "테크니컬 블루프린트",
+      "summary": "아이스 화이트 바탕, 네이비·시안, 구조도와 번호 체계를 강조.",
+      "referenceAssets": ["references/toss-data-overview.png", "references/toss-data-table.png"],
+      "allowSemanticStatusColors": true,
+      "allowAccentTints": true,
+      "promptBlock": "★★ STYLE PROFILE — TECHNICAL BLUEPRINT:\nUse an ice-white canvas with navy structure colour and sparse cyan signal marks. Emphasize topology, labels, coordinates, numbered systems and fine technical rules. Use square frames only for real diagrams or tables. Keep large areas open but anchor every zone to a grid. No neon HUD, no dark sci-fi dashboard, no decorative circuitry."
+    },
+    "photo-documentary": {
+      "label": "포토 다큐멘터리",
+      "summary": "실제 사진을 크게 쓰고 캡션·근거·문장만 절제해 얹는 증거 중심 구성.",
+      "referenceAssets": ["references/team-workflow-photo.png", "references/data-report-editorial.png"],
+      "allowSemanticStatusColors": false,
+      "allowAccentTints": false,
+      "promptBlock": "★★ STYLE PROFILE — PHOTO DOCUMENTARY:\nUse one large evidence photograph as the visual owner. Keep typography restrained, captions factual and metadata aligned like a documentary spread. Use white margins, black text and one muted accent sampled from the project palette. Never cover faces or evidence. No stock-photo collage, no floating cards, no 3D object when a real photo exists."
     }
   }
 }

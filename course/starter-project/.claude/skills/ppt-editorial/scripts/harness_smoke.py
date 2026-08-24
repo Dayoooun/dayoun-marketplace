@@ -119,14 +119,16 @@ def _style_profiles():
         raise AssertionError("아이콘 에디토리얼 규칙 누락")
     profiles = style_profile.load_profiles()
     palettes = profiles.get("palettePresets", {})
-    if len(palettes) < 6 or palettes.get("editorial-blue", {}).get("primary") != "#246BFD":
-        raise AssertionError("큐레이션 팔레트 6종 또는 기본 블루 누락")
+    if len(palettes) < 10 or palettes.get("editorial-blue", {}).get("primary") != "#246BFD":
+        raise AssertionError("큐레이션 팔레트 10종 또는 기본 블루 누락")
     if palettes.get("forest-sand", {}).get("primary") == palettes["editorial-blue"]["primary"]:
         raise AssertionError("포레스트 팔레트가 기본 팔레트로 오염됨")
     for required in ("EDITORIAL SURFACE RULE", "HEADLINE LANGUAGE RULE"):
         if required not in toss_prompt:
             raise AssertionError(f"전역 anti-slop prompt 누락: {required}")
-    return "전역통합·3방향라우팅·팔레트6종·앵커7종"
+    if len(profiles.get("profiles", {})) < 8:
+        raise AssertionError("스타일 프로파일 8종 누락")
+    return "전역통합·3방향라우팅·프로파일8종·팔레트10종·앵커7종"
 
 
 @check("하이브리드 렌더 라우팅")

@@ -223,6 +223,37 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 .graph-node.primary {{ border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, #fff); }}
 .graph-node-type {{ color: var(--accent); font-size: 13px; font-weight: 700; letter-spacing: .04em; }}
 .graph-node-label {{ margin-top: 8px; font-size: 20px; font-weight: 700; line-height: 1.25; }}
+#slide.preset-modern-flat .title {{ font-size: 62px; }}
+#slide.preset-modern-flat .eyebrow {{ padding: 6px 10px; width: fit-content; background: color-mix(in srgb, var(--accent) 10%, #fff); }}
+#slide.preset-data-report-editorial .title {{ font-size: 54px; }}
+#slide.preset-data-report-editorial .content {{ margin-top: 44px; }}
+#slide.preset-paper-serif {{ background: #FBF8F1; color: #29241F; }}
+#slide.preset-paper-serif .title,
+#slide.preset-paper-serif .kpi-value,
+#slide.preset-paper-serif .roadmap-week {{ font-family: 'Noto Serif KR', 'Batang', serif; letter-spacing: -.025em; }}
+#slide.preset-paper-serif .eyebrow {{ color: #705C45; }}
+#slide.preset-swiss-grid {{ border-top: 12px solid var(--accent); padding-top: 46px; }}
+#slide.preset-swiss-grid .eyebrow {{ color: #111318; border-bottom: 2px solid #111318; padding-bottom: 12px; }}
+#slide.preset-swiss-grid .title {{ font-size: 66px; letter-spacing: -.055em; }}
+#slide.preset-swiss-grid .footer {{ color: #111318; }}
+#slide.preset-swiss-grid .summary-box,
+#slide.preset-swiss-grid .kpi-item,
+#slide.preset-swiss-grid .graph-node {{ box-shadow: none; border-color: #111318; }}
+#slide.preset-warm-editorial {{ background: #FCF7EF; color: #2E2723; }}
+#slide.preset-warm-editorial .subtitle,
+#slide.preset-warm-editorial .process-detail,
+#slide.preset-warm-editorial .module-row p {{ color: #75685E; }}
+#slide.preset-warm-editorial .title {{ max-width: 1320px; font-size: 61px; }}
+#slide.preset-warm-editorial .image-frame,
+#slide.preset-warm-editorial .graph-canvas {{ background: #F7EFE4; }}
+#slide.preset-technical-blueprint {{ background: #F4F8FA; color: #102B3A; }}
+#slide.preset-technical-blueprint .eyebrow {{ border-left: 4px solid var(--accent); padding-left: 12px; }}
+#slide.preset-technical-blueprint .content {{ border-top: 1px solid color-mix(in srgb, var(--accent) 28%, #fff); padding-top: 24px; }}
+#slide.preset-technical-blueprint .graph-canvas {{ background: #EDF5F8; border-color: color-mix(in srgb, var(--accent) 28%, #fff); }}
+#slide.preset-photo-documentary .title {{ max-width: 1200px; font-size: 60px; }}
+#slide.preset-photo-documentary .image-layout {{ grid-template-columns: 30% 66%; }}
+#slide.preset-photo-documentary .image-frame {{ background: white; }}
+#slide.preset-photo-documentary .image-copy {{ padding-right: 34px; }}
 """
 
 
@@ -684,6 +715,13 @@ def build_html(spec: dict) -> str:
     note = f'<div class="rule-note">{_e(spec.get("note"))}</div>' if spec.get("note") else ""
     content = LAYOUT_RENDERERS[layout](spec)
     classes = [f"layout-{layout}"]
+    preset = "".join(
+        character
+        for character in str(spec.get("designPreset") or "")
+        if character.isalnum() or character == "-"
+    )
+    if preset:
+        classes.append(f"preset-{preset}")
     if spec.get("headerAlign") == "center":
         classes.append("header-center")
     class_value = " ".join(classes)
@@ -989,6 +1027,7 @@ def _layout_receipt(page, spec: dict) -> dict:
         "processAlignment": process_alignment,
         "surfaceStyles": metrics.get("surfaceStyles", {}),
         "koreanMidWordBreaks": metrics.get("koreanMidWordBreaks", []),
+        "designPreset": spec.get("designPreset"),
         "rendererDigest": "sha256:" + hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "specDigest": spec_digest,
         "sourceAsset": source_asset,
@@ -1006,6 +1045,8 @@ def render_job(job: dict, base_dir: str | Path) -> Path:
     spec = dict(job.get("htmlSpec", job))
     if "accent" not in spec and job.get("accentColor"):
         spec["accent"] = job["accentColor"]
+    if "designPreset" not in spec and job.get("styleProfile"):
+        spec["designPreset"] = job["styleProfile"]
     _prepare_image_data(spec, base)
     out_value = job.get("out") or spec.get("out")
     if not out_value:

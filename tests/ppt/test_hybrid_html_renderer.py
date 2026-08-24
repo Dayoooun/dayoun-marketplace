@@ -89,6 +89,30 @@ def test_bar_widths_are_normalized_to_the_largest_value() -> None:
     )
     assert "EDITORIAL SURFACE RULE" in legacy_prompt
     assert "HEADLINE LANGUAGE RULE" in legacy_prompt
+    profiles = __import__("style_profile").load_profiles()
+    assert {
+        "swiss-grid",
+        "warm-editorial",
+        "technical-blueprint",
+        "photo-documentary",
+    } <= set(profiles["profiles"])
+    assert len(profiles["profiles"]) >= 8
+    assert len(profiles["palettePresets"]) >= 10
+    for preset in (
+        "swiss-grid",
+        "warm-editorial",
+        "technical-blueprint",
+        "photo-documentary",
+    ):
+        markup = html_renderer.build_html(
+            {
+                "layout": "bars",
+                "designPreset": preset,
+                "items": [{"label": "검수", "value": 1}],
+                "summaries": [{"value": "1", "label": "결과"}],
+            }
+        )
+        assert f"preset-{preset}" in markup
     cover_markup = html_renderer.build_html(
         {
             "layout": "cover",

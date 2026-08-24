@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.15 RC
+
+- 실제 HTML surface까지 달라지는 `swiss-grid`, `warm-editorial`, `technical-blueprint`, `photo-documentary` profile 추가
+- 기존 4종과 합쳐 style profile 8종, palette preset 10종 제공
+- profile 이름을 HTML preset class와 renderer receipt에 결속
+- 동일 내용 4종 비교 contact sheet로 배경·타이포그래피·구조선·색상 차이 검증
+
 ### business-plan-writer 0.12.14 RC
 
 - 실제 10장 다양성 예시 렌더에서 발견한 HTML verifier의 1672×941 구형 크기 가정을 1920×1080으로 교정
