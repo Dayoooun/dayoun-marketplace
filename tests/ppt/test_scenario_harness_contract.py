@@ -253,6 +253,32 @@ def test_cover_receipt_rejects_generic_pale_card_surface() -> None:
     assert any("forbidden filled copy surface" in error for error in errors)
     assert any("attached top rule" in error for error in errors)
 
+def test_receipt_rejects_korean_mid_word_break() -> None:
+    contract = _load("render_contract.json")
+    scenario = next(
+        item
+        for item in _load("scenario_catalog.json")["scenarios"]
+        if item["id"] == "S005-process"
+    )
+    receipt = {
+        "size": contract["qualityGate"]["size"],
+        "pixelSize": contract["qualityGate"]["pixelSize"],
+        "overflow": [],
+        "rendererDigest": harness._digest(SCRIPTS / "html_slide_renderer.py"),
+        "specDigest": "sha256:test",
+        "content": {"top": 0.35},
+        "meaningfulBody": {"bottom": 0.82},
+        "internalGaps": {"processToNote": 0.1},
+        "processAlignment": {"maxDeviationPx": 0},
+        "koreanMidWordBreaks": [
+            {"selector": "process-detail", "word": "필요한가", "lines": 2}
+        ],
+    }
+
+    errors = harness._validate_receipt(scenario, receipt, contract)
+
+    assert any("Korean mid-word line breaks" in error for error in errors)
+
 def test_strict_json_reader_rejects_nan_constant() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         path = Path(temp_dir) / "nan.json"

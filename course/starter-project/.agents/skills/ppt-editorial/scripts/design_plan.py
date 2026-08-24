@@ -16,7 +16,7 @@ SKILL_ROOT = HERE.parent
 CONTRACT_PATH = SKILL_ROOT / "references" / "render_contract.json"
 
 sys.path.insert(0, str(HERE))
-from style_profile import reference_assets, select_variant  # noqa: E402
+from style_profile import reference_assets, resolve_palette, select_variant  # noqa: E402
 
 
 class DesignPlanError(ValueError):
@@ -83,9 +83,17 @@ def compile_plan(plan_path: Path, out_dir: Path) -> dict:
     if not isinstance(design, dict):
         raise DesignPlanError("designSystem is required")
     profile = str(design.get("styleProfile") or "toss-data-unified")
-    accent = _required_text(design, "accentColor", "designSystem")
+    palette_name, palette = resolve_palette(design.get("palettePreset"))
+    explicit_accent = str(design.get("accentColor") or "").strip()
+    accent = explicit_accent or str(palette["primary"])
     if not accent.startswith("#") or len(accent) not in {4, 7}:
-        raise DesignPlanError("designSystem.accentColor must be a hex colour")
+        raise DesignPlanError("resolved accent colour must be a hex colour")
+    variation = design.get("variationPolicy") or {}
+    max_consecutive_layout = int(variation.get("maxConsecutiveSameLayout", 2))
+    if not 1 <= max_consecutive_layout <= 4:
+        raise DesignPlanError(
+            "variationPolicy.maxConsecutiveSameLayout must be between 1 and 4"
+        )
     sources = payload.get("planningSources")
     if not isinstance(sources, dict):
         raise DesignPlanError("planningSources is required")
@@ -111,6 +119,7 @@ def compile_plan(plan_path: Path, out_dir: Path) -> dict:
     slide_jobs: list[dict] = []
     decisions: list[dict] = []
     assembly_order: list[dict] = []
+    layout_sequence: list[str] = []
     for index, slide in enumerate(slides, 1):
         if not isinstance(slide, dict):
             raise DesignPlanError(f"slide {index} must be an object")
@@ -132,7 +141,28 @@ def compile_plan(plan_path: Path, out_dir: Path) -> dict:
             )
         html_spec = dict(html_spec)
         html_spec["layout"] = expected_layout
-        html_spec.setdefault("accent", accent)
+        color_role = str(slide.get("colorRole") or "primary")
+        if slide.get("accentColor"):
+            slide_accent = str(slide["accentColor"])
+        elif color_role == "primary":
+            slide_accent = explicit_accent or str(palette["primary"])
+        elif color_role == "secondary":
+            slide_accent = str(palette["secondary"])
+        else:
+            raise DesignPlanError(
+                f"{slide_id} colorRole must be primary or secondary"
+            )
+        if not slide_accent.startswith("#") or len(slide_accent) not in {4, 7}:
+            raise DesignPlanError(f"{slide_id} resolved accent must be a hex colour")
+        html_spec.setdefault("accent", slide_accent)
+        layout_sequence.append(expected_layout)
+        if len(layout_sequence) > max_consecutive_layout:
+            tail = layout_sequence[-(max_consecutive_layout + 1):]
+            if len(set(tail)) == 1:
+                raise DesignPlanError(
+                    f"{slide_id} repeats layout {expected_layout!r} more than "
+                    f"{max_consecutive_layout} times; revise slide roles"
+                )
         title = _required_text(slide, "title", slide_id)
         core_message = _required_text(slide, "coreMessage", slide_id)
         routing_text = " ".join(
@@ -192,6 +222,7 @@ def compile_plan(plan_path: Path, out_dir: Path) -> dict:
                     "renderer": "codex",
                     "styleProfile": profile,
                     "styleVariant": variant,
+                    "accentColor": slide_accent,
                     "assetRole": asset_role,
                     "prompt": prompt,
                     "refs": refs,
@@ -226,9 +257,20 @@ def compile_plan(plan_path: Path, out_dir: Path) -> dict:
             "layout": expected_layout,
             "renderer": renderer_by_layout[expected_layout],
             "styleVariant": variant,
+            "palettePreset": palette_name,
+            "colorRole": color_role,
+            "accentColor": slide_accent,
             "assetDependency": asset_label,
         })
         assembly_order.append({"slide": index, "id": slide_id, "image": out})
+
+    minimum_distinct = min(4, max(1, math.ceil(len(slide_jobs) / 4)))
+    distinct_layouts = sorted(set(layout_sequence))
+    if len(distinct_layouts) < minimum_distinct:
+        raise DesignPlanError(
+            f"deck uses only {len(distinct_layouts)} distinct layouts; "
+            f"{len(slide_jobs)} slides require at least {minimum_distinct}"
+        )
 
     out_dir = out_dir.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -250,6 +292,12 @@ def compile_plan(plan_path: Path, out_dir: Path) -> dict:
         "planningSources": source_manifest,
         "styleProfile": profile,
         "accentColor": accent,
+        "palettePreset": palette_name,
+        "palette": palette,
+        "variation": {
+            "distinctLayouts": distinct_layouts,
+            "maxConsecutiveSameLayout": max_consecutive_layout
+        },
         "slideCount": len(slide_jobs),
         "assetJobCount": len(asset_jobs),
         "batches": [

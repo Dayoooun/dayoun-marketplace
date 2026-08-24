@@ -15,7 +15,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Business",
-      "version": "0.12.11"
+      "version": "0.12.12"
     },
     {
       "name": "business-documents",

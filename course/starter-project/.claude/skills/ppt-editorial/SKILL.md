@@ -449,6 +449,11 @@ d.build(APPROVAL_DIGEST, APPROVAL_STORE, pdf=True, pptx=True) # 조립 + PDF/PPT
 
 ### ★★★ 전역 기본값: Toss 3D + 데이터 리포트 통합
 
+> **줄내림:** 한글 어절 내부 줄내림을 금지한다. `검수 요청`은 `검수`와 `요청` 사이에서만, `존재하지 않는 노드`는 공백에서만 줄을 바꾼다. 제목·설명·프로세스·모듈·로드맵은 `word-break: keep-all; overflow-wrap: normal`을 사용한다. 긴 코드 경로는 `/`, `.`, `_`, `(` 같은 기술 구분자에서만 나누며, 공간이 부족하면 어절을 쪼개지 말고 열 폭·글자 크기·슬라이드 수를 조정한다. receipt에서 한글 단어의 글자들이 서로 다른 line box에 놓이면 실패한다.
+
+> **디자인 루틴 수:** 스타일 프로파일 4종, 기본 통합 프로파일 내부 변형 3종, HTML 역할 레이아웃 11종, 검증 시나리오 14종, few-shot 11종이다. 그러나 기본값이 `toss-data-unified` 하나라 명시적 기획 없이 실행하면 같은 흰 배경·같은 강조색으로 수렴한다.
+
+> **팔레트:** 미지정 기본은 `editorial-blue`이며 초록은 자동 기본값이 아니다. 기획서에서 `palettePreset`을 `editorial-blue`, `navy-cyan`, `ink-coral`, `violet-slate`, `forest-sand`, `mono-red` 중 하나로 잠근다. `forest-sand`는 환경·지역·식품 맥락에서만 사용한다. 장별 `colorRole`은 `primary|secondary`이며, 같은 layout은 3장 연속 사용할 수 없다. 8장 이상 덱은 최소 2개, 12장 이상은 최소 3개, 16장 이상은 최소 4개 layout을 사용한다.
 `styleProfile`을 생략하면 `toss-data-unified`를 쓴다. 한 덱 안에서 표지·개념·제품·
 프로세스·여정·로드맵은 `toss-3d`, 기능·단계·역할·체크리스트는 `icon-editorial`,
 설문·KPI·수치·통계·분포·차트·표·성과 페이지는 `data-editorial`로 자동 전환한다.

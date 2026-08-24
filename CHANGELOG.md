@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.12 RC
+
+- 한글 어절 내부 줄내림을 전역 금지하고 글자별 line-box 검사를 receipt에 추가
+- `검수 요청`, `존재하지 않는 노드`, `왜 이 필드가 필요한가`가 공백에서만 줄바꿈되는 회귀 fixture 추가
+- 기술 경로는 보존하고 공간 부족 시 열 폭·글자 크기·슬라이드 수를 조정하도록 규칙화
+- 큐레이션 palette 6종 도입, 미지정 기본을 `editorial-blue`로 고정해 초록색 자동 수렴 제거
+- 장별 primary·secondary color role과 동일 layout 최대 2장 연속 제한
+- 8장 이상 최소 2개, 12장 이상 3개, 16장 이상 4개 layout을 production plan에서 강제
+- 전체 시나리오 14/14, focused regression 18/18 PASS
+
 ### business-plan-writer 0.12.11 RC
 
 - 옅은 큰 카드·상단 강조선·하단 밀어내기 메타데이터를 전형적인 AI 카드 패턴으로 명시 차단

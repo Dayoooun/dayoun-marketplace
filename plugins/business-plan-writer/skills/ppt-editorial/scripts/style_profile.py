@@ -52,6 +52,17 @@ def resolve(name: str | None = None) -> tuple[str, dict]:
             f"사용 가능: {sorted(profiles)}"
         )
     return resolved, profiles[resolved]
+def resolve_palette(name: str | None = None) -> tuple[str, dict]:
+    """큐레이션된 팔레트를 확정한다. 미지정 기본값은 editorial-blue."""
+    data = load_profiles()
+    palettes = data.get("palettePresets", {})
+    resolved = name or "editorial-blue"
+    if resolved not in palettes:
+        raise StyleProfileError(
+            f"알 수 없는 palettePreset: {resolved!r}. 사용 가능: {sorted(palettes)}"
+        )
+    return resolved, palettes[resolved]
+
 
 
 def _keyword_score(text: str, keywords: list[str]) -> int:

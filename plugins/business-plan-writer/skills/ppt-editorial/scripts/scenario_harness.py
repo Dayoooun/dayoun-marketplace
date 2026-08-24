@@ -273,6 +273,9 @@ def _validate_receipt(scenario: dict, receipt: dict, contract: dict) -> list[str
         errors.append("renderer digest mismatch")
     if not str(receipt.get("specDigest", "")).startswith("sha256:"):
         errors.append("spec digest missing")
+    mid_word_breaks = receipt.get("koreanMidWordBreaks") or []
+    if mid_word_breaks:
+        errors.append(f"Korean mid-word line breaks: {mid_word_breaks}")
 
     layout = scenario["spec"]["layout"]
     if layout not in contract["verticalBalance"]["exceptions"]:

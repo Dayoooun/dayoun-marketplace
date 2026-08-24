@@ -9,10 +9,13 @@
   },
   "designSystem": {
     "styleProfile": "toss-data-unified",
-    "accentColor": "#246BFD",
+    "palettePreset": "editorial-blue",
     "fontFamily": "Pretendard",
     "ratio": "16:9",
-    "continuityAnchor": "white editorial canvas, one accent, consistent camera and material language"
+    "continuityAnchor": "white editorial canvas, one accent, consistent camera and material language",
+    "variationPolicy": {
+      "maxConsecutiveSameLayout": 2
+    }
   },
   "slides": [
     {
@@ -22,6 +25,7 @@
       "title": "업무 자동화 운영 기준 설계",
       "coreMessage": "제품 개념은 3D 자산으로, 정확한 정보는 HTML로 분리",
       "styleVariant": "toss-3d",
+      "colorRole": "primary",
       "asset": {
         "mode": "generate",
         "role": "3d-scene",
@@ -57,6 +61,7 @@
       "title": "다섯 단계로 연결됩니다",
       "coreMessage": "각 단계의 산출물이 다음 단계의 입력이 됩니다",
       "styleVariant": "icon-editorial",
+      "colorRole": "secondary",
       "htmlSpec": {
         "layout": "process",
         "eyebrow": "WORKFLOW",

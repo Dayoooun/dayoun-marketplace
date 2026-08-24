@@ -110,6 +110,7 @@ def test_approved_plan_compiles_dependency_safe_parallel_batches(tmp_path: Path)
     assert slide_jobs[1]["styleVariant"] == "icon-editorial"
     assert receipt["assemblyOrder"][1]["image"] == "slides/S02.png"
     assert all(source["digest"].startswith("sha256:") for source in receipt["planningSources"])
+    assert receipt["palettePreset"] == "editorial-blue"
 
 
 def test_draft_plan_is_blocked_before_jobs_are_written(tmp_path: Path) -> None:
@@ -139,3 +140,44 @@ def test_cover_plan_blocks_generic_ai_headline(tmp_path: Path) -> None:
         assert "generic AI phrase" in str(error)
     else:
         raise AssertionError("generic AI headline was compiled")
+def test_palette_preset_applies_primary_and_secondary_roles(tmp_path: Path) -> None:
+    plan_path = _plan(tmp_path)
+    payload = json.loads(plan_path.read_text(encoding="utf-8"))
+    payload["designSystem"].pop("accentColor", None)
+    payload["designSystem"]["palettePreset"] = "ink-coral"
+    payload["slides"][1]["colorRole"] = "secondary"
+    plan_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    out_dir = tmp_path / "production"
+    receipt = design_plan.compile_plan(plan_path, out_dir)
+    jobs = json.loads((out_dir / "slide-jobs.json").read_text(encoding="utf-8"))
+
+    assert receipt["palettePreset"] == "ink-coral"
+    assert jobs[0]["htmlSpec"]["accent"] == "#D45745"
+    assert jobs[1]["htmlSpec"]["accent"] == "#20242A"
+
+
+def test_three_consecutive_same_layouts_are_blocked(tmp_path: Path) -> None:
+    plan_path = _plan(tmp_path)
+    payload = json.loads(plan_path.read_text(encoding="utf-8"))
+    process = payload["slides"][1]
+    payload["slides"].extend(
+        [
+            {**process, "id": "S03", "out": "slides/S03.png"},
+            {**process, "id": "S04", "out": "slides/S04.png"},
+        ]
+    )
+    plan_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    try:
+        design_plan.compile_plan(plan_path, tmp_path / "production")
+    except design_plan.DesignPlanError as error:
+        assert "repeats layout 'process'" in str(error)
+    else:
+        raise AssertionError("three consecutive process layouts were compiled")

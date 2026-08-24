@@ -94,6 +94,18 @@ def test_bar_widths_are_normalized_to_the_largest_value() -> None:
     cover_copy_rule = cover_markup.split(".cover-copy {", 1)[1].split("}", 1)[0]
     assert "background:" not in cover_copy_rule
     assert "border-top:" not in cover_copy_rule
+    assert "word-break: keep-all" in html_renderer.build_html(
+        {
+            "layout": "process",
+            "items": [
+                {
+                    "label": "검수 요청",
+                    "detail": "왜 이 필드가 필요한가",
+                    "icon": "check",
+                }
+            ],
+        }
+    )
 
 
 def test_table_renders_with_real_chromium(tmp_path: Path) -> None:

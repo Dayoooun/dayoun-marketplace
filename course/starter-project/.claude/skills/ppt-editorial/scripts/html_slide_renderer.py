@@ -78,6 +78,13 @@ body {{ font-family: var(--font-family); color: var(--text); }}
 .footer {{ position: absolute; right: 66px; bottom: 30px; color: #8b9099; font-size: 13px; letter-spacing: .02em; }}
 .rule-note {{ position: absolute; left: 66px; bottom: 54px; display: flex; align-items: center; gap: 18px; font-size: 17px; color: #333842; }}
 .rule-note::before {{ content: ''; width: 64px; height: 3px; background: var(--accent); }}
+.title, .subtitle, .kpi-label, .kpi-detail, .bar-label, .process-label, .process-detail,
+.module-feature h3, .module-feature p, .module-row h3, .module-row p,
+.roadmap-step h3, .roadmap-step p, .break-action h3, .break-action p,
+.cover-statement, .image-copy h3, .image-copy p {{
+  word-break: keep-all;
+  overflow-wrap: normal;
+}}
 .icon {{ display: inline-block; width: 44px; height: 44px; color: currentColor; }}
 .icon svg {{ width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }}
 
@@ -729,6 +736,39 @@ def _layout_receipt(page, spec: dict) -> dict:
               borderRightWidth: style.borderRightWidth
             };
           };
+          const koreanMidWordBreaks = [];
+          const koreanTargets = document.querySelectorAll(
+            '.title, .subtitle, .kpi-label, .kpi-detail, .bar-label, ' +
+            '.process-label, .process-detail, .module-feature h3, .module-feature p, ' +
+            '.module-row h3, .module-row p, .roadmap-step h3, .roadmap-step p, ' +
+            '.break-action h3, .break-action p, .cover-statement, .image-copy h3, .image-copy p'
+          );
+          for (const el of koreanTargets) {
+            const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            while (walker.nextNode()) {
+              const node = walker.currentNode;
+              const text = node.nodeValue || '';
+              for (const match of text.matchAll(/[가-힣]{2,}/g)) {
+                const tops = new Set();
+                for (let offset = match.index; offset < match.index + match[0].length; offset++) {
+                  const range = document.createRange();
+                  range.setStart(node, offset);
+                  range.setEnd(node, offset + 1);
+                  const rect = range.getBoundingClientRect();
+                  if (rect.width || rect.height) {
+                    tops.add(Math.round(rect.top * 10) / 10);
+                  }
+                }
+                if (tops.size > 1) {
+                  koreanMidWordBreaks.push({
+                    selector: String(el.className || el.tagName).slice(0, 80),
+                    word: match[0],
+                    lines: tops.size
+                  });
+                }
+              }
+            }
+          }
           const meaningful = [...document.querySelectorAll(
             'table.report, .kpi-item, .interpretation, .bar-fill, .summary-box, .annotation, ' +
             '.process-step, .module-feature, .module-row, .roadmap-step, .break-hero, .break-action, .overview > section, ' +
@@ -861,6 +901,7 @@ def _layout_receipt(page, spec: dict) -> dict:
             processLineY,
             processDotCenters,
             processDotMaxDeviation,
+            koreanMidWordBreaks,
             surfaceStyles: {
               coverCopy: surfaceStyle('.cover-copy'),
               breakHero: surfaceStyle('.break-hero')
@@ -946,6 +987,7 @@ def _layout_receipt(page, spec: dict) -> dict:
         },
         "processAlignment": process_alignment,
         "surfaceStyles": metrics.get("surfaceStyles", {}),
+        "koreanMidWordBreaks": metrics.get("koreanMidWordBreaks", []),
         "rendererDigest": "sha256:" + hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "specDigest": spec_digest,
         "sourceAsset": source_asset,

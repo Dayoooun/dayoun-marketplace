@@ -14,6 +14,44 @@
       "muted": "#6D727B"
     }
   },
+  "palettePresets": {
+    "editorial-blue": {
+      "label": "에디토리얼 블루",
+      "primary": "#246BFD",
+      "secondary": "#52606D",
+      "use": "기술·교육·제안서 기본값"
+    },
+    "navy-cyan": {
+      "label": "네이비·시안",
+      "primary": "#125B78",
+      "secondary": "#00A7B5",
+      "use": "데이터·연구·시스템"
+    },
+    "ink-coral": {
+      "label": "잉크·코럴",
+      "primary": "#D45745",
+      "secondary": "#20242A",
+      "use": "브랜드·마케팅·변화"
+    },
+    "violet-slate": {
+      "label": "바이올렛·슬레이트",
+      "primary": "#6657C7",
+      "secondary": "#58606B",
+      "use": "AI·창의·제품"
+    },
+    "forest-sand": {
+      "label": "포레스트·샌드",
+      "primary": "#13856F",
+      "secondary": "#B98B45",
+      "use": "환경·지역·식품. 초록이 실제 맥락일 때만 선택"
+    },
+    "mono-red": {
+      "label": "모노·레드",
+      "primary": "#C53A45",
+      "secondary": "#23262B",
+      "use": "감사·위험·정책"
+    }
+  },
   "profiles": {
     "toss-data-unified": {
       "label": "Toss 3D + 데이터 리포트 통합",
