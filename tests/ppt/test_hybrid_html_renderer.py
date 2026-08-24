@@ -112,6 +112,28 @@ def test_bar_widths_are_normalized_to_the_largest_value() -> None:
             ],
         }
     )
+    image_markup = html_renderer.build_html(
+        {
+            "layout": "image",
+            "imageData": "data:image/png;base64,AA==",
+            "callout": "운영 원칙",
+            "facts": ["HTML", "Codex"],
+        }
+    )
+    image_copy_rule = image_markup.split(".image-copy {", 1)[1].split("}", 1)[0]
+    assert "background:" not in image_copy_rule
+
+
+def test_generator_accepts_full_hd_html_output(tmp_path: Path) -> None:
+    output = tmp_path / "full-hd.png"
+    Image.effect_noise((1920, 1080), 12).convert("RGB").save(output)
+
+    bad = generator.verify(
+        [{"label": "S01", "renderer": "html", "layout": "table", "out": str(output)}],
+        tmp_path,
+    )
+
+    assert bad == {}
 
 
 def test_table_renders_with_real_chromium(tmp_path: Path) -> None:

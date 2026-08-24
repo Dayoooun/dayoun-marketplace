@@ -377,9 +377,13 @@ def _validate_receipt(scenario: dict, receipt: dict, contract: dict) -> list[str
             errors.append("image source asset missing from receipt")
         elif digest != _digest(Path(source)):
             errors.append("image source asset digest mismatch")
-    if layout in {"cover", "break"}:
+    if layout in {"cover", "break", "image"}:
         surfaces = receipt.get("surfaceStyles") or {}
-        key = "coverCopy" if layout == "cover" else "breakHero"
+        key = {
+            "cover": "coverCopy",
+            "break": "breakHero",
+            "image": "imageCopy",
+        }[layout]
         surface = surfaces.get(key) or {}
         allowed = contract.get("editorialSurface", {}).get(
             "transparentColors", []

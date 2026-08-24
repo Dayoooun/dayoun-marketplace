@@ -574,10 +574,10 @@ def verify(jobs, base_dir, dup_check=False):
         if is_html_job(j):
             try:
                 from PIL import Image
-                from html_slide_renderer import HEIGHT, WIDTH
+                from html_slide_renderer import OUTPUT_HEIGHT, OUTPUT_WIDTH
 
                 with Image.open(out) as image:
-                    if image.size != (WIDTH, HEIGHT):
+                    if image.size != (OUTPUT_WIDTH, OUTPUT_HEIGHT):
                         bad[lbl] = f"html-size-mismatch({image.size})"
                         continue
                 if os.path.getsize(out) < 10 * 1024:

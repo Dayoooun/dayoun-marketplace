@@ -206,7 +206,7 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 .cover-visual {{ min-height: 450px; overflow: hidden; background: white; }}
 .cover-visual img {{ width: 100%; height: 100%; object-fit: var(--image-fit, contain); object-position: var(--image-position, center); transform: scale(var(--image-scale, 1)); transform-origin: var(--image-position, center); display: block; }}
 .image-layout {{ min-height: 520px; display: grid; grid-template-columns: 38% 58%; gap: 4%; }}
-.image-copy {{ align-self: stretch; padding: 42px 44px; background: #f5f7fa; display: flex; flex-direction: column; justify-content: space-between; }}
+.image-copy {{ align-self: stretch; padding: 36px 40px 30px 0; border-right: 1px solid #dfe3e9; display: flex; flex-direction: column; justify-content: space-between; }}
 .image-copy h3 {{ margin: 0; font-size: 35px; line-height: 1.25; letter-spacing: -.035em; word-break: keep-all; overflow-wrap: normal; }}
 .image-copy p {{ margin: 18px 0 0; color: #5f6670; font-size: 19px; line-height: 1.55; }}
 .image-facts {{ margin-top: auto; display: grid; gap: 13px; }}
@@ -904,7 +904,8 @@ def _layout_receipt(page, spec: dict) -> dict:
             koreanMidWordBreaks,
             surfaceStyles: {
               coverCopy: surfaceStyle('.cover-copy'),
-              breakHero: surfaceStyle('.break-hero')
+              breakHero: surfaceStyle('.break-hero'),
+              imageCopy: surfaceStyle('.image-copy'),
             }
           };
         }"""

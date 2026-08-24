@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.14 RC
+
+- 실제 10장 다양성 예시 렌더에서 발견한 HTML verifier의 1672×941 구형 크기 가정을 1920×1080으로 교정
+- 일반 image layout의 옅은 설명 카드도 제거하고 naked typography와 세로 헤어라인 구조로 변경
+- Full HD HTML 산출물 preflight와 image-copy surface 회귀검사 추가
+
 ### business-plan-writer 0.12.13 RC
 
 - 기본 `toss-data-unified`뿐 아니라 `modern-flat`, `data-report-editorial`, `paper-serif`에도 AI 카드·상투적 headline 금지 prompt를 강제
