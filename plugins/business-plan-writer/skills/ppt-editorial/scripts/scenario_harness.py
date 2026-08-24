@@ -389,6 +389,26 @@ def _validate_receipt(scenario: dict, receipt: dict, contract: dict) -> list[str
                 f"process dot-to-line deviation {deviation}px exceeds "
                 f"{maximum_deviation}px for {expected_preset}"
             )
+        if vertical:
+            clearance = alignment.get("dotToLabelMinGapPx")
+            minimum_clearance = contract.get("processAlignment", {}).get(
+                "minDotToLabelGapPx"
+            )
+            finite_clearance = (
+                isinstance(clearance, (int, float))
+                and math.isfinite(float(clearance))
+            )
+            if (
+                minimum_clearance is not None
+                and (
+                    not finite_clearance
+                    or clearance < minimum_clearance
+                )
+            ):
+                errors.append(
+                    f"process dot-to-label clearance {clearance}px below "
+                    f"{minimum_clearance}px"
+                )
 
     if layout in {"image", "cover"}:
         source = receipt.get("sourceAsset")

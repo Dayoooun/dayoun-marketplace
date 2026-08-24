@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.18 RC
+
+- vertical process rail dot이 `01 진단` 같은 단계 번호와 붙어 보이던 겹침 수정
+- dot column과 label 사이 CSS gap을 18px로 확대하고 rail 중심을 함께 이동
+- 실제 픽셀 clearance를 receipt에 `dotToLabelMinGapPx`로 기록
+- 12px 미만이면 scenario·preset board·CI에서 실패
+- 수정 결과 vertical-ledger·vertical-focus clearance 13.95px, rail deviation 0px
+
 ### business-plan-writer 0.12.17 RC
 
 - 11개 HTML section에 총 34개 `compositionPreset`을 도입

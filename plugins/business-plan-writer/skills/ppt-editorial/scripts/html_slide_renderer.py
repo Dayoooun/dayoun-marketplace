@@ -297,8 +297,8 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 #slide.layout-overview.composition-distribution-stage .overview > section:nth-child(1) {{ order: 2; }}
 #slide.layout-overview.composition-distribution-stage .overview > section:nth-child(2) {{ order: 3; }}
 #slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process {{ grid-template-columns: 1fr; margin-top: 18px; transform: none; }}
-#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process::before {{ left: 79px; right: auto; top: 34px; bottom: 34px; width: 1px; height: auto; }}
-#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process-step {{ display: grid; grid-template-columns: 70px 18px 240px 1fr; align-items: center; min-height: 72px; text-align: left; padding: 0; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process::before {{ left: 97px; right: auto; top: 34px; bottom: 34px; width: 1px; height: auto; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process-step {{ display: grid; grid-template-columns: 70px 18px 218px 1fr; column-gap: 18px; align-items: center; min-height: 72px; text-align: left; padding: 0; }}
 #slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process-icon {{ margin: 0; width: 34px; height: 34px; }}
 #slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process-dot {{ top: auto; left: auto; margin: 0; justify-self: center; }}
 #slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process-label {{ margin: 0; font-size: 24px; }}
@@ -1157,6 +1157,16 @@ def _layout_receipt(page, spec: dict) -> dict:
           const processDotMaxDeviationX = processLineX !== null && processDotCenterXs.length
             ? Math.max(...processDotCenterXs.map(center => Math.abs(center - processLineX)))
             : null;
+          const processDotToLabelGaps = [...document.querySelectorAll('.process-step')]
+            .map(step => {
+              const dot = step.querySelector('.process-dot')?.getBoundingClientRect();
+              const label = step.querySelector('.process-label')?.getBoundingClientRect();
+              return dot && label ? label.left - dot.right : null;
+            })
+            .filter(value => value !== null);
+          const processDotToLabelMinGap = processDotToLabelGaps.length
+            ? Math.min(...processDotToLabelGaps)
+            : null;
           const compositionRegions = {};
           for (const selector of [
             '.cover-copy', '.cover-visual', '.table-wrap', '.kpi-grid',
@@ -1193,6 +1203,7 @@ def _layout_receipt(page, spec: dict) -> dict:
             processLineX,
             processDotCenterXs,
             processDotMaxDeviationX,
+            processDotToLabelMinGap,
             koreanMidWordBreaks,
             compositionRegions,
             surfaceStyles: {
@@ -1262,6 +1273,11 @@ def _layout_receipt(page, spec: dict) -> dict:
         "maxDeviationXPx": (
             round(float(metrics["processDotMaxDeviationX"]), 2)
             if metrics.get("processDotMaxDeviationX") is not None
+            else None
+        ),
+        "dotToLabelMinGapPx": (
+            round(float(metrics["processDotToLabelMinGap"]), 2)
+            if metrics.get("processDotToLabelMinGap") is not None
             else None
         ),
     }

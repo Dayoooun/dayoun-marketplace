@@ -60,7 +60,8 @@
   },
   "processAlignment": {
     "maxDeviationPx": 1,
-    "rule": "Every process dot center must sit on the shared rail, including the active dot."
+    "minDotToLabelGapPx": 12,
+    "rule": "Every process dot center must sit on the shared rail. Vertical presets also keep at least 12px clear between the rail dot and label."
   },
   "editorialSurface": {
     "transparentColors": ["rgba(0, 0, 0, 0)", "transparent"],

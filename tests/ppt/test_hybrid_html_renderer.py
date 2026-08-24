@@ -220,3 +220,36 @@ def test_table_renders_with_real_chromium(tmp_path: Path) -> None:
     assert receipt.is_file()
     assert '"renderer": "html-playwright"' in receipt.read_text(encoding="utf-8")
     assert '"pixelSize": [\n    1920,\n    1080\n  ]' in receipt.read_text(encoding="utf-8")
+
+
+def test_vertical_process_keeps_rail_dot_clear_of_label(tmp_path: Path) -> None:
+    job = {
+        "renderer": "html",
+        "layout": "process",
+        "compositionPreset": "vertical-ledger",
+        "out": "vertical-process.png",
+        "title": [
+            {"text": "자동화는", "weight": "light"},
+            {"text": "다섯 단계", "weight": "bold"},
+        ],
+        "items": [
+            {
+                "label": f"0{index} 단계",
+                "detail": "다음 단계 입력",
+                "icon": "check",
+            }
+            for index in range(1, 6)
+        ],
+        "active": 2,
+        "note": "하단 운영 기준",
+    }
+
+    html_renderer.render_job(job, tmp_path)
+    receipt = json.loads(
+        (tmp_path / "vertical-process.layout.json").read_text(encoding="utf-8")
+    )
+
+    assert receipt["processAlignment"]["maxDeviationXPx"] == 0
+    assert receipt["processAlignment"]["dotToLabelMinGapPx"] >= 12
+    assert receipt["internalGaps"]["processToNote"] >= 0
+    assert receipt["overflow"] == []
