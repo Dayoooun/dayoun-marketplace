@@ -197,9 +197,17 @@ def _validate_semantics(scenario: dict, contract: dict, decision: dict) -> list[
         for node in spec.get("graph", {}).get("nodes", []):
             if "x" in node or "y" in node:
                 errors.append(f"node {node.get('id')!r} hardcodes x/y")
-    if layout in {"image", "cover"}:
+    requires_visual_asset = layout in {"image", "cover"} or (
+        layout == "process" and selected == "vertical-visual"
+    )
+    if requires_visual_asset:
         role = spec.get("assetRole")
-        if role not in contract["rendererDecision"]["codexAssetRoles"]:
+        admitted_roles = (
+            contract.get("hybridProcessVisual", {}).get("requiredAssetRoles", [])
+            if layout == "process"
+            else contract["rendererDecision"]["codexAssetRoles"]
+        )
+        if role not in admitted_roles:
             errors.append(f"visual assetRole {role!r} is not admitted")
         if role == "photo":
             focal = contract.get("photoFocal", {})
@@ -373,7 +381,11 @@ def _validate_receipt(scenario: dict, receipt: dict, contract: dict) -> list[str
             if not finite or gap < 0 or gap > maximum:
                 errors.append(f"process-to-note gap {gap} outside [0, {maximum}]")
         alignment = receipt.get("processAlignment") or {}
-        vertical = expected_preset in {"vertical-ledger", "vertical-focus"}
+        vertical = expected_preset in {
+            "vertical-ledger",
+            "vertical-focus",
+            "vertical-visual",
+        }
         deviation_key = "maxDeviationXPx" if vertical else "maxDeviationPx"
         deviation = alignment.get(deviation_key)
         maximum_deviation = contract.get("processAlignment", {}).get("maxDeviationPx")
@@ -410,7 +422,10 @@ def _validate_receipt(scenario: dict, receipt: dict, contract: dict) -> list[str
                     f"{minimum_clearance}px"
                 )
 
-    if layout in {"image", "cover"}:
+    requires_visual_asset = layout in {"image", "cover"} or (
+        layout == "process" and expected_preset == "vertical-visual"
+    )
+    if requires_visual_asset:
         source = receipt.get("sourceAsset")
         digest = receipt.get("sourceAssetDigest")
         if not source:

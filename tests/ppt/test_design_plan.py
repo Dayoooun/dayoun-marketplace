@@ -237,3 +237,42 @@ def test_obsolete_module_preset_is_blocked(tmp_path: Path) -> None:
         assert "modulePreset is obsolete" in str(error)
     else:
         raise AssertionError("obsolete modulePreset was compiled")
+
+
+def test_vertical_visual_process_requires_and_binds_asset(tmp_path: Path) -> None:
+    plan_path = _plan(tmp_path)
+    asset = tmp_path / "process-visual.png"
+    asset.write_bytes(b"provided-image")
+    payload = json.loads(plan_path.read_text(encoding="utf-8"))
+    slide = payload["slides"][1]
+    slide["htmlSpec"]["compositionPreset"] = "vertical-visual"
+    slide["asset"] = {
+        "mode": "provided",
+        "role": "3d-scene",
+        "out": "process-visual.png",
+    }
+    plan_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    out_dir = tmp_path / "production"
+    receipt = design_plan.compile_plan(plan_path, out_dir)
+    jobs = json.loads((out_dir / "slide-jobs.json").read_text(encoding="utf-8"))
+
+    assert receipt["decisions"][1]["renderer"] == "codex-asset-plus-html"
+    assert jobs[1]["htmlSpec"]["compositionPreset"] == "vertical-visual"
+    assert jobs[1]["htmlSpec"]["assetRole"] == "3d-scene"
+    assert Path(jobs[1]["htmlSpec"]["imagePath"]).is_absolute()
+
+    payload["slides"][1].pop("asset")
+    plan_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    try:
+        design_plan.compile_plan(plan_path, tmp_path / "missing")
+    except design_plan.DesignPlanError as error:
+        assert "requires a Codex asset" in str(error)
+    else:
+        raise AssertionError("vertical-visual process without asset was compiled")

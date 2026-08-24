@@ -133,7 +133,7 @@ def test_bar_widths_are_normalized_to_the_largest_value() -> None:
     )
     contract_presets = contract["compositionPresets"]
     assert set(contract_presets) == set(html_renderer.COMPOSITION_PRESETS)
-    assert sum(len(value["allowed"]) for value in contract_presets.values()) == 34
+    assert sum(len(value["allowed"]) for value in contract_presets.values()) == 35
     for layout, allowed in html_renderer.COMPOSITION_PRESETS.items():
         assert tuple(contract_presets[layout]["allowed"]) == allowed
     cover_markup = html_renderer.build_html(
@@ -252,4 +252,42 @@ def test_vertical_process_keeps_rail_dot_clear_of_label(tmp_path: Path) -> None:
     assert receipt["processAlignment"]["maxDeviationXPx"] == 0
     assert receipt["processAlignment"]["dotToLabelMinGapPx"] >= 12
     assert receipt["internalGaps"]["processToNote"] >= 0
+    assert receipt["overflow"] == []
+
+
+def test_vertical_visual_process_uses_right_image_asset(tmp_path: Path) -> None:
+    asset = tmp_path / "process-asset.png"
+    Image.effect_noise((800, 450), 8).convert("RGB").save(asset)
+    job = {
+        "renderer": "html",
+        "layout": "process",
+        "compositionPreset": "vertical-visual",
+        "out": "vertical-visual.png",
+        "imagePath": str(asset),
+        "imagePosition": "right center",
+        "imageScale": 1.28,
+        "imageAlt": "텍스트 없는 자동화 공정 3D 이미지",
+        "assetRole": "3d-scene",
+        "items": [
+            {
+                "label": f"0{index} 단계",
+                "detail": "다음 단계 입력",
+                "icon": "check",
+            }
+            for index in range(1, 6)
+        ],
+        "active": 2,
+        "note": "하단 운영 기준",
+    }
+
+    html_renderer.render_job(job, tmp_path)
+    receipt = json.loads(
+        (tmp_path / "vertical-visual.layout.json").read_text(encoding="utf-8")
+    )
+
+    assert receipt["compositionPreset"] == "vertical-visual"
+    assert receipt["assetRole"] == "3d-scene"
+    assert receipt["sourceAssetDigest"].startswith("sha256:")
+    assert ".process-visual" in receipt["compositionRegions"]
+    assert receipt["processAlignment"]["dotToLabelMinGapPx"] >= 12
     assert receipt["overflow"] == []

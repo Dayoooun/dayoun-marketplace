@@ -55,6 +55,13 @@
       "invariants": ["no repeated cards", "same icon family", "no disconnected lower note"]
     },
     {
+      "id": "FS-PROCESS-VISUAL",
+      "context": {"visualRole": "process", "evidenceType": "workflow-plus-concept-asset", "density": "medium"},
+      "decision": {"renderer": "codex-asset-plus-html", "layout": "process", "compositionPreset": "vertical-visual", "assetRole": "3d-scene"},
+      "structure": {"htmlRegion": "left-42", "assetRegion": "right-54", "assetText": false},
+      "invariants": ["HTML owns labels and rail", "Codex asset contains no text", "right visual field is not empty", "asset digest is recorded"]
+    },
+    {
       "id": "FS-MODULES-01",
       "context": {"visualRole": "modules", "evidenceType": "capabilities", "density": "medium"},
       "decision": {"renderer": "html", "layout": "modules", "compositionPreset": "feature-left"},

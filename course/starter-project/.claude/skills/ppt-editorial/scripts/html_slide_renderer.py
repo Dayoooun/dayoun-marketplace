@@ -296,16 +296,23 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 #slide.layout-overview.composition-distribution-stage .overview > section:nth-child(3) {{ order: 1; }}
 #slide.layout-overview.composition-distribution-stage .overview > section:nth-child(1) {{ order: 2; }}
 #slide.layout-overview.composition-distribution-stage .overview > section:nth-child(2) {{ order: 3; }}
-#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process {{ grid-template-columns: 1fr; margin-top: 18px; transform: none; }}
-#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process::before {{ left: 97px; right: auto; top: 34px; bottom: 34px; width: 1px; height: auto; }}
-#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process-step {{ display: grid; grid-template-columns: 70px 18px 218px 1fr; column-gap: 18px; align-items: center; min-height: 72px; text-align: left; padding: 0; }}
-#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process-icon {{ margin: 0; width: 34px; height: 34px; }}
-#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process-dot {{ top: auto; left: auto; margin: 0; justify-self: center; }}
-#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process-label {{ margin: 0; font-size: 24px; }}
-#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .process-detail {{ margin: 0; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus,.composition-vertical-visual) .content {{ margin-top: 52px; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus,.composition-vertical-visual) .process {{ grid-template-columns: 1fr; margin-top: 18px; transform: none; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus,.composition-vertical-visual) .process::before {{ left: 97px; right: auto; top: 34px; bottom: 34px; width: 1px; height: auto; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus,.composition-vertical-visual) .process-step {{ display: grid; grid-template-columns: 70px 18px 218px 1fr; column-gap: 18px; align-items: center; min-height: 72px; text-align: left; padding: 0; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus,.composition-vertical-visual) .process-icon {{ margin: 0; width: 34px; height: 34px; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus,.composition-vertical-visual) .process-dot {{ top: auto; left: auto; margin: 0; justify-self: center; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus,.composition-vertical-visual) .process-label {{ margin: 0; font-size: 24px; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus,.composition-vertical-visual) .process-detail {{ margin: 0; }}
 #slide.layout-process.composition-vertical-focus .process-step.active {{ min-height: 112px; padding: 18px 0; background: color-mix(in srgb, var(--accent) 7%, #fff); }}
 #slide.layout-process.composition-vertical-focus .process-step.active .process-label {{ color: var(--accent); font-size: 31px; }}
-#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus) .rule-note {{ bottom: 120px; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus,.composition-vertical-visual) .rule-note {{ bottom: 120px; }}
+#slide.layout-process.composition-vertical-visual .process-visual-layout {{ display: grid; grid-template-columns: 42% 54%; gap: 4%; min-height: 500px; align-items: center; }}
+#slide.layout-process.composition-vertical-visual .process {{ margin-top: 0; }}
+#slide.layout-process.composition-vertical-visual .process-step {{ grid-template-columns: 52px 18px 132px 1fr; min-height: 68px; }}
+#slide.layout-process.composition-vertical-visual .process::before {{ left: 79px; }}
+#slide.layout-process.composition-vertical-visual .process-visual {{ min-height: 470px; overflow: hidden; background: white; }}
+#slide.layout-process.composition-vertical-visual .process-visual img {{ width: 100%; height: 100%; object-fit: cover; object-position: var(--image-position, right center); transform: scale(var(--image-scale, 1.28)); transform-origin: var(--image-position, right center); display: block; }}
 #slide.layout-roadmap.composition-staircase-fall .roadmap-step:nth-child(1) {{ bottom: 144px; }}
 #slide.layout-roadmap.composition-staircase-fall .roadmap-step:nth-child(2) {{ bottom: 96px; }}
 #slide.layout-roadmap.composition-staircase-fall .roadmap-step:nth-child(3) {{ bottom: 48px; }}
@@ -531,6 +538,14 @@ def _bars(spec: dict) -> str:
 
 
 def _process(spec: dict) -> str:
+    preset = str(spec.get("compositionPreset") or "horizontal-rail")
+    if preset not in {
+        "horizontal-rail",
+        "vertical-ledger",
+        "vertical-focus",
+        "vertical-visual",
+    }:
+        raise ValueError(f"unsupported process compositionPreset: {preset!r}")
     active = int(spec.get("active", 0))
     process_items = spec.get("items", [])
     items = "".join(
@@ -538,7 +553,19 @@ def _process(spec: dict) -> str:
         for index, item in enumerate(process_items)
     )
     count = max(1, len(process_items))
-    return f'<div class="process" style="--process-count:{count}">{items}</div>'
+    process = f'<div class="process" style="--process-count:{count}">{items}</div>'
+    if preset != "vertical-visual":
+        return process
+    source = spec.get("imageData", "")
+    if not source:
+        raise ValueError("vertical-visual process requires imagePath or imageData")
+    visual = (
+        '<div class="process-visual" '
+        f'style="--image-scale:{float(spec.get("imageScale", 1.28)):.3f};'
+        f'--image-position:{_e(spec.get("imagePosition", "right center"))}">'
+        f'<img src="{source}" alt="{_e(spec.get("imageAlt", ""))}"></div>'
+    )
+    return f'<div class="process-visual-layout">{process}{visual}</div>'
 
 
 def _modules(spec: dict) -> str:
@@ -878,7 +905,7 @@ COMPOSITION_PRESETS = {
     "kpi": ("lead-left", "lead-right", "interpretation-left"),
     "bars": ("plot-left", "plot-right", "summary-bottom"),
     "overview": ("metadata-rail", "donut-stage", "distribution-stage"),
-    "process": ("horizontal-rail", "vertical-ledger", "vertical-focus"),
+    "process": ("horizontal-rail", "vertical-ledger", "vertical-focus", "vertical-visual"),
     "modules": ("feature-left", "feature-right", "feature-top", "ledger"),
     "roadmap": ("staircase-rise", "staircase-fall", "phase-ledger"),
     "break": ("time-left", "time-right", "return-band"),
@@ -951,11 +978,16 @@ def build_html(spec: dict) -> str:
 
 
 def _prepare_image_data(spec: dict, base: Path) -> None:
-    if spec.get("layout") not in {"image", "cover"} or spec.get("imageData"):
+    layout = spec.get("layout")
+    requires_image = layout in {"image", "cover"} or (
+        layout == "process"
+        and spec.get("compositionPreset") == "vertical-visual"
+    )
+    if not requires_image or spec.get("imageData"):
         return
     raw_path = spec.get("imagePath")
     if not raw_path:
-        raise ValueError(f"{spec.get('layout')} layout requires imagePath")
+        raise ValueError(f"{layout} layout requires imagePath")
     path = Path(raw_path)
     if not path.is_absolute():
         path = (base / path).resolve()
@@ -1034,7 +1066,7 @@ def _layout_receipt(page, spec: dict) -> dict:
           }
           const meaningful = [...document.querySelectorAll(
             'table.report, .kpi-item, .interpretation, .bar-fill, .summary-box, .annotation, ' +
-            '.process-step, .module-feature, .module-row, .roadmap-step, .break-hero, .break-action, .overview > section, ' +
+            '.process-step, .process-visual, .module-feature, .module-row, .roadmap-step, .break-hero, .break-action, .overview > section, ' +
             '.image-copy, .image-frame, .cover-copy, .cover-visual, .graph-canvas, .rule-note'
           )].filter(el => getComputedStyle(el).display !== 'none');
           const overflow = [...document.querySelectorAll('#slide *')]
@@ -1172,7 +1204,7 @@ def _layout_receipt(page, spec: dict) -> dict:
             '.cover-copy', '.cover-visual', '.table-wrap', '.kpi-grid',
             '.interpretation', '.bars-layout > div:first-child', '.summary-stack',
             '.overview > section:nth-child(1)', '.overview > section:nth-child(2)',
-            '.overview > section:nth-child(3)', '.process', '.module-feature',
+            '.overview > section:nth-child(3)', '.process', '.process-visual', '.module-feature',
             '.module-rows', '.roadmap', '.break-hero', '.break-actions',
             '.graph-canvas', '.image-copy', '.image-frame'
           ]) {

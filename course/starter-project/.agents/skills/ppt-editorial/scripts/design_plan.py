@@ -259,6 +259,16 @@ def compile_plan(plan_path: Path, out_dir: Path) -> dict:
             )
             html_spec["assetRole"] = asset_role
 
+        if expected_layout == "process":
+            if composition_preset == "vertical-visual" and asset is None:
+                raise DesignPlanError(
+                    f"{slide_id} vertical-visual process requires a Codex asset"
+                )
+            if composition_preset != "vertical-visual" and asset is not None:
+                raise DesignPlanError(
+                    f"{slide_id} process asset requires compositionPreset "
+                    "'vertical-visual'"
+                )
         out = _clean_rel(slide.get("out"), f"{slide_id}.out")
         slide_jobs.append({
             "label": slide_id,
@@ -273,7 +283,11 @@ def compile_plan(plan_path: Path, out_dir: Path) -> dict:
             "id": slide_id,
             "visualRole": visual_role,
             "layout": expected_layout,
-            "renderer": renderer_by_layout[expected_layout],
+            "renderer": (
+                "codex-asset-plus-html"
+                if asset is not None
+                else renderer_by_layout[expected_layout]
+            ),
             "styleVariant": variant,
             "palettePreset": palette_name,
             "colorRole": color_role,

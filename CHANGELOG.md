@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.19 RC
+
+- 우측이 비던 vertical process를 위한 `vertical-visual` hybrid preset 추가
+- 좌측 42%는 HTML rail·단계 문구, 우측 54%는 Codex 3D 또는 material illustration
+- process 자산에는 텍스트·숫자·라벨·화살표를 굽지 않도록 계약
+- compiler가 Codex asset 없는 vertical-visual을 차단하고 2단 asset→HTML batch로 연결
+- 실제 Codex image_gen으로 5개 공정 모듈 자산 생성, asset digest와 geometry receipt 확인
+- section composition preset 총 35종
+
 ### business-plan-writer 0.12.18 RC
 
 - vertical process rail dot이 `01 진단` 같은 단계 번호와 붙어 보이던 겹침 수정

@@ -10,7 +10,7 @@
       "name": "business-plan-writer",
       "source": "./plugins/business-plan-writer",
       "description": "Natural-language business-plan and hybrid PPT workflow with structured HTML layouts, Codex 3D/photo assets, digest-bound scenario QA, user-edited HWPX preservation, bundled Pretendard, and mandatory Korean humanization.",
-      "version": "0.12.18"
+      "version": "0.12.19"
     },
     {
       "name": "business-documents",
