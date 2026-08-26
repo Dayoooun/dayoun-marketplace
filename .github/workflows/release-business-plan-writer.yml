@@ -23,19 +23,24 @@ jobs:
         with: { persist-credentials: false }
       - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
-      - run: python -m pip install -r requirements.txt pillow opencv-python pymupdf numpy python-pptx
+      - run: python -m pip install -r requirements.txt
+      - run: python -m playwright install --with-deps chromium
       - run: python scripts/validate_contracts.py contracts
       - run: python scripts/generate_course.py --check
       - run: python -m unittest discover -s tests -v
   qualify:
     needs: portable
-    runs-on: [self-hosted, Windows, X64, dayoun-rc]
+    # 공개 저장소라 GitHub 호스트 러너는 전 OS 무료다(배수 과금은 프라이빗 전용).
+    # self-hosted `dayoun-rc` 는 비용 절감 효과가 0이면서 러너 1대가 사라지면
+    # 릴리스 전체를 막았다 — 실제로 2026-08-16 qualify 가 러너 대기로 취소됐다.
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
         with: { persist-credentials: false }
       - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
-      - run: python -m pip install -r requirements.txt pillow opencv-python pymupdf numpy python-pptx
+      - run: python -m pip install -r requirements.txt
+      - run: python -m playwright install --with-deps chromium
       - shell: bash
         env:
           VERSION: ${{ inputs.version }}

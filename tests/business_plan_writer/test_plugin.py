@@ -740,6 +740,51 @@ class BusinessPlanPluginTests(unittest.TestCase):
         )
         self.assertIn("windows-latest", workflow)
         self.assertIn("macos-latest", workflow)
+
+    def test_workflows_install_chromium_wherever_the_harness_runs(self) -> None:
+        # harness_smoke.py 는 playwright 가 import 되면 Chromium 실행 파일까지
+        # 요구한다. requirements.txt 가 playwright 를 고정하므로, tests/ 전체를
+        # 도는 워크플로는 반드시 Chromium 을 설치해야 한다. 설치 스텝이 빠지면
+        # "Playwright Chromium 미설치" AssertionError 로 릴리스가 멈춘다.
+        requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
+        self.assertIn("playwright==", requirements)
+
+        workflows = ROOT / ".github" / "workflows"
+        for name in ("validate.yml", "release-business-plan-writer.yml"):
+            source = (workflows / name).read_text(encoding="utf-8")
+            self.assertIn("playwright install", source, name)
+            self.assertEqual(
+                source.count("python -m pip install -r requirements.txt"),
+                source.count("python -m playwright install"),
+                f"{name}: 의존성 설치와 Chromium 설치 스텝 수가 다르다",
+            )
+
+        # 인라인으로 덧붙인 미고정 패키지는 requirements.txt 의 pin 을 우회한다.
+        for workflow in sorted(workflows.glob("*.yml")):
+            for line in workflow.read_text(encoding="utf-8").splitlines():
+                stripped = line.strip()
+                if "pip install -r requirements.txt" not in stripped:
+                    continue
+                self.assertTrue(
+                    stripped.endswith("requirements.txt"),
+                    f"{workflow.name}: 고정되지 않은 인라인 패키지 — {stripped}",
+                )
+
+    def test_release_never_depends_on_a_single_self_hosted_runner(self) -> None:
+        # 저장소가 공개라 GitHub 호스트 러너는 전 OS 무료다. self-hosted 라벨은
+        # 비용을 줄이지 못하면서 러너 1대의 부재가 릴리스 전체를 막는다.
+        # 주석까지 걸리면 이유를 적을 수 없으므로 runs-on 값만 검사한다.
+        for workflow in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+            for line in workflow.read_text(encoding="utf-8").splitlines():
+                stripped = line.strip()
+                if not stripped.startswith("runs-on:"):
+                    continue
+                self.assertNotIn(
+                    "self-hosted",
+                    stripped,
+                    f"{workflow.name}: 단일 self-hosted 러너에 릴리스가 묶인다 — {stripped}",
+                )
+
     def test_project_profile_is_generic_and_uses_plain_labels(self) -> None:
         script = SKILLS / "setup-business-plan-project" / "scripts" / "create_project.py"
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### 저장소 유지보수
+
+- `.gitattributes` 추가로 개행을 LF 로 고정하고 추적 파일 25개를 재정규화했다.
+  릴리스 digest 는 raw bytes 기반이라(`scripts/build_release_artifacts.py`) 플랫폼별
+  개행 차이가 내용 변경 없이 아티팩트 해시를 바꾸던 문제를 없앴다.
+- `playwright` 를 `requirements.txt` 에 고정하고 `validate`·`release-business-plan-writer`
+  워크플로가 Chromium 을 설치하게 했다. HTML 슬라이드 렌더의 실제 런타임 의존성이
+  선언되지 않아 로컬에서만 실패했다. 릴리스 워크플로의 미고정 인라인 패키지도 제거했다.
+- `harness_smoke.py` 의 Playwright 게이트가 실행 파일 존재만 보고 나가면서 드라이버
+  연결이 정리되지 않아 `TargetClosedError` 가 stderr 로 새던 문제를 고쳤다. 실제
+  기동까지 확인하도록 바꿔 렌더 가능 여부의 증거가 되게 했다.
+- `Promote business-plan-writer` 의 `qualify` job 이 요구하던 self-hosted 러너
+  `dayoun-rc` 를 `windows-latest` 로 바꿨다. 저장소가 공개라 GitHub 호스트 러너는
+  전 OS 무료이고(실측: 최근 실행들의 billable 이 UBUNTU/WINDOWS/MACOS 모두 0ms),
+  self-hosted 는 비용을 줄이지 못하면서 러너 부재 시 릴리스를 전면 차단했다.
+  2026-08-16 Promote 실행이 실제로 `qualify` 러너 대기에서 취소됐고 그 뒤
+  13개 버전이 태그되지 못했다.
+- 위 회귀들을 잡는 테스트를 추가했다
+  (`test_workflows_install_chromium_wherever_the_harness_runs`,
+  `test_release_never_depends_on_a_single_self_hosted_runner`).
+- README·CLAUDE.md 의 설치 확인 버전을 실제 배포본 `0.12.19` 로 맞췄다.
+
 ### business-plan-writer 0.12.19 RC
 
 - 우측이 비던 vertical process를 위한 `vertical-visual` hybrid preset 추가

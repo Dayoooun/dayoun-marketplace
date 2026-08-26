@@ -166,6 +166,14 @@ def _hybrid_renderer():
     with sync_playwright() as playwright:
         if not os.path.isfile(playwright.chromium.executable_path):
             raise AssertionError("Playwright Chromium 미설치")
+        # 실행 파일 존재만 보고 나가면 드라이버 연결이 정리되지 않아
+        # TargetClosedError 가 stderr 로 새어 릴리스 로그를 오염시킨다.
+        # 실제 기동까지 확인해야 렌더 가능 여부의 증거가 된다.
+        browser = playwright.chromium.launch(headless=True)
+        try:
+            browser.new_page().close()
+        finally:
+            browser.close()
     return "HTML11종·Codex3역할"
 
 
