@@ -29,6 +29,31 @@
   `test_release_never_depends_on_a_single_self_hosted_runner`).
 - README·CLAUDE.md 의 설치 확인 버전을 실제 배포본 `0.12.19` 로 맞췄다.
 
+### fill-hwpx-template 화면검수 자동화
+
+HWPX 파이프라인에서 **PDF 를 만드는 단계 자체가 없었다.** `render_pdf_pages.py`
+는 PDF 를 페이지 PNG 로 쪼개고 `verify_hwpx_render.py` 는 그 receipt 를 검사하는데,
+정작 PDF 는 "한컴 한글에서 `파일 → PDF로 저장하기`" 라는 수동 절차였다. 화면검수가
+사람 손에 묶여 자동 게이트에서 빠져 있었다.
+
+- **`scripts/export_hwpx_pdf.py` 를 추가했다.** `rhwp export-pdf` 로 HWPX 를 직접
+  PDF 로 변환한다. 한컴 설치가 필요 없고 macOS·Linux 에서도 같은 경로를 쓴다.
+  LibreOffice 는 HWPX 를 열지 못하므로 대체재가 아니다.
+- **`LAYOUT_OVERFLOW` 를 게이트로 올렸다.** 렌더러는 문단이 단 아래로 넘칠 때
+  stderr 로 알리지만 종료코드는 0 이다. 경고를 세어 원본 대비 증가분을 BLOCK
+  조건으로 쓴다. 양식이 원래 갖고 있던 넘침까지 실패로 만들면 쓸 수 없으므로
+  `--baseline` 으로 원본을 함께 받아 차이만 판정한다.
+- 실측(2026-08-27): 데모 양식의 값 4개를 개조식으로 치환하자 넘침이 2건에서
+  41건이 됐다. 회사명처럼 주장이 아닌 값을 `_claim_free` 로 선언해 개조식 변환에서
+  빼자 28건, 네 값 모두 짧은 한 줄로 바꾸자 9건이 됐다. **세 경우 모두
+  `validate` 와 `hwpx_source_integrity` 는 PASS 였다.** 플레이스홀더는 대개 표 셀
+  안에 있고 셀 높이는 고정이라, 구조가 맞아도 줄이 늘면 내용이 셀 밖으로 나간다.
+- 렌더러를 찾지 못하면 조용히 건너뛰지 않고 BLOCK 한다. 화면검수 없는 HWPX 를
+  납품하지 않는다.
+- 이 스크립트는 다른 스킬(`ppt-editorial` 의 `platform_support`)을 import 하지
+  않는다. `fill-hwpx-template` 은 독립 배포되므로 릴리스 ZIP 에서 깨진다.
+  그 의존이 다시 들어오면 실패하는 테스트를 붙였다.
+
 ### ppt-editorial 렌더 무결성
 
 실제 15장 강의 덱을 제작하며 드러난 결함들. 자동 게이트가 전부 통과시켰고

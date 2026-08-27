@@ -190,16 +190,36 @@ fail-closed로 확인한다.
 
 ### 6. 실제 렌더와 확대 검수
 
-Windows 강의·실무 기준 렌더러는 설치·라이선스가 확인된 한컴 한글이다. 결과 HWPX를
-한컴 한글에서 열어 글꼴 대체 경고가 없는지 확인하고 `파일 → PDF로 저장하기`로
-`06. 검토결과/render/사업계획서.pdf`를 만든다. 한컴 한글의 제품명과
-`도움말 → 한글 정보`에 표시된 버전을 기록한다. macOS/Linux에서 한컴 한글 렌더를
-재현할 수 없으면 다른 렌더러로 PASS를 대체하지 않고 BLOCK한다.
+PDF는 `scripts/export_hwpx_pdf.py`로 만든다. `rhwp` CLI가 HWPX를 직접 PDF로
+변환하므로 한컴 한글 설치가 필요 없고 macOS·Linux에서도 같은 경로를 쓴다.
+LibreOffice는 HWPX를 열지 못하므로 대체재가 아니다.
+
+```bash
+python scripts/export_hwpx_pdf.py "07. 최종본/사업계획서_v09.hwpx" \
+  --output "06. 검토결과/render/사업계획서.pdf" \
+  --baseline "03. 사업계획서양식/작업용 HWPX/원본.hwpx" \
+  --report "06. 검토결과/render/overflow.json"
+```
+
+**`--baseline`에 원본 양식을 반드시 준다.** 이 스크립트는 렌더러가 stderr로
+알리는 `LAYOUT_OVERFLOW`를 세어 게이트로 쓴다. 양식이 원래 갖고 있던 넘침까지
+실패로 만들면 쓸 수 없으므로 원본 대비 **증가분**만 판정한다. 증가분이 0을
+넘으면 exit 2로 BLOCK이다.
+
+넘침이 늘었다면 치환값이 칸을 넘친 것이다. 플레이스홀더는 대개 표 셀 안에
+있고 셀 높이는 고정이므로, 줄 수가 늘면 내용이 셀 밖으로 나간다. 실측
+(2026-08-27): 데모 양식의 값 4개를 개조식으로 치환하자 넘침이 2건에서 41건이
+됐고, 회사명처럼 주장이 아닌 값을 `_claim_free`로 선언해 개조식 변환에서 빼자
+28건, 네 값 모두 짧은 한 줄로 바꾸자 9건이 됐다. **구조검사(`validate`·
+`hwpx_source_integrity`)는 세 경우 모두 PASS였다.** 구조가 맞아도 렌더는 깨진다.
+
+rhwp를 PATH에 두거나 `RHWP_BIN` 환경변수로 경로를 지정한다. 렌더러를 찾지
+못하면 조용히 건너뛰지 않고 BLOCK한다 — 화면검수 없는 HWPX를 납품하지 않는다.
 
 PDF를 모든 페이지 PNG와 검수 전 receipt로 바꾼다.
 
 ```powershell
-python "<이 SKILL.md가 있는 폴더>\scripts\render_pdf_pages.py" "07. 최종본\사업계획서_v09.hwpx" "06. 검토결과\render\사업계획서.pdf" --output-dir "06. 검토결과\render\pages" --receipt "06. 검토결과\render-qa.json" --renderer-name "한컴 한글" --renderer-version "<도움말에 표시된 실제 버전>"
+python "<이 SKILL.md가 있는 폴더>/scripts/render_pdf_pages.py" "07. 최종본/사업계획서_v09.hwpx" "06. 검토결과/render/사업계획서.pdf" --output-dir "06. 검토결과/render/pages" --receipt "06. 검토결과/render-qa.json" --renderer-name rhwp --renderer-version "<rhwp -V 로 확인한 실제 버전>"
 ```
 
 `render-qa.json`은 `NEEDS_REVIEW`, 각 결함 확인값 `null`, `zoomReviewed=false`로

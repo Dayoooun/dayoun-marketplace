@@ -5,6 +5,7 @@ import os
 import json
 import hashlib
 import fitz
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -1201,6 +1202,80 @@ class HwpxOutlineFormattingTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(passed.returncode, 0, passed.stdout + passed.stderr)
+
+
+class HwpxPdfExportGateTests(unittest.TestCase):
+    """HWPX→PDF 변환과 레이아웃 넘침 게이트.
+
+    구조검사(validate·source_integrity)가 모두 PASS 인 HWPX 도 렌더에서
+    깨질 수 있다. 실측(2026-08-27): 데모 양식을 개조식으로 치환한 결과가
+    구조검사를 통과하고도 rhwp 렌더에서 넘침 41건이 났다(원본 2건).
+    표 셀은 높이가 고정이라 줄이 늘면 내용이 셀 밖으로 나간다.
+    """
+
+    def _module(self):
+        import importlib.util
+
+        path = (
+            PLUGIN
+            / "skills"
+            / "fill-hwpx-template"
+            / "scripts"
+            / "export_hwpx_pdf.py"
+        )
+        spec = importlib.util.spec_from_file_location("export_hwpx_pdf", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_export_script_does_not_import_other_skills(self) -> None:
+        # fill-hwpx-template 은 독립 배포된다. ppt-editorial 의 platform_support 를
+        # import 하면 릴리스 ZIP 에서 ModuleNotFoundError 로 죽는다.
+        source = (
+            PLUGIN
+            / "skills"
+            / "fill-hwpx-template"
+            / "scripts"
+            / "export_hwpx_pdf.py"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("from platform_support import", source)
+        self.assertNotIn("import platform_support", source)
+
+    def test_overflow_lines_are_counted_from_renderer_diagnostics(self) -> None:
+        # rhwp 는 넘침을 stderr 로 알리고 종료코드는 0 이다. 경고를 세지 않으면
+        # 깨진 렌더가 "변환 성공"으로 통과한다.
+        module = self._module()
+        diagnostics = (
+            "LAYOUT_OVERFLOW: page=0, sec=0, col=0, para=27, type=FullParagraph\n"
+            "LAYOUT_OVERFLOW_DRAW: section=0 pi=29 line=0 y=1636.9\n"
+            "some unrelated warning\n"
+            "LAYOUT_OVERFLOW: page=0, sec=0, col=0, para=28, type=FullParagraph\n"
+        )
+        self.assertEqual(len(module._OVERFLOW.findall(diagnostics)), 3)
+        self.assertEqual(len(module._OVERFLOW.findall("clean run\n")), 0)
+
+    def test_missing_renderer_reports_instead_of_silently_skipping(self) -> None:
+        # rhwp 가 없을 때 조용히 건너뛰면 화면검수 없는 HWPX 가 납품된다.
+        module = self._module()
+        with self.assertRaises(RuntimeError) as caught:
+            module.find_rhwp("/nonexistent/rhwp")
+        self.assertIn("rhwp", str(caught.exception))
+
+    @unittest.skipUnless(
+        os.environ.get("RHWP_BIN") or shutil.which("rhwp")
+        or Path("~/.claude/skills/consulting-report/bin/rhwp").expanduser().is_file(),
+        "rhwp CLI 가 없으면 실제 변환은 건너뛴다",
+    )
+    def test_demo_template_converts_and_reports_baseline_overflow(self) -> None:
+        # 원본을 자기 자신과 비교하면 증가분 0 이어야 한다. 양식이 원래 갖고
+        # 있던 넘침까지 실패로 만들면 게이트를 쓸 수 없다.
+        module = self._module()
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "demo.pdf"
+            result = module.export_pdf(DEMO, output, rhwp=module.find_rhwp())
+            self.assertTrue(output.is_file())
+            self.assertGreaterEqual(result["manifest"].get("pageCount", 0), 1)
+            self.assertIsInstance(result["overflowCount"], int)
 
 
 if __name__ == "__main__":
