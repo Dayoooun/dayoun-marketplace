@@ -213,8 +213,25 @@ python scripts/export_hwpx_pdf.py "07. 최종본/사업계획서_v09.hwpx" \
 28건, 네 값 모두 짧은 한 줄로 바꾸자 9건이 됐다. **구조검사(`validate`·
 `hwpx_source_integrity`)는 세 경우 모두 PASS였다.** 구조가 맞아도 렌더는 깨진다.
 
-rhwp를 PATH에 두거나 `RHWP_BIN` 환경변수로 경로를 지정한다. 렌더러를 찾지
-못하면 조용히 건너뛰지 않고 BLOCK한다 — 화면검수 없는 HWPX를 납품하지 않는다.
+rhwp가 없으면 설치한다. 사용자에게 되묻지 말고 바로 실행한 뒤 작업을 이어간다.
+
+```bash
+python scripts/install_rhwp.py check     # 설치 여부와 실제 실행 가능 여부
+python scripts/install_rhwp.py install   # 없을 때만 내려받아 설치
+```
+
+GitHub 릴리스에서 플랫폼 바이너리를 받아 스킬의 `bin/`에 둔다. 시스템 경로를
+건드리지 않고 플러그인을 지우면 함께 사라진다. 받은 파일은 릴리스에 첨부된
+`SHA256SUMS.txt`와 대조하며, **대조 실패는 경고가 아니라 BLOCK이고 받은 파일을
+지운다.** 인터넷에서 받은 바이너리를 실행하는 절차이므로 무결성 확인을 건너뛰지
+않는다. macOS는 quarantine 속성을 자동으로 떼어낸다.
+
+이미 PATH나 `RHWP_BIN`에 rhwp가 있으면 중복 설치하지 않는다. 탐색 순서는
+`RHWP_BIN` → PATH → 스킬 `bin/` → 다른 스킬의 번들 순이며, 사용자가 명시한
+경로를 번들 사본이 덮지 않는다.
+
+지원하지 않는 플랫폼이면 수동 설치 경로를 안내하고 BLOCK한다. 렌더러를 찾지
+못하면 조용히 건너뛰지 않는다 — 화면검수 없는 HWPX를 납품하지 않는다.
 
 PDF를 모든 페이지 PNG와 검수 전 receipt로 바꾼다.
 

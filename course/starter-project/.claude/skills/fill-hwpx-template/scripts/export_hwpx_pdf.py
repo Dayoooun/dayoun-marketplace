@@ -56,9 +56,13 @@ def _which(name: str) -> str | None:
 #   LAYOUT_OVERFLOW_DRAW: section=0 pi=29 line=0 y=1636.9 ...
 _OVERFLOW = re.compile(r"^LAYOUT_OVERFLOW(?:_DRAW)?:", re.MULTILINE)
 
-# 스킬 번들 밖에 설치된 CLI 도 찾는다. consulting-report 스킬이 bin/ 에 두는
-# 경로를 포함하되, PATH 와 RHWP_BIN 을 우선한다.
+# 이 스킬이 install_rhwp.py 로 설치하는 위치를 가장 먼저 본다. 그 다음이
+# consulting-report 스킬이 bin/ 에 두는 경로다. PATH 와 RHWP_BIN 이 이 목록보다
+# 우선한다 — 사용자가 명시한 경로를 번들 사본이 덮으면 안 된다.
+_SKILL_BIN = Path(__file__).resolve().parent.parent / "bin"
 _EXTRA_RHWP_PATHS = (
+    str(_SKILL_BIN / "rhwp"),
+    str(_SKILL_BIN / "rhwp.exe"),
     "~/.claude/skills/consulting-report/bin/rhwp",
     "~/.gjc/skills/consulting-report/bin/rhwp",
 )
@@ -86,8 +90,9 @@ def find_rhwp(explicit: str | None = None) -> str:
             return str(candidate)
 
     raise RuntimeError(
-        "rhwp 를 찾을 수 없습니다. HWPX→PDF 변환에 필요합니다.\n"
-        "  PATH 에 두거나 RHWP_BIN 환경변수로 경로를 지정하세요.\n"
+        "rhwp 를 찾을 수 없습니다. HWPX→PDF 화면검수에 필요합니다.\n"
+        "  설치: python scripts/install_rhwp.py install\n"
+        "  또는 PATH 에 두거나 RHWP_BIN 환경변수로 경로를 지정하세요.\n"
         "  LibreOffice 는 HWPX 를 열지 못하므로 대체재가 아닙니다."
     )
 

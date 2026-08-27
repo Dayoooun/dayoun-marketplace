@@ -1278,5 +1278,96 @@ class HwpxPdfExportGateTests(unittest.TestCase):
             self.assertIsInstance(result["overflowCount"], int)
 
 
+class RhwpInstallerTests(unittest.TestCase):
+    """rhwp 설치 도구. 없을 때 BLOCK 만 하고 방법을 안 알려주면 사용자가 막힌다."""
+
+    def _module(self):
+        import importlib.util
+
+        path = (
+            PLUGIN
+            / "skills"
+            / "fill-hwpx-template"
+            / "scripts"
+            / "install_rhwp.py"
+        )
+        spec = importlib.util.spec_from_file_location("install_rhwp", str(path))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_asset_name_is_resolved_for_every_supported_platform(self) -> None:
+        # 자산 이름 규칙이 바뀌면 다운로드가 404 로 죽는다. 릴리스에 올라오는
+        # 4종(linux x86_64 · macOS x86_64/aarch64 · windows x86_64)을 모두 만든다.
+        module = self._module()
+        seen = set()
+        for key, (suffix, extension) in module._PLATFORMS.items():
+            self.assertIn(extension, ("tar.gz", "zip"), key)
+            seen.add(suffix)
+        self.assertEqual(
+            seen,
+            {"linux-x86_64", "macos-x86_64", "macos-aarch64", "windows-x86_64"},
+        )
+
+    def test_unsupported_platform_reports_a_manual_path(self) -> None:
+        # 지원하지 않는 플랫폼에서 조용히 실패하면 원인을 알 수 없다.
+        module = self._module()
+        original = dict(module._PLATFORMS)
+        module._PLATFORMS.clear()
+        try:
+            with self.assertRaises(RuntimeError) as caught:
+                module.asset_for("v0.0.0")
+            self.assertIn("RHWP_BIN", str(caught.exception))
+        finally:
+            module._PLATFORMS.update(original)
+
+    def test_checksum_mismatch_blocks_and_removes_the_download(self) -> None:
+        # 인터넷에서 받은 바이너리를 실행하는 절차다. 무결성 대조 없이 설치하면
+        # 받은 것이 게시된 것과 같은지 알 수 없다. 실패는 경고가 아니라 BLOCK.
+        module = self._module()
+        source = "\n".join(module.__doc__.splitlines())
+        self.assertIn("SHA256SUMS", source)
+
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "bin"
+            module.expected_digest = lambda tag, asset: "0" * 64
+            module.fetch = lambda url, timeout=120.0: b"not-a-real-archive"
+            with self.assertRaises(RuntimeError) as caught:
+                module.install(target, "v0.0.0")
+            self.assertIn("무결성", str(caught.exception))
+            self.assertFalse((target / "rhwp").exists())
+
+    def test_export_script_points_at_the_installer(self) -> None:
+        # rhwp 가 없을 때 BLOCK 메시지가 설치 방법을 담아야 사용자가 진행한다.
+        source = (
+            PLUGIN
+            / "skills"
+            / "fill-hwpx-template"
+            / "scripts"
+            / "export_hwpx_pdf.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("install_rhwp.py", source)
+
+    def test_installer_target_is_searched_by_the_exporter(self) -> None:
+        # 설치해도 exporter 가 그 경로를 모르면 여전히 BLOCK 이다.
+        import importlib.util
+
+        installer = self._module()
+        path = (
+            PLUGIN
+            / "skills"
+            / "fill-hwpx-template"
+            / "scripts"
+            / "export_hwpx_pdf.py"
+        )
+        spec = importlib.util.spec_from_file_location("export_hwpx_pdf", str(path))
+        exporter = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(exporter)
+
+        default_target = str(installer.DEFAULT_TARGET / "rhwp")
+        searched = [str(Path(raw).expanduser()) for raw in exporter._EXTRA_RHWP_PATHS]
+        self.assertIn(default_target, searched)
+
+
 if __name__ == "__main__":
     unittest.main()

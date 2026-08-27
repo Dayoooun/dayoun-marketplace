@@ -53,6 +53,16 @@ HWPX 파이프라인에서 **PDF 를 만드는 단계 자체가 없었다.** `re
 - 이 스크립트는 다른 스킬(`ppt-editorial` 의 `platform_support`)을 import 하지
   않는다. `fill-hwpx-template` 은 독립 배포되므로 릴리스 ZIP 에서 깨진다.
   그 의존이 다시 들어오면 실패하는 테스트를 붙였다.
+- **`scripts/install_rhwp.py` 를 추가했다.** rhwp 가 없으면 BLOCK 만 하고 설치
+  방법을 알려주지 않으면 사용자는 거기서 막힌다. GitHub 릴리스에서 플랫폼
+  바이너리(linux x86_64 · macOS x86_64/aarch64 · windows x86_64)를 받아 스킬의
+  `bin/` 에 설치한다. 시스템 경로를 건드리지 않고 플러그인을 지우면 함께 사라진다.
+- **무결성 검증은 건너뛰지 않는다.** 인터넷에서 받은 바이너리를 실행하는
+  절차이므로 릴리스에 첨부된 `SHA256SUMS.txt` 와 대조하고, 실패하면 경고가
+  아니라 BLOCK 이며 받은 파일을 지운다. macOS 는 quarantine 속성을 자동으로
+  떼어낸다. 이미 PATH 나 `RHWP_BIN` 에 있으면 중복 설치하지 않는다.
+- 내려받은 바이너리는 약 16MB 다. `.gitignore` 에 `plugins/*/skills/*/bin/` 을
+  추가해 저장소와 릴리스 ZIP 에 섞이지 않게 했다.
 
 ### ppt-editorial 렌더 무결성
 

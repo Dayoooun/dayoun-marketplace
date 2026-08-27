@@ -13,6 +13,9 @@ work/
 .omc/
 .omx/
 dist/
+# install_rhwp.py 가 내려받는 rhwp 바이너리(약 16MB). 저장소가 아니라
+# 사용자 환경에 설치되는 것이며 릴리스 ZIP 에도 들어가면 안 된다.
+plugins/*/skills/*/bin/
 release/evidence/**/raw/
 release/evidence/**/participants/
 release/evidence/**/*-identifiable.json
