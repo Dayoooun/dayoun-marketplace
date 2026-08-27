@@ -121,6 +121,38 @@ rhwp export-pdf input.hwpx -o output.pdf --profile print
 CUPS 가상 프린터(SIP 차단)·LibreOffice(`.hwpx` 필터 없음)는 검증 후 배제했습니다.
 상세는 `references/hwpx-to-pdf.md`.
 
+## 표 셀 내어쓰기 — 한글 COM 없이 됩니다
+
+접힌 줄이 왼쪽 끝으로 붙는 문제는 **맥에서 코드로 잡힙니다.** rhwp 는 표 셀 문단의
+`paraPr` margin `intent` 를 렌더에 반영합니다. "표 셀은 intent 가 무시된다"는 통설은
+오진이었습니다 (2026-08-27 실측).
+
+```bash
+python scripts/hwpx_hanging.py in.hwpx out.hwpx --markers □
+python scripts/hwpx_hanging.py out.pdf --check      # 게이트: MISS 0 이어야 통과
+```
+
+**단일 intent 를 쓰면 안 됩니다.** 접힌 줄은 그 문단 **첫 글자 x** 에 맞아야 하는데
+접두사 폭이 패턴마다 다릅니다 (HWPUNIT = pt × 100):
+
+| 문단 | 접두사 폭 | `intent` |
+|---|---|---|
+| `□ 1. …` | 13.50pt | **-1350** |
+| `○ (라벨) …` | 13.50pt | **-1350** |
+| `　- …` (전각공백+대시) | 17.25pt | **-1725** |
+
+스크립트가 원본을 먼저 렌더해 문단별 첫 글자 x 를 실측하고, 패턴마다 다른 paraPr 을
+주입합니다. 값을 손으로 넣지 마세요.
+
+- **`left` 는 건드리지 않습니다.** `intent` 단독으로 완성됩니다
+- **`linesegarray` 를 지우지 않습니다.** 지우면 `vertRelTo="PARA"` 부동 서명이 앵커를 잃고 떠오릅니다
+- `hp:case` + `hp:default` 양쪽 `hh:margin` 을 모두 갱신해야 한글과 rhwp 가 같은 값을 봅니다
+- 공유 paraPr 는 수정하지 않고 (원본 paraPr × 접두사 패턴) 조합마다 전용 사본을 만듭니다
+
+⚠️ 측정 함정: 전각공백은 렌더 시 여백으로 흡수돼 **PDF 텍스트에 남지 않습니다.**
+기준점은 줄 시작 x 가 아니라 **셀 좌측**(페이지 내 마커 줄 최소 x)입니다.
+상세는 `references/hwpx-to-pdf.md` §7.
+
 ## 하지 않는 것
 
 - `.hwp`(구 바이너리 포맷) 편집. 이 스킬은 `.hwpx`(OWPML) 전용입니다.

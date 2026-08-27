@@ -360,4 +360,6 @@ req = globals()["QLThumbnailGenerationRequest"].alloc(). \
 
 - `representationTypes=15`(전체 허용) 필수. `qlmanage -t` CLI 는 타임아웃난다.
 - 파일은 홈 디렉터리 아래에 둬야 한다(샌드박스). `/tmp` 는 거부될 수 있다.
-- **1페이지만** 나온다. 다중 페이지 PDF 는 여전히 윈도우 한글 COM 이 필요하다.
+- **1페이지만** 나온다. 다중 페이지가 필요하면 QuickLook 이 아니라 **rhwp CLI**(`export-pdf`)를
+  쓴다 — 한글 없이 전 페이지를 뽑는다(실측 5쪽). 이 절은 "한컴 native 렌더로 대조하고 싶을 때"의
+  보조 수단이지, 변환 경로가 아니다. 상세는 `references/hwpx-to-pdf.md`.

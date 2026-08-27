@@ -118,7 +118,55 @@ doc[0].get_pixmap(dpi=110).save("check.png")   # 눈으로 본다
 
 ---
 
-## 7. 빌드 → 검증 → 변환 순서
+## 7. 내어쓰기 — rhwp 는 `paraPr` intent 를 렌더에 반영한다 (2026-08-27)
+
+표 셀 문단의 내어쓰기는 **한글 COM 없이 맥에서 적용된다.** 이전 기록의
+"`<hh:margin>` intent 가 렌더링에서 무시됨 → 한글 COM 후처리 필수"는 오진이었다.
+
+신디필라테스 2회차(5쪽)로 검증: paraPr 24 의 margin intent 를 0 → -2600 으로 바꾸면
+p1·p2 픽스맵 md5 가 바뀌고 접힌 줄이 들여쓰기된다. 반대로 `hp:offset` 을 9종으로
+스윕해도 md5 는 전부 같다(§ hwpx-structure 의 부동 개체 규칙과 동일한 결론).
+
+### 접힌 줄은 그 문단 **첫 글자 x** 에 맞춘다 — 단일 intent 금지
+
+접두사 폭이 패턴마다 달라 값 하나로는 셋 다 어긋난다 (HWPUNIT = pt × 100):
+
+| 문단 | 접두사 폭 | 필요한 `intent` |
+|---|---|---|
+| `□ 1. …` | 13.50pt | **-1350** |
+| `○ (라벨) …` | 13.50pt | **-1350** |
+| `　- …` (전각공백+대시) | 17.25pt | **-1725** |
+
+원본을 먼저 렌더해 문단별 첫 글자 x 를 재고, 패턴별로 `|intent| = (첫 글자 x − 셀 좌측 x) × 100`
+을 역산해 **패턴마다 다른 paraPr** 을 주입한다.
+
+- **`left` 는 건드리지 않는다.** `intent` 단독으로 내어쓰기가 완성된다
+- **`linesegarray` 를 지우지 않는다.** 지우면 `vertRelTo="PARA"` 부동 서명이 앵커 기준을
+  잃고 떠오른다. rhwp 는 lineseg 가 남아 있어도 intent 를 반영한다
+- **`hp:case` + `hp:default` 양쪽 `hh:margin` 을 모두 갱신**해야 한글과 rhwp 가 같은 값을 본다
+- 공유 paraPr 는 수정하지 않고 (원본 paraPr × 접두사 패턴) 조합마다 전용 사본을 주입한다
+
+### 측정 함정 — PDF 에 전각공백은 없다
+
+`　- …` 의 전각공백은 렌더 시 글자가 아니라 여백으로 흡수돼 PDF 텍스트에 남지 않는다.
+그 줄의 `chars[0]` 은 이미 밀린 위치(70.79pt)로 나온다.
+
+- ❌ 줄 시작 x 기준 → 1350 이 나오고 접힌 줄이 마커 위치에 걸린다
+- ✅ **셀 좌측(페이지 내 마커 줄 최소 x)** 기준 → 1725
+- rhwp 는 문단마다 별도 블록을 만들어 **블록 bbox 는 기준으로 못 쓴다**(자기 들여쓰기와 같음)
+
+### 폐기된 접근 (재시도 금지)
+
+| 시도 | 결과 | 원인 |
+|---|---|---|
+| lineseg 에 horzsize/flags 직접 계산 | 자간 겹침 | 값이 실제 텍스트 폭과 불일치 |
+| linesegarray 문서 전체 제거 | 부동 서명 부양 | 앵커 문단 lineseg 소실 |
+| 단일 `intent=-2600` 일괄 적용 | 접힌 줄이 첫 글자와 안 맞음 | 접두사 폭이 패턴마다 다름 |
+| pyhwpx `Run('TableCellBlock')` | 맥에서 실행 불가 | 한글 COM = Windows 전용 |
+
+---
+
+## 8. 빌드 → 검증 → 변환 순서
 
 ```bash
 SKILL="$HOME/.claude/skills/consulting-report"
@@ -126,13 +174,16 @@ PY="$SKILL/.venv/bin/python"
 CO="…/06.(2차)신디필라테스스튜디오_신은미_교육(필라테스)"
 
 # ① HWPX 무결성 검증 (표·그림 treatAsChar, 매니페스트, 도너 잔존 …)
-"$PY" ~/dev/dayoun-marketplace/plugins/hwpx-editing/skills/edit-hwpx/scripts/hwpx_verify.py \
+"$PY" "$SKILL/scripts/hwpx_verify.py" \
       "$CO/2회차_방문후_제출서류_신디필라테스.hwpx"
 
 # ② PDF 변환
 "$PY" "$SKILL/scripts/hwpx2pdf_mac.py" "$CO"
 
-# ③ 렌더 육안 확인 (체크박스·서명·사진)
+# ③ 내어쓰기 게이트 — 접힌 줄이 첫 글자에 붙었는지 PDF 좌표로 대조
+"$PY" "$SKILL/scripts/hanging_check.py" "$CO/2회차_방문후_제출서류_신디필라테스.pdf"
+
+# ④ 렌더 육안 확인 (체크박스·서명·사진)
 "$PY" -c "import pymupdf; pymupdf.open('$CO/2회차_방문후_제출서류_신디필라테스.pdf')[0].get_pixmap(dpi=110).save('/tmp/chk.png')"
 ```
 
