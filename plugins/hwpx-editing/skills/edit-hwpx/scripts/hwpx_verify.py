@@ -203,6 +203,40 @@ def check_table_as_char(z, rep):
                 % (len(bad_pic), ", ".join(bad_pic[:5])))
 
 
+def check_signature_anchor(z, rep):
+    """부동 서명·직인의 앵커 문단 검사 (references/hwpx-structure.md §11).
+
+    서명이 `treatAsChar=0`(부동) 이고 표 밖에 있어도, **앵커 문단이
+    표 안 문단**이면 `vertRelTo="PARA"` 기준이 그 셀이 돼 셀을 밀어낸다.
+    → 표가 세로로 늘어나 비뜼어진다 (쇼미더브이알 2회차에서 발생).
+
+    정상 5건은 전부 앵커가 문단 idx 0(제목 문단)이다.
+    """
+    bad = []
+    for name in sections(z):
+        xml = z.read(name).decode("utf-8", "replace")
+        for m in re.finditer(r"<hp:pic\b.*?</hp:pic>", xml, re.S):
+            blk = m.group(0)
+            pos = re.search(r"<hp:pos\b[^>]*>", blk)
+            if not pos:
+                continue
+            tac = re.search(r'treatAsChar="(\d)"', pos.group(0))
+            if not tac or tac.group(1) != "0":
+                continue                      # 인라인 그림은 대상 아니다
+            if 'vertRelTo="PARA"' not in pos.group(0):
+                continue
+            p0 = xml.rfind("<hp:p ", 0, m.start())
+            if p0 < 0:
+                continue
+            idx = xml[:p0].count("<hp:p ")
+            if idx != 0:
+                iid = re.search(r'binaryItemIDRef="(\w+)"', blk)
+                bad.append("%s(앵커 문단 idx=%d)" % (iid.group(1) if iid else "?", idx))
+
+    rep.add(not bad, "부동 서명·직인 앵커 = 제목 문단(idx 0)",
+            "" if not bad else "%d건: %s — 표가 늘어난다" % (len(bad), ", ".join(bad[:3])))
+
+
 def check_aspect(z, rep):
     """curSz 비율이 원본 이미지 비율과 맞는지 (Pillow 있을 때만)."""
     try:
@@ -303,6 +337,7 @@ def main():
         check_placeholders(z, rep)
         check_shapes(z, rep)
         check_table_as_char(z, rep)
+        check_signature_anchor(z, rep)
         check_aspect(z, rep)
         if args.donor:
             if os.path.exists(args.donor):
