@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### business-plan-writer 0.12.20 RC
+
+렌더 무결성 게이트와 macOS 유니코드 정규화를 고친 릴리스. 아래 두 절이
+이번 버전의 변경 내용이다.
+
 ### 저장소 유지보수
 
 - `.gitattributes` 추가로 개행을 LF 로 고정하고 추적 파일 25개를 재정규화했다.
@@ -57,6 +62,11 @@
 - SKILL.md 에 레이아웃별 키 표, receipt 강제 규칙, 재조립 단계, 실측 함정 8건을
   기록하고 문서가 코드와 어긋나면 실패하는 테스트를 붙였다
   (`SkillDocumentationTests`).
+- **코스 킷 비교를 유니코드 정규화에 묶었다.** macOS(APFS)는 파일명을 NFD 로,
+  Linux·Windows 는 NFC 로 저장한다. `generate_course.py` 의 디렉터리 비교와
+  manifest 키가 경로를 정규화하지 않아, 같은 한글 파일이 서로 다른 키가 되고
+  내용이 동일한데도 전 파일이 `missing`+`unexpected` 로 BLOCK 됐다. 비교와
+  manifest 키를 NFC 로 고정하고 회귀 테스트를 추가했다.
 
 ### business-plan-writer 0.12.19 RC
 

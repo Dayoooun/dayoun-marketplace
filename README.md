@@ -14,8 +14,8 @@ PPT·PPTX·파워포인트·슬라이드·발표자료·피치덱·IR덱·제안
 
 | 사용하는 AI | 설치 방식 | 설치 후 보이는 버전 |
 |---|---|---|
-| Codex CLI | 터미널에서 marketplace 추가 | `business-plan-writer 0.12.19`, `business-documents 0.1.0` |
-| Claude Code | Claude Code의 `/plugin` 명령 | `business-plan-writer 0.12.19`, `business-documents 0.1.0` |
+| Codex CLI | 터미널에서 marketplace 추가 | `business-plan-writer 0.12.20`, `business-documents 0.1.0` |
+| Claude Code | Claude Code의 `/plugin` 명령 | `business-plan-writer 0.12.20`, `business-documents 0.1.0` |
 | Antigravity | `course/starter-project` 폴더를 작업공간으로 열기 | `.agents/skills`의 일곱 사업계획서 스킬 |
 | 일반 채팅형 AI | 자동 설치 없음 | [참가자 빠른 시작](course/06-participant-quick-start.md)의 질문·출력 형식만 사용 |
 
@@ -48,7 +48,7 @@ codex plugin list
 마지막 명령에서 아래 두 항목이 `installed, enabled`이면 끝입니다.
 
 ```text
-business-plan-writer@dayoun  0.12.19
+business-plan-writer@dayoun  0.12.20
 business-documents@dayoun    0.1.0
 ```
 
@@ -65,7 +65,7 @@ Claude Code를 연 뒤 대화 입력창에 한 줄씩 실행합니다.
 /plugin list
 ```
 
-목록에서 두 플러그인이 `enabled`이고 버전이 `0.12.19`, `0.1.0`이면 설치가 끝난 것입니다. 새 스킬이 바로 보이지 않으면 Claude Code를 한 번 다시 시작합니다.
+목록에서 두 플러그인이 `enabled`이고 버전이 `0.12.20`, `0.1.0`이면 설치가 끝난 것입니다. 새 스킬이 바로 보이지 않으면 Claude Code를 한 번 다시 시작합니다.
 
 터미널 명령을 선호하면 같은 작업을 다음처럼 실행할 수 있습니다.
 
@@ -416,7 +416,7 @@ codex plugin add business-plan-writer@dayoun
 
 ## 버전
 
-현재 `main` marketplace의 공개 RC는 `business-plan-writer 0.12.19`, `business-documents 0.1.0`입니다. Codex와 Claude Code의 원격 설치를 실제 검증했습니다. stable `1.0`은 10개 fixture × 3개 실제 프로바이더, 선택 문서의 자동·외부 화면검수, N≥10 강의 검증, 10명 외부 베타, 중대 결함 0건을 모두 만족하기 전에는 태그하지 않습니다.
+현재 `main` marketplace의 공개 RC는 `business-plan-writer 0.12.20`, `business-documents 0.1.0`입니다. Codex와 Claude Code의 원격 설치를 실제 검증했습니다. stable `1.0`은 10개 fixture × 3개 실제 프로바이더, 선택 문서의 자동·외부 화면검수, N≥10 강의 검증, 10명 외부 베타, 중대 결함 0건을 모두 만족하기 전에는 태그하지 않습니다.
 
 ## 기여와 문의
 
