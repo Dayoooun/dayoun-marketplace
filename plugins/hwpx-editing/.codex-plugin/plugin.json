@@ -1,0 +1,33 @@
+{
+  "name": "hwpx-editing",
+  "version": "0.1.0",
+  "description": "Edit Korean HWPX documents at the XML level: floating shape placement, image swapping, table cells, and post-build integrity checks.",
+  "author": {
+    "name": "Dayoun",
+    "url": "https://github.com/Dayoooun"
+  },
+  "license": "MIT",
+  "keywords": [
+    "hwpx",
+    "hwp",
+    "hancom",
+    "owpml",
+    "korean-document",
+    "xml-editing"
+  ],
+  "metadata": {
+    "shortDescription": "HWPX 문서를 XML 수준에서 안전하게 편집합니다",
+    "longDescription": "한컴 공식 OWPML 모델과 실측 데이터를 근거로 HWPX의 부동 개체 배치, 이미지 교체, 표 셀 편집을 수행하고 빌드 후 무결성을 검증합니다.",
+    "developerName": "Dayoun",
+    "category": "Business",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "HWPX 문서의 그림·서명 위치를 올바르게 배치해 주세요.",
+      "교차 도너 빌드 후 잔존 오염과 매니페스트 무결성을 검증해 주세요."
+    ],
+    "brandColor": "#2F5597"
+  }
+}

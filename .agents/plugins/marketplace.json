@@ -29,6 +29,19 @@
       },
       "category": "Business",
       "version": "0.1.0"
+    },
+    {
+      "name": "hwpx-editing",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hwpx-editing"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Business",
+      "version": "0.1.0"
     }
   ]
 }

@@ -17,6 +17,12 @@
       "source": "./plugins/business-documents",
       "description": "Generate approved quotations, profiles, resumes, and official notices as safe printable HTML.",
       "version": "0.1.0"
+    },
+    {
+      "name": "hwpx-editing",
+      "source": "./plugins/hwpx-editing",
+      "description": "Edit Korean HWPX documents at the XML level: floating shape placement, image swapping, table cells, PDF export, and post-build integrity checks.",
+      "version": "0.1.0"
     }
   ]
 }

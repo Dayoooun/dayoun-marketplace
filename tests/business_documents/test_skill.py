@@ -329,11 +329,11 @@ class BusinessDocumentsSkillTests(unittest.TestCase):
         )
         self.assertEqual(
             [plugin["name"] for plugin in agents["plugins"]],
-            ["business-plan-writer", "business-documents"],
+            ["business-plan-writer", "business-documents", "hwpx-editing"],
         )
         self.assertEqual(
             [plugin["name"] for plugin in claude["plugins"]],
-            ["business-plan-writer", "business-documents"],
+            ["business-plan-writer", "business-documents", "hwpx-editing"],
         )
 
         closure = json.loads(

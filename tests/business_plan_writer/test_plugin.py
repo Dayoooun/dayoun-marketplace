@@ -95,8 +95,8 @@ class BusinessPlanPluginTests(unittest.TestCase):
         self.assertEqual(agents["plugins"][0]["name"], "business-plan-writer")
         self.assertEqual(claude["plugins"][0]["name"], "business-plan-writer")
         self.assertEqual(claude["plugins"][0]["version"], VERSION)
-        self.assertEqual([item["name"] for item in agents["plugins"]], ["business-plan-writer", "business-documents"])
-        self.assertEqual([item["name"] for item in claude["plugins"]], ["business-plan-writer", "business-documents"])
+        self.assertEqual([item["name"] for item in agents["plugins"]], ["business-plan-writer", "business-documents", "hwpx-editing"])
+        self.assertEqual([item["name"] for item in claude["plugins"]], ["business-plan-writer", "business-documents", "hwpx-editing"])
 
     def test_expected_skills_have_metadata(self) -> None:
         skill_dirs = sorted(path.parent for path in SKILLS.glob("*/SKILL.md"))
