@@ -99,6 +99,42 @@ class PrefixKeyTest(unittest.TestCase):
     def test_returns_none_for_blank(self):
         self.assertIsNone(H.prefix_key("   "))
 
+    def test_rejects_narrative_paragraphs(self):
+        # 마커 없는 서술문에 내어쓰기를 걸면 접힌 줄이 첫 글자로 당겨져 어긋난다.
+        # 경남신보 중간결과보고서에서 `동`·`유`·`자`·`김` 이 마커로 오인됐다.
+        for text in ("\ub3d9\ub85c\uba85 \uc8fc\uc18c",      # 동로명 주소
+                     "\uae40 \ub2e4 \uc724",                  # 김 다 윤
+                     "1. \uc218\ud589 \uac1c\uc694",          # 번호 제목
+                     "     \uc720\uc9c0\ub418\ub294"):        # 들여쓴 서술문
+            self.assertIsNone(H.prefix_key(text), text)
+
+    def test_accepts_every_surveyed_bullet(self):
+        # 실무 문서 493건 스캔에서 나온 기호는 전부 대상이어야 한다
+        for mark in "\u25a1\u25cb-\u25cf\u25aa\u00b7\u203b\u25e6":
+            self.assertEqual(H.prefix_key(mark + " \ud56d\ubaa9"), ("", mark))
+
+
+class LookupTest(unittest.TestCase):
+    """PDF 측정 키에는 선행공백이 없다 — 마커 폴백이 없으면 보정이 누락된다."""
+
+    TABLE = {("", "-"): 1327, ("", "\u25a1"): 1350}
+
+    def test_exact_key_wins(self):
+        self.assertEqual(H.lookup(self.TABLE, ("", "-")), 1327)
+
+    def test_falls_back_to_marker_only(self):
+        # XML 은 ('   ', '-') 인데 측정은 ('', '-') 뿐이다
+        self.assertEqual(H.lookup(self.TABLE, ("   ", "-")), 1327)
+        self.assertEqual(H.lookup(self.TABLE, ("\u3000", "-")), 1327)
+
+    def test_returns_default_for_unknown_marker(self):
+        self.assertIsNone(H.lookup(self.TABLE, ("", "\u203b")))
+        self.assertEqual(H.lookup(self.TABLE, ("", "\u203b"), 0), 0)
+
+    def test_prefers_largest_magnitude(self):
+        table = {("", "-"): -100, ("\u3000", "-"): -900}
+        self.assertEqual(H.lookup(table, ("\u3000\u3000", "-")), -900)
+
 
 class CloneParaPrTest(unittest.TestCase):
     def test_updates_both_switch_branches(self):
@@ -205,6 +241,59 @@ class HangingCellsTest(unittest.TestCase):
             H.hanging_cells(str(empty), str(self.dir / "x.hwpx"),
                             str(self.dir / "wd2"), markers=("\u25a1",),
                             measure=False)
+
+
+class IterWrappedTest(unittest.TestCase):
+    """접힌 줄 판정 — 오탐 3종이 실제 문서에서 나왔으므로 전부 고정한다.
+
+    행 형식은 marker_lines() 와 같다:
+      (페이지, 선행공백, 마커, 줄시작x, 첫글자x, y_top, y_bot, 원문)
+    """
+
+    H12 = 12.0        # 글자 높이 12pt (본문 8pt 기준 실측값)
+
+    def _bullet(self, y, x=70.0, txt_x=83.0, text="- \ud56d\ubaa9"):
+        return (0, "", "-", x, txt_x, y, y + self.H12, text)
+
+    def _plain(self, y, x, text="\uc774\uc5b4\uc9c0\ub294"):
+        return (0, "", None, x, None, y, y + self.H12, text)
+
+    def test_detects_wrapped_line(self):
+        rows = [self._bullet(100.0), self._plain(112.0, 83.0)]
+        got = list(H.iter_wrapped(rows))
+        self.assertEqual(len(got), 1)
+        self.assertEqual(got[0][1], 0.0)          # 본문 x 와 정확히 일치
+
+    def test_reports_deviation(self):
+        rows = [self._bullet(100.0), self._plain(112.0, 70.0)]
+        self.assertEqual(list(H.iter_wrapped(rows))[0][1], -13.0)
+
+    def test_ignores_line_too_far_below(self):
+        # 다음 표·다음 문단. 글자 높이의 1.2배를 넘으면 끊긴 것으로 본다
+        rows = [self._bullet(100.0), self._plain(100.0 + 12.0 + 20.0, 83.0)]
+        self.assertEqual(list(H.iter_wrapped(rows)), [])
+
+    def test_ignores_neighbouring_centered_title(self):
+        # 부산신보 「증빙자료(사진 등)」 x=257.7 vs 앵커 x=70.8
+        rows = [self._bullet(100.0),
+                self._plain(112.0, 257.7, "\uc99d\ube59\uc790\ub8cc")]
+        self.assertEqual(list(H.iter_wrapped(rows)), [])
+
+    def test_ignores_next_numbered_heading(self):
+        # 경남신보 같은 셀의 `1.`·`2.` 제목 — 불릿보다 한 글자 이상 왼쪽
+        rows = [self._bullet(100.0, x=170.0, txt_x=183.0),
+                self._plain(112.0, 152.5, "2. \uc5c5\ub85c\ub4dc")]
+        self.assertEqual(list(H.iter_wrapped(rows)), [])
+
+    def test_tracks_three_line_wrap(self):
+        rows = [self._bullet(100.0),
+                self._plain(112.0, 83.0),
+                self._plain(124.0, 83.0)]
+        self.assertEqual(len(list(H.iter_wrapped(rows))), 2)
+
+    def test_skips_blank_line(self):
+        rows = [self._bullet(100.0), self._plain(112.0, 83.0, "   ")]
+        self.assertEqual(list(H.iter_wrapped(rows)), [])
 
 
 if __name__ == "__main__":

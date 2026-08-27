@@ -31,9 +31,18 @@ import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 
-MARKERS = "\u25a1\u25cb-"        # □ ○ -
-TOL = 0.6                        # pt. 정렬 검사 허용치
-MAX_GAP = 4.0                    # pt. 마커 줄과 이 이상 벌어지면 다른 문단
+# 실무 문서 493건 전수 스캔으로 확인한 불릿 기호 (2026-08-27).
+# 이 목록에 없는 글자로 시작하는 문단은 서술문으로 보고 건드리지 않는다.
+BULLETS = "\u25a1\u25cb-\u25cf\u25aa\u00b7\u203b\u25e6"   # □ ○ - ● ▪ · ※ ◦
+MARKERS = BULLETS                # 정렬 검사에서 앵커로 인정할 기호
+# 정렬 허용치 (pt). 실측상 완전히 맞은 줄은 오차 0.00~0.08pt 로 떨어지지만,
+# 글자폭 반올림으로 한 글자의 1/10 남짓(≈1.0pt)이 남는 문단이 섞인다.
+# 1.5pt = 8pt 본문 한 글자의 약 1/7 — 육안으로 구분되지 않는 폭이다.
+TOL = 1.5
+# 마커 줄과 세로로 얼마나 벌어지면 다른 문단으로 볼지 — **글자 높이 배수**다.
+# 고정 pt 는 못 쓴다. 행간이 문서마다 다르다 (부산신보 2회차 ~0pt, 경남신보
+# 중간결과보고서 7.2pt). 줄 높이의 이 배수를 넘으면 끊긴 것으로 본다.
+MAX_GAP_RATIO = 1.2
 FALLBACK_INTENT = -1350
 
 
@@ -157,33 +166,162 @@ def clone_parapr(header_xml, src_id, intent):
     return new_id, header_xml
 
 
-def prefix_key(text):
+def prefix_key(text, bullets=None):
+    """(선행공백, 마커) 키. 마커로 시작하지 않는 문단은 None (대상 아님).
+
+    내어쓰기는 **불릿 문단에만** 건다. 일반 서술 문단에 걸면 접힌 줄이 첫 글자
+    위치로 당겨져 오히려 어긋난다 — 경남신보 중간결과보고서에서 재현됐다
+    (`동`·`유`·`자`·`김` 같은 본문 첫 글자가 마커로 오인됐다).
+    """
+    bullets = BULLETS if bullets is None else bullets
     lead = text[:len(text) - len(text.lstrip(" \u3000"))]
     body = text.lstrip(" \u3000")
-    return (lead, body[0]) if body else None
+    if not body or body[0] not in bullets:
+        return None
+    return (lead, body[0])
 
 
 def hanging_cells(src_hwpx, out_hwpx, wd, markers=("\u25a1",), rhwp=None,
-                  measure=True, strip_lineseg=False):
+                  measure=True, strip_lineseg=False, rounds=3):
     """marker 를 포함한 표 셀 문단에 내어쓰기만 적용 (볼드·폰트 불변).
+
+    `measure=True` 면 **수렴할 때까지 반복 보정**한다. 1패스 실측만으로는 원본이
+    이미 intent 를 갖고 있는 문서에서 틀린다 — 접두사 폭을 재도 그 폭 자체가
+    기존 intent 로 이동한 뒤의 값이기 때문이다.
+
+    실측(경남신보 중간결과보고서): paraPr 20 은 이미 `intent=-3660` 이고 접힌 줄이
+    본문(x=183.4)보다 5.7pt 더 들어가 있었다. 1패스는 이걸 못 고친다. 그래서
+    적용 → 렌더 → 남은 오차(pt×100)만큼 intent 를 더하는 과정을 `rounds` 회 돈다.
+
+    ⛔ rhwp 는 `<hp:switch>` 의 **`hp:case`(HwpUnitChar) 만 읽고 `hp:default` 는
+    무시한다**(6종 변형 렌더 대조로 확정). 두 분기 값이 다른 문서가 실제로 있으므로
+    (경남신보 case=-3660 / default=-7320) 양쪽을 같은 값으로 맞춰 써야 한글과
+    rhwp 가 같은 결과를 낸다.
 
     strip_lineseg 는 기본 False. lineseg 를 지우면 `vertRelTo="PARA"` 부동 서명이
     앵커 기준을 잃고 떠오른다. rhwp 는 lineseg 가 남아 있어도 intent 를 반영한다.
     """
+    binary = find_rhwp(rhwp) if measure else None
+    info = _hanging_pass(src_hwpx, out_hwpx, wd, markers, binary,
+                         measure, strip_lineseg, deltas=None)
+    if not measure:
+        return info
+
+    # 남은 오차를 재고 intent 를 보정한다 — 오차가 TOL 안이면 즉시 멈춘다
+    for _ in range(max(0, rounds - 1)):
+        deltas = _residual_deltas(out_hwpx, wd, binary)
+        if not deltas:
+            break
+        info = _hanging_pass(src_hwpx, out_hwpx, wd, markers, binary,
+                             measure, strip_lineseg, deltas=info_deltas(info, deltas))
+    return info
+
+
+def info_deltas(info, deltas):
+    """직전 패스의 intent 에 이번 오차를 더해 누적 보정값을 만든다."""
+    merged = dict(info.get("deltas") or {})
+    for key, d in deltas.items():
+        merged[key] = merged.get(key, 0) + d
+    return merged
+
+
+def iter_wrapped(rows):
+    """접힌 줄만 골라 (접두사키, 본문x 대비 오차, 원문, 페이지) 로 흘린다.
+
+    접힌 줄 판정 세 조건 — 보정과 검증이 같은 기준을 써야 하므로 여기 한 곳에 둔다:
+      ① 직전이 불릿 줄일 것
+      ② 세로로 바로 이어질 것 (y 간격 ≤ 글자높이 × MAX_GAP_RATIO)
+      ③ 불릿 좌측 ~ 본문 x 사이(±한 글자)에 있을 것
+
+    ③ 은 양쪽 경계가 다 필요하다. 하한을 0 으로 두면 내어쓰기 전 문서의 접힌 줄
+    (불릿보다 왼쪽)을 놓치고, 한 글자 이상 왼쪽까지 열면 같은 셀의 다음 항목 제목
+    (`1.`·`2.`)을 삼킨다. 상한이 없으면 가운데 정렬된 이웃 표 제목이 잡힌다.
+    """
+    import collections
+    by_page = collections.defaultdict(list)
+    for r in rows:
+        by_page[r[0]].append(r)
+    for pno in sorted(by_page):
+        anchor = None      # (본문x, 문단좌측x, 직전줄 아래y, 글자높이, 접두사키)
+        for _, lead, mark, x_line, x_txt, y_top, y_bot, text in sorted(
+                by_page[pno], key=lambda r: (round(r[5], 1), round(r[3], 2))):
+            height = max(y_bot - y_top, 1.0)
+            if mark:
+                anchor = ((x_txt, x_line, y_bot, height, (lead, mark))
+                          if x_txt is not None else None)
+                continue
+            if anchor is None or not text.strip():
+                continue
+            if y_top - anchor[2] > anchor[3] * MAX_GAP_RATIO:
+                anchor = None
+                continue
+            if not (anchor[1] - anchor[3] * 1.2 <= x_line
+                    <= anchor[0] + anchor[3] * 1.2):
+                anchor = None
+                continue
+            yield anchor[4], round(x_line - anchor[0], 2), text, pno
+            anchor = (anchor[0], anchor[1], y_bot, anchor[3], anchor[4])
+
+
+def _residual_deltas(pdf_source, wd, rhwp):
+    """현재 산출물의 접힌 줄 오차를 접두사 패턴별 HWPUNIT 보정값으로 환산.
+
+    반환 {(선행공백, 마커): 보정값}. 전부 허용치 안이면 {}.
+    """
+    import collections
+    pdf = os.path.join(wd, "_residual.pdf")
+    subprocess.run([rhwp, "export-pdf", pdf_source, "-o", pdf, "--profile", "print"],
+                   capture_output=True, text=True, timeout=900)
+    if not os.path.exists(pdf) or os.path.getsize(pdf) == 0:
+        return {}
+    rows = marker_lines(pdf)
+    os.remove(pdf)
+
+    acc = collections.defaultdict(list)
+    for key, delta, _text, _pno in iter_wrapped(rows):
+        acc[key].append(delta)
+
+    out = {}
+    for key, ds in acc.items():
+        med = sorted(ds)[len(ds) // 2]
+        if abs(med) >= TOL:
+            # intent 가 음수일수록 접힌 줄이 오른쪽으로 간다 (실측: 0→x152.5,
+            # -1000→x162.5, -2000→x172.5 = 1pt 당 100 unit). 접힌 줄이 목표보다
+            # 왼쪽이면(med<0) intent 를 더 빼야 하므로 보정값도 음수가 된다.
+            out[key] = int(round(med * 100))
+    return out
+
+
+def lookup(table, key, default=None):
+    """접두사 패턴 키로 값을 찾되, 없으면 **마커만** 같은 항목으로 폴백한다.
+
+    XML 키는 (`'\\u3000'`, `-`) 처럼 선행공백을 갖지만 PDF 측정 키는 (`''`, `-`) 다.
+    전각·반각 공백은 렌더 시 여백으로 흡수돼 글자로 남지 않기 때문이다.
+    폴백이 없으면 들여쓰기된 불릿이 통째로 보정에서 빠진다.
+    """
+    if key in table:
+        return table[key]
+    same = [v for (_lead, mark), v in table.items() if mark == key[1]]
+    if not same:
+        return default
+    # 절댓값이 가장 큰 쪽 = 들여쓰기가 가장 깊은 관측치
+    return max(same, key=abs)
+
+
+def _hanging_pass(src_hwpx, out_hwpx, wd, markers, rhwp, measure,
+                  strip_lineseg, deltas):
+    """1회 적용. `deltas` 는 접두사 패턴별 누적 보정값(HWPUNIT)."""
+    deltas = deltas or {}
     unpack(src_hwpx, wd)
     hp = os.path.join(wd, "Contents", "header.xml")
     sp = os.path.join(wd, "Contents", "section0.xml")
     h = Path(hp).read_text(encoding="utf-8")
     s = Path(sp).read_text(encoding="utf-8")
 
-    widths = measure_intents(src_hwpx, wd, find_rhwp(rhwp)) if measure else {}
+    widths = measure_intents(src_hwpx, wd, rhwp) if measure else {}
 
     def width_of(key):
-        if key in widths:
-            return widths[key]
-        # XML 키 ('\u3000','-') 와 측정 키 ('','-') 가 어긋난다 → 마커만으로 폴백
-        same = [w for (lead, mark), w in widths.items() if mark == key[1]]
-        return max(same) if same else None
+        return lookup(widths, key)
 
     combos = {}
     for m in re.finditer(r"<hp:tc\b.*?</hp:tc>", s, re.S):
@@ -201,6 +339,7 @@ def hanging_cells(src_hwpx, out_hwpx, wd, markers=("\u25a1",), rhwp=None,
     for (old_ppr, key) in list(combos):
         w = width_of(key)
         intent = -w if w else FALLBACK_INTENT
+        intent += lookup(deltas, key, 0)   # 왼쪽으로 모자라면(음수) 더 뺀다
         pid, h = clone_parapr(h, old_ppr, intent)
         combos[(old_ppr, key)] = (pid, intent)
     Path(hp).write_text(h, encoding="utf-8")
@@ -233,38 +372,25 @@ def hanging_cells(src_hwpx, out_hwpx, wd, markers=("\u25a1",), rhwp=None,
     Path(sp).write_text("".join(parts), encoding="utf-8")
     ET.parse(sp)
     repack(wd, out_hwpx)
-    return {"cells": n, "measured": bool(widths),
+    return {"cells": n, "measured": bool(widths), "deltas": deltas,
             "intents": {"%s%s" % k: v[1] for k, v in combos.items()}}
 
 
 # ───────────────────────── 검증 ─────────────────────────
-def check_alignment(pdf_path):
-    """접힌 줄이 그 문단 첫 글자 x 에 붙었는지 대조. (ok, miss) 반환."""
-    rows = marker_lines(pdf_path)
-    by_page = collections.defaultdict(list)
-    for r in rows:
-        by_page[r[0]].append(r)
+def check_alignment(pdf_path, verbose=True):
+    """접힌 줄이 그 문단 첫 글자 x 에 붙었는지 대조. (ok, miss) 반환.
+
+    접힌 줄 판정은 `iter_wrapped` 가 한다 — 보정 패스와 같은 기준을 써야
+    "게이트는 통과인데 눈으로 보면 안 맞는" 상태가 안 생긴다.
+    """
     ok = miss = 0
-    for pno in sorted(by_page):
-        anchor = None                      # (본문 x, 직전 줄 아래 y)
-        for _, _, mark, x_line, x_txt, y_top, y_bot, text in sorted(
-                by_page[pno], key=lambda r: (round(r[5], 1), round(r[3], 2))):
-            if mark:
-                anchor = (x_txt, y_bot) if x_txt is not None else None
-                continue
-            if anchor is None:
-                continue
-            if y_top - anchor[1] > MAX_GAP:      # 다른 표·제목 셀
-                anchor = None
-                continue
-            delta = round(x_line - anchor[0], 2)
-            if abs(delta) < TOL:
-                ok += 1
-            else:
-                miss += 1
-                print("  MISS p%d  d=%+.2fpt  wrap_x=%.2f  anchor_x=%.2f | %s"
-                      % (pno + 1, delta, x_line, anchor[0], text[:34]))
-            anchor = (anchor[0], y_bot)          # 3줄 이상 접힘도 이어서 검사
+    for _key, delta, text, pno in iter_wrapped(marker_lines(pdf_path)):
+        if abs(delta) < TOL:
+            ok += 1
+            continue
+        miss += 1
+        if verbose:
+            print("  MISS p%d  d=%+.2fpt | %s" % (pno + 1, delta, text[:40]))
     print("접힌 줄 정렬: OK %d / MISS %d" % (ok, miss))
     return ok, miss
 
