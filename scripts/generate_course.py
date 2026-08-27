@@ -30,15 +30,33 @@ def file_sha256(path: Path) -> str:
     return "sha256:" + hashlib.sha256(comparable_bytes(path)).hexdigest()
 
 
+_SKIP_NAMES = shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", "Thumbs.db")
+
+
 def copy_tree(source: Path, target: Path) -> None:
+    """생성물 경로를 NFC 로 고정하며 복사한다.
+
+    shutil.copytree 는 원본 이름을 그대로 쓴다. macOS 에서 한 번이라도 NFD 로
+    저장된 원본이 있으면 생성물도 NFD 가 되고, git index(NFC)·Linux CI 와
+    어긋나 같은 한글 파일이 다른 키로 잡힌다. 여기서 이름을 정규화해
+    원본이 어떤 표현이든 생성물은 항상 NFC 가 되게 한다.
+    """
     if not source.is_dir():
         raise FileNotFoundError(f"missing authored course source: {source}")
-    shutil.copytree(
-        source,
-        target,
-        dirs_exist_ok=True,
-        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", "Thumbs.db"),
-    )
+    for path in sorted(source.rglob("*")):
+        relative = path.relative_to(source)
+        if _SKIP_NAMES(str(path.parent), [path.name]):
+            continue
+        if any(_SKIP_NAMES(str(source), [part]) for part in relative.parts):
+            continue
+        destination = target / Path(
+            *[unicodedata.normalize("NFC", part) for part in relative.parts]
+        )
+        if path.is_dir():
+            destination.mkdir(parents=True, exist_ok=True)
+        else:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, destination)
 
 
 def build_course(target: Path) -> dict[str, object]:

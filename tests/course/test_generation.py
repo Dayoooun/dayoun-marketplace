@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from generate_course import compare_directories, file_sha256  # noqa: E402
+from generate_course import compare_directories, copy_tree, file_sha256  # noqa: E402
 
 
 class CourseGenerationTests(unittest.TestCase):
@@ -88,6 +88,37 @@ class CourseGenerationTests(unittest.TestCase):
             key for key in manifest["members"] if not unicodedata.is_normalized("NFC", key)
         ]
         self.assertEqual(not_normalized, [], "manifest 키가 NFC 가 아니다")
+
+
+    def test_copy_tree_normalizes_generated_names_to_nfc(self) -> None:
+        # 원본이 macOS 에서 NFD 로 저장돼 있어도 생성물은 NFC 여야 한다.
+        # shutil.copytree 는 원본 이름을 그대로 쓰므로 NFD 가 그대로 번져
+        # git index(NFC)·Linux CI 와 어긋난다.
+        import unicodedata
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "src"
+            target = root / "dst"
+            nfd_dir = source / unicodedata.normalize("NFD", "검토결과")
+            nfd_dir.mkdir(parents=True)
+            (nfd_dir / unicodedata.normalize("NFD", "내용검토.md")).write_text(
+                "x\n", encoding="utf-8"
+            )
+            (source / "__pycache__").mkdir()
+            (source / "__pycache__" / "a.pyc").write_text("skip", encoding="utf-8")
+
+            target.mkdir()
+            copy_tree(source, target)
+
+            not_normalized = [
+                path.name
+                for path in target.rglob("*")
+                if not unicodedata.is_normalized("NFC", path.name)
+            ]
+            self.assertEqual(not_normalized, [], "생성물 이름이 NFC 가 아니다")
+            self.assertTrue((target / "검토결과" / "내용검토.md").is_file())
+            self.assertFalse((target / "__pycache__").exists(), "__pycache__ 는 제외한다")
 
 
 if __name__ == "__main__":

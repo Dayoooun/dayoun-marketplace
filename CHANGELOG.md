@@ -66,7 +66,10 @@
   Linux·Windows 는 NFC 로 저장한다. `generate_course.py` 의 디렉터리 비교와
   manifest 키가 경로를 정규화하지 않아, 같은 한글 파일이 서로 다른 키가 되고
   내용이 동일한데도 전 파일이 `missing`+`unexpected` 로 BLOCK 됐다. 비교와
-  manifest 키를 NFC 로 고정하고 회귀 테스트를 추가했다.
+  manifest 키를 NFC 로 고정하고, `copy_tree` 가 생성물 이름을 NFC 로 정규화하도록
+  했다. `shutil.copytree` 는 원본 이름을 그대로 쓰므로 한 번이라도 NFD 로 저장된
+  원본이 있으면 실행할 때마다 생성물 51개가 NFD 로 되살아났다. 세 지점 모두
+  회귀 테스트로 고정했다.
 
 ### business-plan-writer 0.12.19 RC
 
