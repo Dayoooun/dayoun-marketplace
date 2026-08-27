@@ -6,6 +6,7 @@ import json
 import shutil
 import sys
 import tempfile
+import unicodedata
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -68,7 +69,9 @@ def build_course(target: Path) -> dict[str, object]:
     if forbidden:
         raise ValueError(f"internal course files leaked: {[str(path) for path in forbidden]}")
     members = {
-        path.relative_to(target).as_posix(): file_sha256(path)
+        # manifest 키도 NFC 로 고정한다. macOS 에서 만든 매니페스트와
+        # Linux CI 에서 만든 매니페스트가 같은 digest 집합을 갖게 한다.
+        unicodedata.normalize("NFC", path.relative_to(target).as_posix()): file_sha256(path)
         for path in sorted(target.rglob("*"))
         if path.is_file() and path.name != "manifest.json"
     }
@@ -87,16 +90,19 @@ def build_course(target: Path) -> dict[str, object]:
 
 
 def compare_directories(expected: Path, actual: Path) -> list[str]:
-    expected_files = {
-        path.relative_to(expected).as_posix(): comparable_bytes(path)
-        for path in expected.rglob("*")
-        if path.is_file()
-    }
-    actual_files = {
-        path.relative_to(actual).as_posix(): comparable_bytes(path)
-        for path in actual.rglob("*")
-        if path.is_file()
-    }
+    # macOS(APFS)는 파일명을 NFD 로 저장하고 Linux/Windows 는 입력한 NFC 를 유지한다.
+    # 경로를 정규화하지 않고 비교하면 같은 한글 파일이 서로 다른 키가 되어
+    # 전 파일이 missing+unexpected 로 잡힌다 — 내용은 동일한데 BLOCK 이 난다.
+    # 임시 디렉터리에 새로 빌드한 쪽과 워킹트리 쪽의 정규화가 갈릴 때 재현된다.
+    def collect(root: Path) -> dict[str, bytes]:
+        return {
+            unicodedata.normalize("NFC", path.relative_to(root).as_posix()): comparable_bytes(path)
+            for path in root.rglob("*")
+            if path.is_file()
+        }
+
+    expected_files = collect(expected)
+    actual_files = collect(actual)
     issues: list[str] = []
     for name in sorted(set(expected_files) | set(actual_files)):
         if name not in expected_files:

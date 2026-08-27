@@ -102,7 +102,10 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 .kpi-layout {{ min-height: 500px; display: flex; flex-direction: column; }}
 .kpi-grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }}
 .kpi-item {{ min-height: 230px; padding: 42px 28px 34px; text-align: center; background: #fff; border: 1px solid #eef0f4; box-shadow: 0 14px 34px rgba(24,35,55,.055); }}
-.kpi-value {{ color: var(--accent); font-size: 67px; font-weight: 760; line-height: 1; }}
+/* line-height:1 은 한글 글리프가 em 박스를 넘어 8~9px 씩 overflow 로 계측됐다
+   (실측: 67px 기준 clientH 88 vs scrollH 96). 1.12 면 숫자 높이는 그대로 두고
+   글리프가 박스 안에 들어간다. */
+.kpi-value {{ color: var(--accent); font-size: 67px; font-weight: 760; line-height: 1.12; }}
 .kpi-label {{ margin-top: 25px; font-size: 20px; font-weight: 700; }}
 .kpi-detail {{ margin-top: 12px; color: #858a93; font-size: 15px; }}
 .interpretation {{ margin-top: auto; max-width: 1120px; padding: 30px 0 18px; border-top: 3px solid var(--accent); }}
@@ -124,7 +127,11 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 .summary-label {{ margin-top: 8px; font-size: 17px; }}
 .annotation {{ margin: 18px 0 0 255px; color: #d9333f; font-size: 15px; max-width: 610px; line-height: 1.4; }}
 
-.process {{ position: relative; display: grid; grid-template-columns: repeat(var(--process-count), minmax(0, 1fr)); margin-top: 100px; transform: translateY(15px); }}
+/* 15px 아래로 내리는 데 transform 을 쓰면 레이아웃 높이에 반영되지 않아 자식이
+   부모 밖으로 나가고 scrollHeight 만 늘어 overflow 로 계측된다(실측: 정확히 15px).
+   margin-top 에 합산하면 같은 위치에 놓이면서 부모 높이도 함께 늘어난다.
+   100 + 15 = 115. rail·dot 은 .process 기준 좌표라 상대 위치가 유지된다. */
+.process {{ position: relative; display: grid; grid-template-columns: repeat(var(--process-count), minmax(0, 1fr)); margin-top: 115px; }}
 .process::before {{ content: ''; position: absolute; left: calc(50% / var(--process-count)); right: calc(50% / var(--process-count)); top: 78px; height: 1px; background: #bfc4cc; }}
 .process-step {{ position: relative; text-align: center; padding: 0 12px; }}
 .process-icon {{ margin: 0 auto 23px; width: 46px; height: 46px; color: #20242a; }}
@@ -187,7 +194,7 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 
 .break-layout {{ min-height: 530px; display: grid; grid-template-columns: 40% 56%; gap: 4%; }}
 .break-hero {{ padding: 34px 48px 34px 0; border-right: 1px solid #dfe3e9; display: flex; flex-direction: column; justify-content: space-between; }}
-.break-duration {{ color: var(--accent); font-size: 92px; font-weight: 760; line-height: 1; }}
+.break-duration {{ color: var(--accent); font-size: 92px; font-weight: 760; line-height: 1.12; }}
 .break-window {{ margin-top: 18px; font-size: 28px; font-weight: 700; }}
 .break-purpose {{ margin-top: auto; padding-top: 26px; border-top: 1px solid #dfe3e9; font-size: 20px; line-height: 1.5; color: #414751; }}
 .break-actions {{ display: grid; grid-template-rows: repeat(var(--break-count), minmax(0, 1fr)); border-top: 1px solid #dfe3e9; }}
@@ -297,7 +304,7 @@ table.report td:last-child {{ border-right: 0; text-align: center; font-weight: 
 #slide.layout-overview.composition-distribution-stage .overview > section:nth-child(1) {{ order: 2; }}
 #slide.layout-overview.composition-distribution-stage .overview > section:nth-child(2) {{ order: 3; }}
 #slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus,.composition-vertical-visual) .content {{ margin-top: 52px; }}
-#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus,.composition-vertical-visual) .process {{ grid-template-columns: 1fr; margin-top: 18px; transform: none; }}
+#slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus,.composition-vertical-visual) .process {{ grid-template-columns: 1fr; margin-top: 18px; }}
 #slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus,.composition-vertical-visual) .process::before {{ left: 97px; right: auto; top: 34px; bottom: 34px; width: 1px; height: auto; }}
 #slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus,.composition-vertical-visual) .process-step {{ display: grid; grid-template-columns: 70px 18px 218px 1fr; column-gap: 18px; align-items: center; min-height: 72px; text-align: left; padding: 0; }}
 #slide.layout-process:is(.composition-vertical-ledger,.composition-vertical-focus,.composition-vertical-visual) .process-icon {{ margin: 0; width: 34px; height: 34px; }}
@@ -395,11 +402,172 @@ def _title(spec: dict) -> str:
     return f'<span class="bold">{_e(title)}</span>'
 
 
+# 레이아웃별로 실제 렌더에 쓰이는 스펙 키.
+#
+# 레이아웃마다 이름이 달라(cover 는 statement/metadata, image 는 callout/caption/facts)
+# 다른 레이아웃의 키를 쓰면 렌더러가 조용히 버리고 그 영역이 백지로 남는다.
+# 실측: image 슬라이드에 statement/metadata 를 줘서 좌측 35% 가 통째로 비었는데도
+# 모든 자동 검사를 통과했다.
+LAYOUT_CONTENT_KEYS = {
+    "cover": {"statement", "metadata", "imagePath", "imageFit", "imageScale",
+              "imagePosition", "imageAlt"},
+    "image": {"callout", "caption", "facts", "imagePath", "imageFit", "imageScale",
+              "imagePosition", "imageAlt"},
+    "table": {"columns", "rows"},
+    "kpi": {"items", "interpretation"},
+    "bars": {"items", "summaries", "annotation"},
+    "process": {"items", "active", "imagePath", "imageScale", "imagePosition", "imageAlt"},
+    "modules": {"items", "featured"},
+    "overview": {"metadata", "donut", "donutTitle", "distributions"},
+    "roadmap": {"items", "active"},
+    "break": {"actions", "duration", "window", "purpose"},
+    "network": {"graph"},
+}
+
+# 레이아웃과 무관하게 build_html 이 직접 읽거나 렌더러가 주입하는 키.
+# build_html 이 새 공통 키를 읽기 시작하면 여기도 함께 갱신해야 한다
+# (test_common_spec_keys_cover_what_build_html_reads 가 어긋남을 잡는다).
+_COMMON_SPEC_KEYS = {
+    # build_html 이 직접 읽는 것
+    "layout", "eyebrow", "title", "subtitle", "note", "footer",
+    "accent", "designPreset", "headerAlign",
+    # 렌더러·조립기가 주입하거나 잡 수준에서 붙는 것
+    "compositionPreset", "assetRole", "out",
+    "imageData", "_imageData", "_resolvedImagePath",
+}
+
+_RENDER_CONTRACT: dict | None = None
+
+
+def _render_contract() -> dict:
+    """references/render_contract.json 을 한 번만 읽어 캐시한다."""
+    global _RENDER_CONTRACT
+    if _RENDER_CONTRACT is None:
+        path = Path(__file__).resolve().parent.parent / "references" / "render_contract.json"
+        _RENDER_CONTRACT = json.loads(path.read_text(encoding="utf-8"))
+    return _RENDER_CONTRACT
+
+
+def validate_spec_keys(spec: dict) -> list[str]:
+    """이 레이아웃이 읽지 않는 콘텐츠 키를 찾아낸다.
+
+    렌더러는 모르는 키를 조용히 버리므로, 다른 레이아웃의 키를 쓰면 그 영역이
+    빈 채로 "렌더 성공"이 된다. 오타와 레이아웃 간 키 혼동을 여기서 잡는다.
+    """
+    layout = spec.get("layout")
+    known = LAYOUT_CONTENT_KEYS.get(layout)
+    if known is None:
+        return []
+    allowed = known | _COMMON_SPEC_KEYS
+    unused = sorted(key for key in spec if key not in allowed)
+    if not unused:
+        return []
+    hint = ", ".join(sorted(known))
+    return [f"{layout} layout ignores {unused}; it reads: {hint}"]
+
+
+def spec_digest(spec: dict) -> str:
+    """슬라이드 스펙의 정규 digest.
+
+    receipt 기록과 재생성 판정(codex_parallel_gen.verify)이 같은 값을 써야
+    스펙을 고쳤을 때 옛 PNG 가 stale 로 잡힌다. 공식을 두 곳에 복제하지 않는다.
+    자산 바이트(`imageData`)와 해석된 절대경로는 제외한다. 전자는 스펙이 아니라
+    파일 내용이고 — 자산 변경은 `sourceAssetDigest` 가 따로 기록한다 — 후자는
+    실행 환경마다 달라 판정을 불안정하게 만든다. `imagePath` 는 남으므로 어떤
+    자산을 가리키는지는 여전히 digest 에 반영된다.
+    """
+    payload = {
+        key: value
+        for key, value in spec.items()
+        if key not in ("_imageData", "imageData", "_resolvedImagePath")
+    }
+    return "sha256:" + hashlib.sha256(
+        json.dumps(
+            payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            allow_nan=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def job_spec(job: dict) -> dict:
+    """잡에서 렌더러가 실제로 사용하는 스펙을 만든다.
+
+    accent·designPreset·compositionPreset 은 잡 수준 값에서 주입되고 digest 에
+    포함된다. 재생성 판정이 이 주입을 건너뛰면 방금 렌더한 슬라이드도 stale 로
+    오판하므로, 렌더와 판정이 같은 함수를 쓴다.
+    """
+    spec = dict(job.get("htmlSpec", job))
+    if "accent" not in spec and job.get("accentColor"):
+        spec["accent"] = job["accentColor"]
+    if "designPreset" not in spec and job.get("styleProfile"):
+        spec["designPreset"] = job["styleProfile"]
+    spec["compositionPreset"] = _composition_preset(spec)
+    return spec
+
+
+def receipt_violations(receipt: dict) -> list[str]:
+    """렌더 receipt 가 render_contract 의 qualityGate 를 어겼는지 판정한다.
+
+    렌더러는 overflow·한글 어절 깨짐·그래프 위상을 이미 측정해 receipt 에
+    남기지만, 실제 덱 제작 경로(design_plan --execute → codex_parallel_gen.verify)는
+    파일 크기만 보고 통과시켰다. 그래서 세로로 넘친 슬라이드와 노드가 하나도 없는
+    백지 그래프가 "렌더 성공"으로 납품됐고, 매번 사람 눈이 뒤늦게 잡아야 했다.
+    계약을 읽는 단일 함수를 두어 scenario_harness 와 verify 가 같은 기준을 쓴다.
+
+    글자 깨짐·오타는 여전히 이 함수가 못 잡는다. 육안 검수를 대체하지 않는다.
+    """
+    gate = _render_contract().get("qualityGate", {})
+    violations: list[str] = []
+
+    overflow = receipt.get("overflow") or []
+    if len(overflow) > gate.get("maxOverflowElements", 0):
+        names = ", ".join(
+            str(item.get("className") or item.get("tag")) for item in overflow
+        )
+        violations.append(f"overflow({names})")
+
+    if receipt.get("koreanMidWordBreaks"):
+        violations.append("korean-mid-word-break")
+
+    if receipt.get("layout") == "network" and gate.get("requireVisibleGraphEdges"):
+        graph = receipt.get("graph") or {}
+        if not graph.get("nodes") or not graph.get("edges"):
+            violations.append("empty-graph")
+        # 렌더러는 endpoint·경로·라벨 겹침을 각각 측정한다. endpoint 만 보면
+        # 노드 박스에 깔려 잘린 엣지 라벨("값 ↔ 기울…")을 놓친다 — 실측으로
+        # labelOccluded=true 3건이 통과했다. 네 신호를 모두 위반으로 본다.
+        flags = ("startOccluded", "endOccluded", "pathOccluded", "labelOccluded")
+        occluded: dict[str, int] = {}
+        for edge in graph.get("visibility") or []:
+            for flag in flags:
+                if edge.get(flag):
+                    occluded[flag] = occluded.get(flag, 0) + 1
+        if occluded:
+            detail = ", ".join(f"{name}×{count}" for name, count in sorted(occluded.items()))
+            violations.append(f"occluded-edges({detail})")
+
+    expected = gate.get("pixelSize")
+    if expected and receipt.get("pixelSize") != list(expected):
+        violations.append(f"pixel-size{receipt.get('pixelSize')}")
+
+    return violations
+
+
 def validate_graph(graph: dict) -> list[str]:
     """Validate semantic entities and edge integrity before layout."""
     errors: list[str] = []
     nodes = graph.get("nodes", [])
     edges = graph.get("edges", [])
+    # 빈 그래프는 아래 루프를 전부 건너뛰어 errors 가 비고, 백지 network 슬라이드가
+    # "렌더 성공"으로 납품된다. 고립 노드를 금지하면서 그래프 전체가 비는 것을
+    # 허용하면 검증이 뚫린다. spec.graph 를 빠뜨린 오타도 여기서 잡는다.
+    if not nodes:
+        errors.append("graph requires at least one node")
+    if not edges:
+        errors.append("graph requires at least one edge")
     ids = [str(node.get("id", "")).strip() for node in nodes]
     if any(not node_id for node_id in ids):
         errors.append("node id is required")
@@ -443,13 +611,16 @@ def _graph_positions(graph: dict) -> dict[str, tuple[float, float]]:
     ids = [str(node["id"]) for node in nodes]
     outgoing = {node_id: [] for node_id in ids}
     indegree = {node_id: 0 for node_id in ids}
+    # bidirectional 은 "같은 두 노드 사이를 값과 기울기가 오간다"는 의미이지
+    # 위상 순서가 양쪽이라는 뜻이 아니다. 역방향을 outgoing 에 넣으면 레이어가
+    # 앞뒤로 밀려 노드가 한쪽에 뭉친다 — 실측: 5개 중 4개가 우측 절반에 몰렸다.
+    # 화살표 머리는 렌더 단계에서 direction 을 보고 양쪽에 그리므로 여기서
+    # 역간선을 만들 필요가 없다.
     for edge in edges:
         source = str(edge["source"])
         target = str(edge["target"])
         outgoing[source].append(target)
         indegree[target] += 1
-        if edge.get("direction") == "bidirectional":
-            outgoing[target].append(source)
     queue = [node_id for node_id in ids if indegree[node_id] == 0]
     layer = {node_id: 0 for node_id in queue}
     visited = []
@@ -956,6 +1127,11 @@ def build_html(spec: dict) -> str:
     layout = spec.get("layout")
     if layout not in LAYOUT_RENDERERS:
         raise ValueError(f"unsupported HTML slide layout: {layout!r}")
+    # 이 레이아웃이 읽지 않는 키는 조용히 버려져 그 영역이 백지로 렌더된다.
+    # 백지 PNG 를 만든 뒤 사후에 잡는 것보다 렌더 전에 막는 편이 싸다.
+    ignored = validate_spec_keys(spec)
+    if ignored:
+        raise ValueError("; ".join(ignored))
     spec = dict(spec)
     composition = _composition_preset(spec)
     spec["compositionPreset"] = composition
@@ -1260,17 +1436,7 @@ def _layout_receipt(page, spec: dict) -> dict:
             "height": round((rect["bottom"] - rect["top"]) / slide["height"], 4),
         }
 
-    receipt_spec = dict(spec)
-    receipt_spec.pop("_imageData", None)
-    spec_digest = "sha256:" + hashlib.sha256(
-        json.dumps(
-            receipt_spec,
-            ensure_ascii=False,
-            sort_keys=True,
-            allow_nan=False,
-            separators=(",", ":"),
-        ).encode("utf-8")
-    ).hexdigest()
+    spec_digest_value = spec_digest(spec)
     source_asset = spec.get("_resolvedImagePath")
     source_asset_digest = (
         "sha256:" + hashlib.sha256(Path(source_asset).read_bytes()).hexdigest()
@@ -1351,7 +1517,7 @@ def _layout_receipt(page, spec: dict) -> dict:
             for selector, rect in metrics.get("compositionRegions", {}).items()
         },
         "rendererDigest": "sha256:" + hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-        "specDigest": spec_digest,
+        "specDigest": spec_digest_value,
         "sourceAsset": source_asset,
         "assetRole": spec.get("assetRole"),
         "sourceAssetDigest": source_asset_digest,

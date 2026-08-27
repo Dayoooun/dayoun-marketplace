@@ -111,7 +111,12 @@ def require_codex() -> str:
         "  Deck.build()를 바로 호출하세요. 레이아웃·PDF·PPTX는 codex 없이 동작합니다.\n"
     )
 BASE_FLAGS = ["exec", "-s", "workspace-write", "--skip-git-repo-check"]
-USER_CODEX_HOME = os.path.join(os.path.expanduser("~"), ".codex")
+# codex CLI 는 CODEX_HOME 으로 설정 디렉터리를 옮길 수 있고, 계정 관리 런처는
+# 실제로 ~/.codex 가 아닌 경로를 주입한다. 여기서 ~/.codex 를 하드코딩하면
+# 격리홈에 auth.json 이 복사되지 않아 모든 잡이 401 Unauthorized 로 죽는다.
+USER_CODEX_HOME = os.environ.get("CODEX_HOME") or os.path.join(
+    os.path.expanduser("~"), ".codex"
+)
 
 
 def _ascii_id(job, idx):
@@ -558,6 +563,40 @@ def _verify_scene_artifacts(out, job, margin):
     return None
 
 
+def _html_receipt_problem(job, out):
+    """렌더된 PNG 를 receipt 로 검사해 재생성이 필요한 이유를 반환한다.
+
+    두 가지를 본다. (1) receipt 의 specDigest 와 현재 잡의 스펙이 어긋나면 옛
+    산출물이므로 stale, (2) 렌더러가 측정한 overflow·한글 깨짐·그래프 위상이
+    render_contract 의 qualityGate 를 어기면 품질 위반이다. digest 계산식은
+    html_slide_renderer 것을 그대로 재사용하므로 두 곳이 어긋날 수 없다.
+    receipt 가 없으면 판정하지 않는다(구버전 산출물 호환).
+    """
+    receipt_path = os.path.splitext(out)[0] + ".layout.json"
+    if not os.path.exists(receipt_path):
+        return None
+    try:
+        with open(receipt_path, encoding="utf-8") as handle:
+            receipt = json.load(handle)
+    except Exception:
+        return "html-receipt-unreadable"
+
+    from html_slide_renderer import (  # noqa: PLC0415
+        job_spec,
+        receipt_violations,
+        spec_digest,
+    )
+
+    recorded = receipt.get("specDigest")
+    if recorded and spec_digest(job_spec(job)) != recorded:
+        return "html-spec-stale"
+
+    # 렌더러가 이미 측정한 overflow·한글 깨짐·그래프 위상을 계약 기준으로 판정한다.
+    # 이 검사가 없으면 세로로 넘친 슬라이드와 백지 그래프가 파일 크기만으로 통과한다.
+    violations = receipt_violations(receipt)
+    return f"html-quality({', '.join(violations)})" if violations else None
+
+
 def verify(jobs, base_dir, dup_check=False):
     """실패/오염 잡 라벨 반환. 크기<60KB(코드드로잉 폴백) 검출.
     ⚠️ dup-headline은 기본 OFF: CODEX_HOME 격리가 내용오염을 이미 차단하므로 중복. 게다가
@@ -582,6 +621,14 @@ def verify(jobs, base_dir, dup_check=False):
                         continue
                 if os.path.getsize(out) < 10 * 1024:
                     bad[lbl] = "html-render-too-small"
+                    continue
+
+                # 선검증이 파일 존재·크기만 보면, 스펙을 고쳐도 옛 PNG 가 "정상"으로
+                # 유지되고 세로로 넘친 슬라이드·백지 그래프도 그대로 통과한다.
+                # receipt 를 읽어 stale 과 계약 위반을 함께 잡는다.
+                problem = _html_receipt_problem(j, out)
+                if problem:
+                    bad[lbl] = problem
                     continue
             except Exception as error:
                 bad[lbl] = f"html-render-invalid({type(error).__name__})"

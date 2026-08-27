@@ -52,5 +52,43 @@ class CourseGenerationTests(unittest.TestCase):
             )
 
 
+    def test_unicode_normalization_does_not_create_generated_drift(self) -> None:
+        # macOS(APFS)는 파일명을 NFD 로 저장하고 Linux/Windows 는 NFC 를 유지한다.
+        # 경로를 정규화하지 않고 비교하면 같은 한글 파일이 서로 다른 키가 되어
+        # 내용이 동일한데도 전 파일이 missing+unexpected 로 잡힌다.
+        import unicodedata
+
+        name = "사업정보표.md"
+        self.assertNotEqual(
+            unicodedata.normalize("NFC", name),
+            unicodedata.normalize("NFD", name),
+            "테스트 전제: 이 이름은 NFC 와 NFD 표현이 달라야 한다",
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            expected = root / "expected"
+            actual = root / "actual"
+            expected.mkdir()
+            actual.mkdir()
+            body = "# 사업정보\n"
+            (expected / unicodedata.normalize("NFC", name)).write_text(body, encoding="utf-8")
+            (actual / unicodedata.normalize("NFD", name)).write_text(body, encoding="utf-8")
+
+            self.assertEqual(compare_directories(expected, actual), [])
+
+    def test_generated_manifest_keys_are_nfc(self) -> None:
+        # 매니페스트 키가 플랫폼별로 갈리면 macOS 에서 만든 코스 킷과
+        # Linux CI 가 만든 것의 digest 집합이 달라진다.
+        import json
+        import unicodedata
+
+        manifest = json.loads((ROOT / "course" / "manifest.json").read_text(encoding="utf-8"))
+        not_normalized = [
+            key for key in manifest["members"] if not unicodedata.is_normalized("NFC", key)
+        ]
+        self.assertEqual(not_normalized, [], "manifest 키가 NFC 가 아니다")
+
+
 if __name__ == "__main__":
     unittest.main()

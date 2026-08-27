@@ -24,6 +24,40 @@
   `test_release_never_depends_on_a_single_self_hosted_runner`).
 - README·CLAUDE.md 의 설치 확인 버전을 실제 배포본 `0.12.19` 로 맞췄다.
 
+### ppt-editorial 렌더 무결성
+
+실제 15장 강의 덱을 제작하며 드러난 결함들. 자동 게이트가 전부 통과시켰고
+콘택트시트 육안 검수가 뒤늦게 잡았다.
+
+- **측정 신호를 강제하도록 연결했다.** 렌더러는 `overflow`·`koreanMidWordBreaks`·
+  `graph.visibility` 를 이미 receipt 에 남기고 `render_contract.json` 에
+  `maxOverflowElements: 0` 계약도 있었지만, 실제 제작 경로
+  (`design_plan --execute` → `codex_parallel_gen.verify`)가 파일 크기만 검사해
+  세로 15px 넘침·노드 0개 백지 그래프·노드에 깔린 엣지 라벨이 모두 통과했다.
+  `receipt_violations()` 를 렌더러에 두고 `verify()` 가 호출하게 했다.
+- **레이아웃별 스펙 키를 렌더 전에 검증한다.** 레이아웃마다 읽는 키가 달라
+  (`cover` 는 `statement`/`metadata`, `image` 는 `callout`/`caption`/`facts`)
+  다른 레이아웃 키를 쓰면 조용히 버려져 그 영역이 백지로 렌더됐다.
+  `validate_spec_keys()` 가 `build_html` 진입점에서 BLOCK 한다.
+- **`bidirectional` 엣지가 노드 배치를 왜곡하던 문제를 고쳤다.** 역간선을
+  위상 계산에 넣어 레이어가 압축되고 5개 노드 중 4개가 우측 절반에 몰렸다.
+  방향은 화살표 머리로만 표현하고 배치는 `forward` 와 동일하게 계산한다.
+- **`transform` 기반 오프셋을 `margin` 으로 옮겼다.** `.process` 의
+  `translateY(15px)` 가 레이아웃 높이에 반영되지 않아 자식이 부모 밖으로 나가고
+  `scrollHeight` 만 늘었다. `padding-top` 이 있는 프로파일에서만 임계를 넘었다.
+- **큰 활자의 `line-height: 1` 을 `1.12` 로 올렸다.** 한글 글리프가 em 박스를
+  넘어 `.kpi-value` 8px, `.break-duration` 9px 가 잘렸다. 프로파일과 무관하며
+  번들 카탈로그 자체가 계약을 어기고 있었다.
+- **선검증이 스펙 변경을 감지한다.** 파일 존재·크기만 봐서 스펙을 고쳐도 옛 PNG 가
+  정상으로 유지됐다. receipt 의 `specDigest` 를 대조해 `html-spec-stale` 을 잡고,
+  digest 계산은 `spec_digest(job_spec(job))` 하나만 쓴다.
+- **`CODEX_HOME` 하드코딩을 제거했다.** 계정 관리 런처가 `~/.codex` 가 아닌 경로를
+  주입하는데 격리홈이 `~/.codex` 에서 `auth.json` 을 찾아 전 잡이 `401` 로 죽었다.
+- 레이아웃 9종 × 프로파일 5종 55건 전수 스윕에서 계약 위반 0건을 확인했다.
+- SKILL.md 에 레이아웃별 키 표, receipt 강제 규칙, 재조립 단계, 실측 함정 8건을
+  기록하고 문서가 코드와 어긋나면 실패하는 테스트를 붙였다
+  (`SkillDocumentationTests`).
+
 ### business-plan-writer 0.12.19 RC
 
 - 우측이 비던 vertical process를 위한 `vertical-visual` hybrid preset 추가

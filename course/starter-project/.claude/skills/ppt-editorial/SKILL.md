@@ -74,6 +74,26 @@ PPT의 수치·고유명사·주장·근거는 승인 bundle과 다시 대조한
 - 그래프 엣지는 노드 중심이 아니라 boundary port에서 끝난다. 우회 경로·marker·label·endpoint·노드 충돌을 `.layout.json`의 edge별 visibility receipt로 검증한다.
 - `image`는 Codex가 만든 `3d-scene|photo|material-illustration` 자산을 HTML의 정확한 문구·정렬과 결합한다. 사진은 focal 위치와 crop scale을 명시한다.
 - 모든 HTML 렌더는 body bbox, overflow, 내부 gap, 모듈 내부 여백, 그래프 관계, renderer/spec/asset digest를 receipt에 기록한다.
+- **receipt는 기록으로 끝나지 않고 게이트다.** `html_slide_renderer.receipt_violations()`가 `render_contract.json`의 `qualityGate`로 판정하고 `codex_parallel_gen.verify()`가 그 결과로 재생성을 건다. 신호를 새로 측정하면 이 함수에도 반드시 연결한다. 측정만 하고 소비처가 없으면 결함이 그대로 납품된다.
+- **레이아웃마다 읽는 스펙 키가 다르다.** 다른 레이아웃의 키를 쓰면 렌더러가 조용히 버려 그 영역이 백지가 된다. `build_html`이 `validate_spec_keys()`로 렌더 전에 BLOCK한다.
+
+|layout|콘텐츠 키|
+|---|---|
+|`cover`|`statement` · `metadata`|
+|`image`|`callout` · `caption` · `facts`|
+|`table`|`columns`(객체 배열 `{label,width}`) · `rows`|
+|`kpi`|`items` · `interpretation`|
+|`bars`|`items` · `summaries` · `annotation`|
+|`process`|`items` · `active`|
+|`modules`|`items` · `featured`|
+|`overview`|`metadata` · `donut` · `donutTitle` · `distributions`|
+|`roadmap`|`items` · `active`|
+|`break`|`actions` · `duration` · `window` · `purpose`|
+|`network`|`graph`(안에 `nodes` · `edges`)|
+
+  공통 키는 `eyebrow` · `title` · `subtitle` · `note` · `footer` · `headerAlign`이다. `cover`와 `image`를 특히 헷갈린다 — `image`에 `statement`를 주면 좌측 컬럼이 통째로 빈다.
+- **`network`의 `nodes`·`edges`는 `graph` 아래에 넣는다.** 최상위에 두면 빈 그래프로 렌더된다. `direction`은 `forward`와 `bidirectional`만 유효하며 `backward`는 없다. 역방향을 표현하려면 `bidirectional`을 쓰거나 source/target을 뒤집는다.
+- **`bidirectional`은 의미이지 위상이 아니다.** 노드 배치는 `forward`와 동일하게 계산하고 화살표 머리만 양쪽에 그린다. 위상 계산에 역간선을 넣으면 레이어가 압축돼 노드가 한쪽에 뭉친다.
 
 ```bash
 python scripts/scenario_harness.py --out-dir artifacts/scenario-harness
@@ -700,6 +720,7 @@ The ONLY numbers allowed on this slide are "7조 원", "4,000억 원", "40억 �
 6. **4단계 크리틱 스폰**: `prompts/critic.md`를 채워 `Agent`로 PASS/FIX를 판정한다.
 7. **루프**: FIX 슬라이드만 최대 2회 재생성한다. 여전히 BLOCK이거나 usage·시간 컷오프에 닿으면 미검증 이미지를 납품하지 않는다. PPT가 선택 산출물이면 BLOCK으로 남기고, 수업에서는 HWPX 흐름을 우선한 뒤 `scene=` 없는 코드 전용 덱 데모 또는 사전 생성본으로 설명한다.
 8. **조립**: 전 슬라이드 PASS일 때만 크롬 합성 → fitz PDF → 사용자 전달을 진행한다.
+9. **수정 후 재조립**: 슬라이드를 다시 렌더했으면 `approved_inputs.py record-render`로 새 receipt를 만들고 `assemble_pptx.py … --pdf`를 **다시** 실행한다. 렌더만으로는 PPTX/PDF에 반영되지 않는다. 전달 직전에 산출물 mtime이 `production/slides/*.png`보다 새로운지 확인한다.
 
 ## 10. 실전 교훈 (구체 함정)
 - **로고 추출**: 슬라이드에서 잘라낸 로고는 주변 텍스트 아티팩트를 물고 옴 → 타이트 크롭+getbbox 오토크롭+고립 얼룩 수동 제거. 페이퍼 배경 키아웃=밝고(>188) 저채도(sat<42) 투명화. 초록 등 이질 잔여 색 제거.
@@ -716,6 +737,14 @@ The ONLY numbers allowed on this slide are "7조 원", "4,000억 원", "40억 �
 - **★ 텍스트가 패널·슬라이드 경계를 넘어 잘린다 (2026-07-27 실측)**: codex가 KPI 캡션을 자기 패널보다 넓게 그려 우측이 잘림(납품 S07 "설치 완료 공간" → "설치 완료 공간"의 끝 글자 소실). **normalize로는 못 고친다** — bbox 기준으로는 이미 안전 범위라 축소 대상이 아니기 때문. → ①프롬프트에 **TEXT CONTAINMENT 블록** 삽입: `EVERY caption must fit COMPLETELY INSIDE its own panel with padding on both sides. No text may touch, overflow or be clipped by a panel edge or the slide edge. If too wide, widen the column or shrink the caption — NEVER let a character be cut.` ②서브컬럼 x범위를 명시하고 우측에 4% 빈 여백 요구. ③검수는 **우측 1/3을 2배 확대 크롭**해서 육안 확인(콘택트시트로는 안 보임).
 - **★ 크롬 헤드라인은 폭을 재서 자동 축소할 것 (2026-07-27)**: 제목 길이가 장마다 달라 고정 폰트로 그리면 긴 제목이 우측 끝까지 밀린다. → `avail = W*0.95 - (x + 번호폭)` 을 계산하고 `while size > 하한: if textlength(title, font) <= avail: break; size -= 2` 로 축소, 축소 시 번호와 baseline을 맞춘다(`base = ty + (기본크기-size)//2`).
 - **★ normalize에 폭 제약도 넣을 것**: 높이만 기준으로 맞추면(`s = tgt_h/(b-t)`) 원본이 좌우 끝까지 찬 경우 여백이 안 생긴다. → `SAFE_W = 0.90` 을 두고 `s = min(1.0, tgt_h/(b-t), tgt_w/(r-l))`.
+- **★★★ 측정만 하고 강제하지 않으면 게이트가 아니다 (2026-08-27 실측, 같은 유형 3회 반복)**: 렌더러는 `overflow`·`koreanMidWordBreaks`·`graph.visibility`를 이미 receipt에 남기고 `render_contract.json`에는 `maxOverflowElements: 0` 계약까지 있었다. 그런데 실제 제작 경로(`design_plan --execute` → `codex_parallel_gen.verify`)가 **파일 크기만 검사**해서, 세로 15px 넘친 슬라이드·노드 0개인 백지 그래프·노드에 깔려 잘린 엣지 라벨이 전부 `OK`로 통과했다. → 새 신호를 측정하면 `receipt_violations()`에 **반드시 연결**하고, 연결 자체를 검사하는 테스트를 함께 넣는다(함수만 있고 호출이 없으면 순수 함수 테스트는 통과한다 — 실측으로 확인).
+- **★★ 자동 게이트는 "글자 깨짐"만 못 잡는 게 아니다**: 백지 영역·빈 그래프·미반영 수정도 못 잡았다. 콘택트시트 육안 검수는 여전히 필수지만, **육안으로도 안 보이는 15px 넘침**은 receipt만 잡는다. 둘 다 필요하다.
+- **★★ 렌더된 PNG는 스펙이 바뀌어도 "정상"으로 유지된다 (2026-08-27 실측)**: 선검증이 존재·크기만 봐서 스펙을 고치고 재실행해도 `전 15장 이미 정상 — 생성 생략`이 떴다. → receipt의 `specDigest`와 현재 잡을 대조해 `html-spec-stale`을 잡는다. digest 계산은 `html_slide_renderer.spec_digest(job_spec(job))` 하나만 쓴다. 공식을 복제하면 방금 렌더한 슬라이드도 stale로 오판한다(accent·designPreset·compositionPreset 주입 때문 — 실측).
+- **★★ 조립은 렌더에 딸려오지 않는다**: 슬라이드를 재렌더해도 PPTX/PDF는 옛 PNG로 남는다. 수정 후에는 `approved_inputs.py record-render` → `assemble_pptx.py`를 다시 돌린다. 산출물 mtime이 `production/slides/*.png`보다 오래됐으면 반영 안 된 것이다.
+- **★★ `transform`으로 요소를 옮기면 부모 높이에 반영되지 않는다 (2026-08-27 실측)**: `.process`의 `translateY(15px)`가 레이아웃 높이를 늘리지 않아 자식이 부모 밖으로 나가고 `scrollHeight`만 15px 커졌다. `padding-top`이 있는 프로파일에서만 임계를 넘어 드러났다. → 시각적 오프셋도 `margin`으로 준다. `transform`은 부모 크기에 영향을 주지 않는다.
+- **★★ 큰 숫자에 `line-height: 1`을 쓰지 않는다 (2026-08-27 실측)**: 한글 글리프가 em 박스를 넘어 `.kpi-value` 8px, `.break-duration` 9px가 잘렸다. 프로파일과 무관하며 번들 카탈로그 자체가 계약을 어기고 있었다. → 큰 활자는 `1.12` 이상을 준다.
+- **★ 화이트리스트는 코드에서 자동 도출한다 (2026-08-27 실측)**: 스펙 키 검증을 넣으면서 `headerAlign`을 빠뜨려 카탈로그 `kpi` 시나리오가 전부 BLOCK됐다. 게이트가 멀쩡한 스펙을 막는 건 게이트가 없는 것만큼 나쁘다. → `build_html`의 `spec.get(...)`을 정규식으로 뽑아 대조하는 테스트를 둔다.
+- **★ `CODEX_HOME`을 하드코딩하지 않는다 (2026-08-27 실측)**: 계정 관리 런처는 `~/.codex`가 아닌 경로를 주입한다. 격리홈 생성 시 `~/.codex`에서 `auth.json`을 복사하면 파일이 없어 전 잡이 `401 Unauthorized`로 죽는다(3라운드 소진 후 `FAIL(no-output)`). → `os.environ.get("CODEX_HOME")`를 먼저 보고 없을 때만 `~/.codex`로 폴백한다.
 
 ## 핵심 원칙 한 줄
 
