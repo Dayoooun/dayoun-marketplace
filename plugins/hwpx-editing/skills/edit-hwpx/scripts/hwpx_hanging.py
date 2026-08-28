@@ -44,6 +44,17 @@ TOL = 1.5
 # 중간결과보고서 7.2pt). 줄 높이의 이 배수를 넘으면 끊긴 것으로 본다.
 MAX_GAP_RATIO = 1.2
 FALLBACK_INTENT = -1350
+# 새 항목의 시작으로 보는 줄 — 접힌 줄일 수 없다.
+# 좌표만으로는 못 거른다: 비지단 결과보고서의 `2. …` 제목은 불릿 좌측에서 정확히
+# 글자 한 칸(-10pt) 왼쪽이라 어떤 x 창을 잡아도 경계에 걸린다. 내용으로 판정한다.
+#
+# 한 자리 번호만 본다. 두 자리 이상은 접힌 줄의 일부일 확률이 높다 —
+# 부산신보 `… 이체 2026. 6.` / `16. 완납` 이 실제 사례다. 문서 목차가 10 항목을
+# 넘는 경우는 이 서식들에 없다(실측 최대 6).
+HEADING_RE = re.compile(r"^\s*[(\[]?\d[.)\]]")
+# 정렬 허용치를 넓혀야 하는 문단 정렬. JUSTIFY 는 자간을 늘려 줄을 맞추므로
+# 마지막 줄에 글자폭 반올림이 누적된다 (거제 멘토링보고서 실측 최대 1.72pt).
+JUSTIFY_TOL = 2.0
 
 
 # ───────────────────────── zip ─────────────────────────
@@ -252,6 +263,9 @@ def iter_wrapped(rows):
                 continue
             if anchor is None or not text.strip():
                 continue
+            if HEADING_RE.match(text):       # `2. …` 는 새 항목 제목이다
+                anchor = None
+                continue
             if y_top - anchor[2] > anchor[3] * MAX_GAP_RATIO:
                 anchor = None
                 continue
@@ -377,21 +391,43 @@ def _hanging_pass(src_hwpx, out_hwpx, wd, markers, rhwp, measure,
 
 
 # ───────────────────────── 검증 ─────────────────────────
-def check_alignment(pdf_path, verbose=True):
+def has_justify(hwpx_path):
+    """문서에 JUSTIFY 문단 스타일이 있으면 True.
+
+    JUSTIFY 는 자간을 늘려 줄 끝을 맞추므로 접힌 줄의 첫 글자 x 에 글자폭 반올림이
+    누적된다. 거제 멘토링보고서(전 문단 JUSTIFY) 실측 최대 1.72pt.
+    """
+    try:
+        with zipfile.ZipFile(hwpx_path) as z:
+            head = z.read("Contents/header.xml").decode("utf-8", "ignore")
+    except Exception:
+        return False
+    return 'horizontal="JUSTIFY"' in head
+
+
+def check_alignment(pdf_path, verbose=True, source_hwpx=None):
     """접힌 줄이 그 문단 첫 글자 x 에 붙었는지 대조. (ok, miss) 반환.
 
     접힌 줄 판정은 `iter_wrapped` 가 한다 — 보정 패스와 같은 기준을 써야
     "게이트는 통과인데 눈으로 보면 안 맞는" 상태가 안 생긴다.
+
+    `source_hwpx` 를 주면 JUSTIFY 문서에 완화된 허용치를 쓴다. 생략하면 PDF 옆의
+    같은 이름 .hwpx 를 찾아본다.
     """
+    if source_hwpx is None:
+        cand = os.path.splitext(pdf_path)[0] + ".hwpx"
+        source_hwpx = cand if os.path.exists(cand) else None
+    tol = JUSTIFY_TOL if (source_hwpx and has_justify(source_hwpx)) else TOL
+
     ok = miss = 0
     for _key, delta, text, pno in iter_wrapped(marker_lines(pdf_path)):
-        if abs(delta) < TOL:
+        if abs(delta) < tol:
             ok += 1
             continue
         miss += 1
         if verbose:
             print("  MISS p%d  d=%+.2fpt | %s" % (pno + 1, delta, text[:40]))
-    print("접힌 줄 정렬: OK %d / MISS %d" % (ok, miss))
+    print("접힌 줄 정렬: OK %d / MISS %d (허용 %.1fpt)" % (ok, miss, tol))
     return ok, miss
 
 
