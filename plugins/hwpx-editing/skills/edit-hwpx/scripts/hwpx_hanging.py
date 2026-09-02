@@ -155,14 +155,15 @@ def measure_intents(src_hwpx, wd, rhwp):
 
 # ───────────────────────── 적용 ─────────────────────────
 def clone_parapr(header_xml, src_id, intent):
-    """paraPr[src_id] 를 복제해 margin intent·left 를 바꾼 새 paraPr 주입.
+    """paraPr[src_id] 를 복제해 margin intent 를 바꾼 새 paraPr 주입. `left` 는 0 으로 둔다.
 
-    ★ 한/글은 `intent` 를 `left` 안에서만 쓴다 (2026-09-03 한컴 2024 PDF 실측,
-      consulting-report/knowledge/runtime/hanging-indent.md '한컴 축 실측').
-      접힘 = left, 첫 줄 = left + intent. `left=0` 이면 첫 줄이 셀 밖으로 못
-      나가 0 으로 잘리고 **내어쓰기가 사라진다**. rhwp 는 `|intent|` 만으로 접힘을
-      그리므로 맥에서는 멀쩡해 보여 2026-08-28~09-02 내내 놓쳤다.
-      그래서 `hp:case`·`hp:default` **양쪽 모두** `left = |intent|` 로 둔다.
+    ★ 한/글 실측(2026-09-03, 한컴 2024 PDF): 내어쓰기는 `intent=-W, left=0` 으로
+      그려진다(한컴 저작 원본 paraPr 807 = case(-1048, 0) / default(-2096, 0)).
+      `left=W` 를 주면 **문단 전체(마커 포함)가 W 만큼 밀린다** — c3 마커 x
+      63.12→76.68 실측. 같은 날 오전 「left=|intent| 필수」로 고쳤다가 한컴 저작
+      원본 대조로 되돌렸다. 진짜 원인은 stale `<hp:linesegarray>` 였다
+      (`_hanging_pass` 의 strip 참조).
+      `hp:case`·`hp:default` 양쪽 intent 는 같은 값으로 둔다(rhwp 는 case 만 읽는다).
     """
     m = re.search(r'<hh:paraPr id="%s".*?</hh:paraPr>' % src_id, header_xml, re.S)
     if not m:
@@ -170,7 +171,7 @@ def clone_parapr(header_xml, src_id, intent):
     new_id = str(max(int(x) for x in
                      re.findall(r'<hh:paraPr id="(\d+)"', header_xml)) + 1)
     new = re.sub(r'\bid="\d+"', 'id="%s"' % new_id, m.group(0), count=1)
-    left = abs(intent)
+    left = 0
 
     def fix_margin(mm):
         # 요소 순서에 의존하지 않는다 — intent/left 가 어느 자리에 있든 값만 바꾸고,
@@ -210,7 +211,7 @@ def prefix_key(text, bullets=None):
 
 
 def hanging_cells(src_hwpx, out_hwpx, wd, markers=("\u25a1",), rhwp=None,
-                  measure=True, strip_lineseg=False, rounds=3):
+                  measure=True, strip_lineseg=True, rounds=3):
     """marker 를 포함한 표 셀 문단에 내어쓰기만 적용 (볼드·폰트 불변).
 
     `measure=True` 면 **수렴할 때까지 반복 보정**한다. 1패스 실측만으로는 원본이
@@ -226,8 +227,14 @@ def hanging_cells(src_hwpx, out_hwpx, wd, markers=("\u25a1",), rhwp=None,
     (경남신보 case=-3660 / default=-7320) 양쪽을 같은 값으로 맞춰 써야 한글과
     rhwp 가 같은 결과를 낸다.
 
-    strip_lineseg 는 기본 False. lineseg 를 지우면 `vertRelTo="PARA"` 부동 서명이
-    앵커 기준을 잃고 떠오른다. rhwp 는 lineseg 가 남아 있어도 intent 를 반영한다.
+    ★ `strip_lineseg` 기본 **True** — 단, 내어쓰기를 새로 건 **그 문단만** 지운다.
+      한/글은 `<hp:linesegarray>` 가 있으면 저장 당시 줄 나눔을 그대로 믿는다.
+      빌더가 남긴 lineseg 는 후속 줄 `flags="393216"` (한컴 저장본은 `1441792`,
+      `0x100000` = 내어쓰기 줄 비트) 라 한/글이 접힘을 0 으로 그렸다 — 신디·쇼미
+      제출본이 그 상태였다(2026-09-03 한컴 PDF 실측 Δ=0, 지우면 Δ=+13.56/+17.28).
+      문서 전체를 지우면 `vertRelTo="PARA"` 부동 서명이 떠오르므로(2026-08 실측)
+      대상 문단에만 적용한다 — 서명 앵커 문단은 마커 문단이 아니다. rhwp 는
+      lineseg 유무와 무관하게 intent 를 반영하므로 결과가 같다.
     """
     binary = find_rhwp(rhwp) if measure else None
     info = _hanging_pass(src_hwpx, out_hwpx, wd, markers, binary,
@@ -405,9 +412,11 @@ def _hanging_pass(src_hwpx, out_hwpx, wd, markers, rhwp, measure,
             if hit:
                 blk = blk.replace('paraPrIDRef="%s"' % ppr,
                                   'paraPrIDRef="%s"' % hit[0], 1)
-            if strip_lineseg:
-                blk = re.sub(r"<hp:linesegarray>.*?</hp:linesegarray>", "",
-                             blk, flags=re.S)
+                # 내어쓰기를 건 문단의 stale lineseg 만 지운다 — 한/글은 lineseg 가
+                # 있으면 저장 당시 줄 나눔(flags)을 믿어 접힘을 0 으로 그린다.
+                if strip_lineseg:
+                    blk = re.sub(r"<hp:linesegarray>.*?</hp:linesegarray>", "",
+                                 blk, flags=re.S)
             return blk
         return re.sub(r'<hp:p id="[^"]*" paraPrIDRef="(\d+)".*?</hp:p>',
                       sub_p, cell, flags=re.S)

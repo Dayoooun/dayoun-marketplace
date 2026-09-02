@@ -146,10 +146,10 @@ class CloneParaPrTest(unittest.TestCase):
         intents = re.findall(r'<hh:margin><hc:intent value="(-?\d+)"', block)
         # hp:case 와 hp:default 양쪽이 같은 값이어야 한글과 rhwp 가 같이 본다
         self.assertEqual(intents, ["-1725", "-1725"])
-        # 한/글은 intent 를 left 안에서만 쓴다(접힘=left). left=0 이면 한/글에서
-        # 내어쓰기가 사라진다 — 2026-09-03 한컴 2024 PDF 6조합 실측(c3 만 성립).
+        # left 는 0 — 한컴 저작 원본(case(-1048,0)/default(-2096,0))이 그 형태이고,
+        # left=W 는 문단 전체(마커 포함)를 W 만큼 민다(2026-09-03 한컴 PDF 실측).
         lefts = re.findall(r'<hc:intent value="-?\d+"[^>]*/><hc:left value="(-?\d+)"', block)
-        self.assertEqual(lefts, ["1725", "1725"])
+        self.assertEqual(lefts, ["0", "0"])
 
     def test_left_equals_abs_intent_without_switch(self):
         # hp:switch 없이 margin 만 있는 paraPr 에도 left 가 들어가야 한다
@@ -158,7 +158,7 @@ class CloneParaPrTest(unittest.TestCase):
             '<hh:margin><hc:left value="0" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/></hh:margin>')
         _, h2 = H.clone_parapr(header, "24", -1350)
         block = re.search(r'<hh:paraPr id="25".*?</hh:paraPr>', h2, re.S).group(0)
-        self.assertIn('<hc:intent value="-1350" unit="HWPUNIT"/><hc:left value="1350" unit="HWPUNIT"/>', block)
+        self.assertIn('<hc:intent value="-1350" unit="HWPUNIT"/><hc:left value="0" unit="HWPUNIT"/>', block)
 
     def test_left_before_intent_order_is_handled(self):
         # 레드팀 C3: hc:left 가 hc:intent 앞에 오는 문서. 순서에 의존하면 left 가 안 바뀐다.
@@ -168,7 +168,7 @@ class CloneParaPrTest(unittest.TestCase):
         self.assertNotEqual(swapped, HEADER)
         _, h2 = H.clone_parapr(swapped, "24", -1350)
         block = re.search(r'<hh:paraPr id="25".*?</hh:paraPr>', h2, re.S).group(0)
-        self.assertEqual(re.findall(r'<hc:left value="(-?\d+)"', block), ["1350", "1350"])
+        self.assertEqual(re.findall(r'<hc:left value="(-?\d+)"', block), ["0", "0"])
         self.assertEqual(re.findall(r'<hc:intent value="(-?\d+)"', block), ["-1350", "-1350"])
 
     def test_leaves_source_parapr_untouched(self):
@@ -235,19 +235,30 @@ class HangingCellsTest(unittest.TestCase):
         section = self._out_xml("section0.xml")
         self.assertIn('<hp:p id="9" paraPrIDRef="7"', section)
 
-    def test_keeps_linesegarray_by_default(self):
-        # lineseg 를 지우면 vertRelTo="PARA" 부동 서명이 앵커를 잃는다
+    def test_strips_linesegarray_of_hanging_paragraphs_by_default(self):
+        # 한/글은 lineseg 가 있으면 저장 당시 줄 나눔(flags)을 믿어 접힘을 0 으로 그린다
+        # (2026-09-03 한컴 PDF 실측: 신디·쇼미 제출본 Δ=0 → 지우면 Δ=+13.56/+17.28).
         self._run()
-        self.assertIn("<hp:linesegarray>", self._out_xml("section0.xml"))
-
-    def test_strips_linesegarray_only_inside_marker_cells(self):
-        # 문서 전체에서 지우면 부동 서명이 앵커를 잃는다 → 대상 셀에만 적용된다
-        self._run(strip_lineseg=True)
         section = self._out_xml("section0.xml")
         end = section.index("</hp:tc>") + len("</hp:tc>")
         target, rest = section[:end], section[end:]
         self.assertNotIn("<hp:linesegarray>", target)
+        # 마커 없는 셀(부동 서명 앵커가 될 수 있는 곳)은 그대로다
         self.assertIn("<hp:linesegarray>", rest)
+
+    def test_keeps_linesegarray_of_non_marker_paragraph_inside_marker_cell(self):
+        # 같은 셀 안이라도 내어쓰기를 걸지 않은 문단의 lineseg 는 남긴다
+        _make_hwpx(self.src, [TARGET_CELL + _para("4", "\uc11c\uc220 \ubb38\ub2e8"), OTHER_CELL])
+        self._run()
+        section = self._out_xml("section0.xml")
+        p4 = re.search(r'<hp:p id="4".*?</hp:p>', section, re.S).group(0)
+        self.assertIn("<hp:linesegarray>", p4)
+        p2 = re.search(r'<hp:p id="2".*?</hp:p>', section, re.S).group(0)
+        self.assertNotIn("<hp:linesegarray>", p2)
+
+    def test_strip_lineseg_false_keeps_everything(self):
+        self._run(strip_lineseg=False)
+        self.assertEqual(self._out_xml("section0.xml").count("<hp:linesegarray>"), 4)
 
     def test_output_is_valid_xml_and_zip(self):
         self._run()
