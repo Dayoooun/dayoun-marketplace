@@ -160,6 +160,17 @@ class CloneParaPrTest(unittest.TestCase):
         block = re.search(r'<hh:paraPr id="25".*?</hh:paraPr>', h2, re.S).group(0)
         self.assertIn('<hc:intent value="-1350" unit="HWPUNIT"/><hc:left value="1350" unit="HWPUNIT"/>', block)
 
+    def test_left_before_intent_order_is_handled(self):
+        # 레드팀 C3: hc:left 가 hc:intent 앞에 오는 문서. 순서에 의존하면 left 가 안 바뀐다.
+        swapped = re.sub(
+            r'<hc:intent value="(-?\d+)" unit="HWPUNIT"/><hc:left value="(-?\d+)" unit="HWPUNIT"/>',
+            r'<hc:left value="\2" unit="HWPUNIT"/><hc:intent value="\1" unit="HWPUNIT"/>', HEADER)
+        self.assertNotEqual(swapped, HEADER)
+        _, h2 = H.clone_parapr(swapped, "24", -1350)
+        block = re.search(r'<hh:paraPr id="25".*?</hh:paraPr>', h2, re.S).group(0)
+        self.assertEqual(re.findall(r'<hc:left value="(-?\d+)"', block), ["1350", "1350"])
+        self.assertEqual(re.findall(r'<hc:intent value="(-?\d+)"', block), ["-1350", "-1350"])
+
     def test_leaves_source_parapr_untouched(self):
         _, header = H.clone_parapr(HEADER, "24", -1350)
         original = re.search(

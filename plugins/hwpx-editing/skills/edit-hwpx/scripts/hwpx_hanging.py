@@ -171,16 +171,21 @@ def clone_parapr(header_xml, src_id, intent):
                      re.findall(r'<hh:paraPr id="(\d+)"', header_xml)) + 1)
     new = re.sub(r'\bid="\d+"', 'id="%s"' % new_id, m.group(0), count=1)
     left = abs(intent)
-    if "<hc:intent" in new:
-        # hp:case / hp:default 양쪽 margin 을 모두 갱신해야 한글·rhwp 가 같이 본다
-        new = re.sub(r'(<hh:margin><hc:intent value=")-?\d+(")',
-                     r'\g<1>%d\2' % intent, new)
-        new = re.sub(r'(<hc:intent value="-?\d+"[^>]*/><hc:left value=")-?\d+(")',
-                     r'\g<1>%d\2' % left, new)
-    else:
-        new = new.replace("<hh:margin>",
-                          '<hh:margin><hc:intent value="%d" unit="HWPUNIT"/>'
-                          '<hc:left value="%d" unit="HWPUNIT"/>' % (intent, left))
+
+    def fix_margin(mm):
+        # 요소 순서에 의존하지 않는다 — intent/left 가 어느 자리에 있든 값만 바꾸고,
+        # 없으면 앞에 끼워 넣는다. (레드팀 C3: left 가 intent 앞에 오는 문서 존재 가능)
+        body = mm.group(1)
+        body, n_i = re.subn(r'(<hc:intent\b[^>]*\bvalue=")-?\d+(")', r'\g<1>%d\2' % intent, body)
+        body, n_l = re.subn(r'(<hc:left\b[^>]*\bvalue=")-?\d+(")', r'\g<1>%d\2' % left, body)
+        if not n_l:
+            body = '<hc:left value="%d" unit="HWPUNIT"/>' % left + body
+        if not n_i:
+            body = '<hc:intent value="%d" unit="HWPUNIT"/>' % intent + body
+        return "<hh:margin>" + body + "</hh:margin>"
+
+    # hp:case / hp:default 양쪽 margin 을 모두 갱신해야 한글·rhwp 가 같이 본다
+    new = re.sub(r"<hh:margin>(.*?)</hh:margin>", fix_margin, new, flags=re.S)
     header_xml = re.sub(r'(</hh:paraPr>)(?!.*</hh:paraPr>)', r'\1' + new,
                         header_xml, flags=re.S)
     header_xml = re.sub(r'(<hh:paraProperties itemCnt=")(\d+)(")',
