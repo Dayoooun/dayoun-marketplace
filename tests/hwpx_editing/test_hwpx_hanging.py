@@ -256,6 +256,21 @@ class HangingCellsTest(unittest.TestCase):
         p2 = re.search(r'<hp:p id="2".*?</hp:p>', section, re.S).group(0)
         self.assertNotIn("<hp:linesegarray>", p2)
 
+    def test_keeps_linesegarray_of_marker_paragraph_hosting_floating_object(self):
+        # 마커로 시작하더라도 부동 개체(treatAsChar="0", 서명)를 품은 문단은 앵커라 lineseg 를 남긴다
+        host = (
+            '<hp:p id="5" paraPrIDRef="24" styleIDRef="0">'
+            '<hp:run charPrIDRef="11"><hp:t>\u25cb \uc571\ucee4 \ubb38\ub2e8</hp:t>'
+            '<hp:pic id="1" treatAsChar="0"><hp:pos treatAsChar="0" vertRelTo="PARA"/></hp:pic></hp:run>'
+            "<hp:linesegarray><hp:lineseg textpos=\"0\"/></hp:linesegarray></hp:p>"
+        )
+        _make_hwpx(self.src, [TARGET_CELL + host, OTHER_CELL])
+        self._run()
+        section = self._out_xml("section0.xml")
+        p5 = re.search(r'<hp:p id="5".*?</hp:p>', section, re.S).group(0)
+        self.assertIn("<hp:linesegarray>", p5)
+        self.assertNotIn('paraPrIDRef="24"', p5)   # 내어쓰기 자체는 걸린다
+
     def test_strip_lineseg_false_keeps_everything(self):
         self._run(strip_lineseg=False)
         self.assertEqual(self._out_xml("section0.xml").count("<hp:linesegarray>"), 4)

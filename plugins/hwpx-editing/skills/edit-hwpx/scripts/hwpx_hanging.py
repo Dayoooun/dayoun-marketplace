@@ -414,7 +414,9 @@ def _hanging_pass(src_hwpx, out_hwpx, wd, markers, rhwp, measure,
                                   'paraPrIDRef="%s"' % hit[0], 1)
                 # 내어쓰기를 건 문단의 stale lineseg 만 지운다 — 한/글은 lineseg 가
                 # 있으면 저장 당시 줄 나눔(flags)을 믿어 접힘을 0 으로 그린다.
-                if strip_lineseg:
+                # 표·부동 개체를 품은 블록은 non-greedy 매칭이 안쪽에서 잘릴 수 있어
+                # 건드리지 않는다(부동 서명 앵커 보호를 데이터 우연이 아니라 코드로).
+                if strip_lineseg and "<hp:tbl" not in blk and 'treatAsChar="0"' not in blk:
                     blk = re.sub(r"<hp:linesegarray>.*?</hp:linesegarray>", "",
                                  blk, flags=re.S)
             return blk
