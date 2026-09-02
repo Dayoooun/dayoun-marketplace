@@ -155,20 +155,32 @@ def measure_intents(src_hwpx, wd, rhwp):
 
 # ───────────────────────── 적용 ─────────────────────────
 def clone_parapr(header_xml, src_id, intent):
-    """paraPr[src_id] 를 복제해 margin intent 만 바꾼 새 paraPr 주입."""
+    """paraPr[src_id] 를 복제해 margin intent·left 를 바꾼 새 paraPr 주입.
+
+    ★ 한/글은 `intent` 를 `left` 안에서만 쓴다 (2026-09-03 한컴 2024 PDF 실측,
+      consulting-report/knowledge/runtime/hanging-indent.md '한컴 축 실측').
+      접힘 = left, 첫 줄 = left + intent. `left=0` 이면 첫 줄이 셀 밖으로 못
+      나가 0 으로 잘리고 **내어쓰기가 사라진다**. rhwp 는 `|intent|` 만으로 접힘을
+      그리므로 맥에서는 멀쩡해 보여 2026-08-28~09-02 내내 놓쳤다.
+      그래서 `hp:case`·`hp:default` **양쪽 모두** `left = |intent|` 로 둔다.
+    """
     m = re.search(r'<hh:paraPr id="%s".*?</hh:paraPr>' % src_id, header_xml, re.S)
     if not m:
         raise ValueError("paraPr %s 없음" % src_id)
     new_id = str(max(int(x) for x in
                      re.findall(r'<hh:paraPr id="(\d+)"', header_xml)) + 1)
     new = re.sub(r'\bid="\d+"', 'id="%s"' % new_id, m.group(0), count=1)
+    left = abs(intent)
     if "<hc:intent" in new:
         # hp:case / hp:default 양쪽 margin 을 모두 갱신해야 한글·rhwp 가 같이 본다
         new = re.sub(r'(<hh:margin><hc:intent value=")-?\d+(")',
                      r'\g<1>%d\2' % intent, new)
+        new = re.sub(r'(<hc:intent value="-?\d+"[^>]*/><hc:left value=")-?\d+(")',
+                     r'\g<1>%d\2' % left, new)
     else:
         new = new.replace("<hh:margin>",
-                          '<hh:margin><hc:intent value="%d" unit="HWPUNIT"/>' % intent)
+                          '<hh:margin><hc:intent value="%d" unit="HWPUNIT"/>'
+                          '<hc:left value="%d" unit="HWPUNIT"/>' % (intent, left))
     header_xml = re.sub(r'(</hh:paraPr>)(?!.*</hh:paraPr>)', r'\1' + new,
                         header_xml, flags=re.S)
     header_xml = re.sub(r'(<hh:paraProperties itemCnt=")(\d+)(")',
@@ -322,6 +334,26 @@ def lookup(table, key, default=None):
     return max(same, key=abs)
 
 
+def iter_cells(s):
+    """`<hp:tc>`~`</hp:tc>` 를 **최상위 셀 단위**로 (start, end) 낸다.
+
+    `re.finditer(r"<hp:tc\\b.*?</hp:tc>")` 는 셀 안에 표(참고이미지 중첩표)가
+    있으면 안쪽 `</hp:tc>` 에서 끊겨 바깥 셀의 뒷부분 문단을 통째로 놓친다.
+    실측(2026-09-03, 쇼미 6장): `○ (2) 검색 노출 기반 점검` 이하 10개 문단이
+    보정에서 빠졌다. 깊이를 세어 0 으로 돌아올 때가 진짜 끝이다.
+    """
+    depth, start = 0, 0
+    for m in re.finditer(r"<hp:tc\b|</hp:tc>", s):
+        if m.group().startswith("<hp:tc"):
+            if depth == 0:
+                start = m.start()
+            depth += 1
+        else:
+            depth -= 1
+            if depth == 0:
+                yield start, m.end()
+
+
 def _hanging_pass(src_hwpx, out_hwpx, wd, markers, rhwp, measure,
                   strip_lineseg, deltas):
     """1회 적용. `deltas` 는 접두사 패턴별 누적 보정값(HWPUNIT)."""
@@ -338,11 +370,12 @@ def _hanging_pass(src_hwpx, out_hwpx, wd, markers, rhwp, measure,
         return lookup(widths, key)
 
     combos = {}
-    for m in re.finditer(r"<hp:tc\b.*?</hp:tc>", s, re.S):
-        if not any(mk in m.group(0) for mk in markers):
+    for cs, ce in iter_cells(s):
+        cell = s[cs:ce]
+        if not any(mk in cell for mk in markers):
             continue
         for pm in re.finditer(r'<hp:p id="[^"]*" paraPrIDRef="(\d+)".*?</hp:p>',
-                              m.group(0), re.S):
+                              cell, re.S):
             t = re.search(r"<hp:t>([^<]*)</hp:t>", pm.group(0))
             k = prefix_key(t.group(1)) if t else None
             if k:
@@ -375,12 +408,13 @@ def _hanging_pass(src_hwpx, out_hwpx, wd, markers, rhwp, measure,
                       sub_p, cell, flags=re.S)
 
     parts, pos, n = [], 0, 0
-    for m in re.finditer(r"<hp:tc\b.*?</hp:tc>", s, re.S):
-        if not any(mk in m.group(0) for mk in markers):
+    for cs, ce in iter_cells(s):
+        cell = s[cs:ce]
+        if not any(mk in cell for mk in markers):
             continue
-        parts.append(s[pos:m.start()])
-        parts.append(fix_cell(m.group(0)))
-        pos = m.end()
+        parts.append(s[pos:cs])
+        parts.append(fix_cell(cell))
+        pos = ce
         n += 1
     parts.append(s[pos:])
     Path(sp).write_text("".join(parts), encoding="utf-8")
@@ -432,33 +466,10 @@ def check_alignment(pdf_path, verbose=True, source_hwpx=None):
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("src", help="입력 .hwpx (또는 --check 사용 시 .pdf)")
-    ap.add_argument("out", nargs="?", help="출력 .hwpx")
-    ap.add_argument("--markers", nargs="+", default=["\u25a1"],
-                    help="대상 셀을 고르는 마커 (기본: □)")
-    ap.add_argument("--rhwp", help="rhwp 바이너리 경로")
-    ap.add_argument("--no-measure", action="store_true",
-                    help="실측 없이 폴백 intent 사용")
-    ap.add_argument("--check", action="store_true",
-                    help="PDF 의 접힌 줄 정렬만 검사")
-    a = ap.parse_args()
-
-    if a.check:
-        _, miss = check_alignment(a.src)
-        return 0 if miss == 0 else 1
-
-    if not a.out:
-        ap.error("출력 경로가 필요하다")
-    wd = os.path.join(os.path.dirname(os.path.abspath(a.out)) or ".", "_hwpx_hang")
-    info = hanging_cells(a.src, a.out, wd, markers=tuple(a.markers),
-                         rhwp=a.rhwp, measure=not a.no_measure)
-    shutil.rmtree(wd, ignore_errors=True)
-    print("셀 %d개 / 실측 %s" % (info["cells"], info["measured"]))
-    for k, v in sorted(info["intents"].items()):
-        print("  %s = %d" % (k, v))
-    return 0
+    """Non-authoritative edit primitive used by hwpx_edit_driver.py."""
+    print("직접 편집은 권한을 만들지 않습니다. hwpx_edit_driver.py operation을 사용하세요.",
+          file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":

@@ -146,6 +146,19 @@ class CloneParaPrTest(unittest.TestCase):
         intents = re.findall(r'<hh:margin><hc:intent value="(-?\d+)"', block)
         # hp:case 와 hp:default 양쪽이 같은 값이어야 한글과 rhwp 가 같이 본다
         self.assertEqual(intents, ["-1725", "-1725"])
+        # 한/글은 intent 를 left 안에서만 쓴다(접힘=left). left=0 이면 한/글에서
+        # 내어쓰기가 사라진다 — 2026-09-03 한컴 2024 PDF 6조합 실측(c3 만 성립).
+        lefts = re.findall(r'<hc:intent value="-?\d+"[^>]*/><hc:left value="(-?\d+)"', block)
+        self.assertEqual(lefts, ["1725", "1725"])
+
+    def test_left_equals_abs_intent_without_switch(self):
+        # hp:switch 없이 margin 만 있는 paraPr 에도 left 가 들어가야 한다
+        header = HEADER.replace(
+            re.search(r'<hp:switch>.*?</hp:switch>', HEADER, re.S).group(0),
+            '<hh:margin><hc:left value="0" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/></hh:margin>')
+        _, h2 = H.clone_parapr(header, "24", -1350)
+        block = re.search(r'<hh:paraPr id="25".*?</hh:paraPr>', h2, re.S).group(0)
+        self.assertIn('<hc:intent value="-1350" unit="HWPUNIT"/><hc:left value="1350" unit="HWPUNIT"/>', block)
 
     def test_leaves_source_parapr_untouched(self):
         _, header = H.clone_parapr(HEADER, "24", -1350)
@@ -295,6 +308,41 @@ class IterWrappedTest(unittest.TestCase):
         rows = [self._bullet(100.0), self._plain(112.0, 83.0, "   ")]
         self.assertEqual(list(H.iter_wrapped(rows)), [])
 
+
+class ReceiptGuidanceTest(unittest.TestCase):
+    def test_skill_requires_receipt_bound_init_operation_validation(self):
+        skill = (
+            ROOT / "plugins" / "hwpx-editing" / "skills" / "edit-hwpx" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+
+        for required in (
+            "hwpx_edit_driver.py",
+            "hwpx-edit-init-payload",
+            "hwpx-edit-operation-payload",
+            "hwpx-edit-validation-payload",
+            "--input-ref",
+            "--input-sha256",
+            "--init-receipt-ref",
+            "--init-receipt-sha256",
+            "--operation-receipt-ref",
+            "--operation-receipt-sha256",
+            "--tool-source-sha256",
+            "verified snapshot",
+            "dayoun-handoff-v1",
+            "bundled `_contracts`와 `_dependencies`",
+            "원본은 절대 덮어쓰지 않습니다",
+            "self-validation",
+        ):
+            self.assertIn(required, skill)
+
+    def test_skill_rejects_legacy_path_only_authority(self):
+        skill = (
+            ROOT / "plugins" / "hwpx-editing" / "skills" / "edit-hwpx" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertNotIn("python3 scripts/hwpx_verify.py", skill)
+        self.assertNotIn("python scripts/hwpx_hanging.py in.hwpx out.hwpx", skill)
+        self.assertNotIn("python scripts/hwpx_hanging.py out.pdf --check", skill)
 
 if __name__ == "__main__":
     unittest.main()
