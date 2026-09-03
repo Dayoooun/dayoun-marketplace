@@ -95,16 +95,69 @@ re.sub(r'<opf:item id="%s"[^/]*/>' % iid, '', manifest)
 re.sub(r'<opf:item id="%s"[^>]*/>' % iid, '', manifest)
 ```
 
-## 빌드 후 검증
+## Receipt-authoritative 편집 절차
 
-```bash
-python3 scripts/hwpx_verify.py <파일.hwpx> [--donor <도너.hwpx>]
-```
+직접 `hwpx_hanging.py`·`hwpx_verify.py`에 원본·출력 경로를 넘기는 것은 **권한 있는 완료
+경로가 아닙니다.** 설치본의 이 스킬 루트에서 `scripts/hwpx_edit_driver.py`만 실행합니다.
+각 material stage는 독립적으로 인가된 `ref`와 expected `sha256:<64-lowerhex>`을 받고,
+receipt와 artifact를 verified snapshot으로 소비합니다. 이전 receipt, 인접 digest, `latest`,
+프로젝트 scripts 또는 도너 파일을 자동 발견하지 않습니다.
+각 stage는 typed immutable receipt를 정확히 하나만 쓰고, 저장 직후 자신의 expected SHA로
+다시 소비하여 self-validation합니다. 이 검증에 실패하면 handoff를 내보내지 않습니다.
 
-`--donor` 를 주면 도너 업체 정보·이미지가 잔존하는지까지 검사합니다.
+원본은 절대 덮어쓰지 않습니다. `--output-ref`는 input과 다른, 아직 존재하지 않는
+프로젝트 상대 ref여야 합니다. 도너·asset·도구 source SHA도 호출자가 독립적으로 공급합니다.
+`--claimed-at`은 `2026-08-31T03:26:00+09:00`처럼 offset을 포함해야 합니다. 아래의
+`<...>`는 실제 ref/SHA/식별자로 각각 교체하며, SHA를 같은 mutable 경로에서 계산해
+권한값으로 삼지 않습니다.
 
-검사 항목: XML 유효성 / 매니페스트 유령 항목 / 미치환 placeholder / mimetype 압축방식 /
-부동 개체 pos 누락 / orgSz 이상값 / curSz 비율 불일치 / 도너 잔존.
+공통 인자는 모든 호출에 정확히 같습니다:
+`--project-root <trusted-project-root> --receipt-store <receipt-store> --workflow-id <workflow-id>
+--cycle-id <cycle-id> --attempt <attempt> --claimed-at <timestamp-with-offset>
+--root-sha256 sha256:<root> --receipt-ref <new-receipt-ref> --payload-ref <new-payload-ref>`.
+설치 artifact는 bundled `_contracts`와 `_dependencies`를 사용합니다. 개발 저장소에서만
+명시적 trusted `--contracts-root <contracts-root>`를 추가합니다.
+
+1. **init** — input·선택 도너·asset·요청 operation을 각각 snapshot으로 검증해
+   `hwpx-edit-init-payload` receipt 하나를 씁니다.
+
+   ```bash
+   python3 "<skill-root>/scripts/hwpx_edit_driver.py" init <공통-인자> \
+     --input-ref "<input.hwpx-ref>" --input-sha256 "sha256:<input>" \
+     --donor-ref "<donor.hwpx-ref>" --donor-sha256 "sha256:<donor>" \
+     --asset "<asset-ref>@sha256:<asset>" --operation hanging-indent \
+     --parameters-json '{"markers":["□"],"rounds":3}'
+   ```
+
+   도너가 없으면 `--donor-ref`와 `--donor-sha256`을 둘 다 생략합니다. 도너가 있으면
+   둘 중 하나만 주는 호출은 BLOCK입니다.
+
+2. **operation** — init handoff의 `receiptRef`·`receiptSha256`을 그대로 expected parent로
+   전달합니다. runtime은 input과 donor snapshot만 읽고 새 output을 만들며,
+   `hwpx_hanging.py` source가 independently authorized `--tool-source-sha256`과 일치할 때만
+   실행합니다. `hwpx-edit-operation-payload` receipt에는 input/donor snapshot과 tool binding이 남습니다.
+
+   ```bash
+   python3 "<skill-root>/scripts/hwpx_edit_driver.py" operation <새-공통-인자> \
+     --init-receipt-ref "<init-receipt-ref>" --init-receipt-sha256 "sha256:<init-receipt>" \
+     --output-ref "<new-output.hwpx-ref>" --tool-source-sha256 "sha256:<hwpx-hanging-source>"
+   ```
+
+3. **validation** — operation handoff의 ref/SHA를 다시 검증하고 output·donor snapshot으로
+   XML, manifest, placeholder, mimetype, floating `pos`, `orgSz`/`curSz`, donor 잔존을
+   검사해 `hwpx-edit-validation-payload` 하나를 씁니다. `BLOCK` receipt도 immutable
+   결과이며 PASS로 바꾸거나 재사용하지 않습니다.
+
+   ```bash
+   python3 "<skill-root>/scripts/hwpx_edit_driver.py" validation <새-공통-인자> \
+     --operation-receipt-ref "<operation-receipt-ref>" \
+     --operation-receipt-sha256 "sha256:<operation-receipt>"
+   ```
+
+모든 성공 또는 receipt-terminal 호출의 stdout은 정확히 한 줄인 canonical
+`dayoun-handoff-v1` JSON입니다. 그 `receiptRef`·`receiptSha256`을 다음 호출에만 전달하고,
+진단은 stderr에서 읽습니다. 변조·stale parent·누락 expected SHA·원본과 같은 output·도구
+불일치·검증 FAIL은 성공 handoff가 아닌 stable nonzero exit/BLOCK으로 fail-closed 처리합니다.
 
 ## PDF 변환
 
@@ -127,10 +180,9 @@ CUPS 가상 프린터(SIP 차단)·LibreOffice(`.hwpx` 필터 없음)는 검증 
 `paraPr` margin `intent` 를 렌더에 반영합니다. "표 셀은 intent 가 무시된다"는 통설은
 오진이었습니다 (2026-08-27 실측).
 
-```bash
-python scripts/hwpx_hanging.py in.hwpx out.hwpx --markers □
-python scripts/hwpx_hanging.py out.pdf --check      # 게이트: MISS 0 이어야 통과
-```
+내어쓰기는 위 `init`의 `--parameters-json`에 `markers`, `rounds`, 필요하면 `noMeasure`를
+명시하고, 이어지는 receipt-authoritative `operation`과 `validation`으로만 실행합니다.
+직접 mutable input/output CLI 호출이나 path-only `--check` 결과는 PASS 권한이 아닙니다.
 
 **단일 intent 를 쓰면 안 됩니다.** 접힌 줄은 그 문단 **첫 글자 x** 에 맞아야 하는데
 접두사 폭이 패턴마다 다릅니다 (HWPUNIT = pt × 100):
@@ -145,8 +197,15 @@ python scripts/hwpx_hanging.py out.pdf --check      # 게이트: MISS 0 이어�
 (기본 3회). 값을 손으로 넣지 마세요. 1패스로는 원본이 이미 intent 를 가진 문서에서
 틀립니다 — 경남신보 paraPr 20 은 `-3660` 이 이미 들어 있는데도 5.7pt 어긋나 있었습니다.
 
-- **`left` 는 건드리지 않습니다.** `intent` 단독으로 완성됩니다
-- **`linesegarray` 를 지우지 않습니다.** 지우면 `vertRelTo="PARA"` 부동 서명이 앵커를 잃고 떠오릅니다
+- **`left` 는 0 으로 둡니다.** `intent` 단독으로 완성됩니다. `left=W` 를 주면 한/글이 문단
+  전체(마커 포함)를 W 만큼 밉니다 (2026-09-03 한컴 저작 원본 대조 실측)
+- **`linesegarray` 는 내어쓰기를 건 문단만 지웁니다** (기본 `strip_lineseg=True`, 표·부동
+  개체를 품은 문단은 제외). 안 지우면 한/글이 저장된 줄 나눔(후속 줄 `flags` 에 내어쓰기
+  비트 `0x100000` 없음)을 믿어 **접힘을 0 으로 그립니다** — rhwp 는 lineseg 를 무시해 맥에서
+  는 보이지 않습니다. 문서 전체를 지우면 `vertRelTo="PARA"` 부동 서명이 앵커를 잃고 떠오릅니다
+- **rhwp 는 한/글의 오라클이 아닙니다.** 제출 전 렌더는 윈도우 한/글로 뽑습니다
+  (`consulting-report/scripts/hwpx_cli.py pdf … --win`). `rhwp verify --check-hanging` 이 stale
+  lineseg·분기 불일치를 exit 3 으로 잡습니다
 - 공유 paraPr 는 수정하지 않고 (원본 paraPr × 접두사 패턴) 조합마다 전용 사본을 만듭니다
 - **불릿 문단에만 겁니다.** 서술문에 걸면 접힌 줄이 첫 글자로 당겨져 오히려 어긋납니다
 - **번호 제목(`2. …`)은 내용으로 거릅니다.** 불릿 좌측에서 정확히 글자 한 칸 왼쪽이라
