@@ -1,8 +1,8 @@
-# AGENTS.md — dayoun marketplace agent guide
+# dayoun-marketplace — Codex·Claude Code·Antigravity 용 플러그인 마켓플레이스(설치·업데이트 실행 계약)
+
+## 왜 있나
 
 이 문서는 이 저장소를 읽는 Codex, Claude Code, Antigravity와 기타 코딩 에이전트가 사람 대신 안전하게 설치·업데이트·검증하기 위한 실행 계약입니다.
-
-## 목표
 
 사용자가 “설치해”, “업데이트해”, “사업계획서 플러그인 연결해”라고 요청하면 다음 결과를 만듭니다.
 
@@ -30,7 +30,36 @@ PPT·PPTX·파워포인트·슬라이드·발표자료·피치덱·IR 덱·제�
 
 stable `1.0`은 외부 프로바이더·화면검수·강의·베타 증거가 충족되기 전까지 설치 대상으로 안내하지 않습니다.
 
-## 먼저 환경을 감지한다
+## 구조
+
+- `plugins/` — 배포 플러그인(business-plan-writer · business-documents 등) · `contracts/` · `course/`·`course-src/` — 강의 키트
+- `scripts/` · `tests/` · `release/` · `dist/` — 검증·릴리즈 도구와 산출물
+- `.github/workflows/` — `validate.yml`, 대상별 `release-*.yml`
+
+### 사용자 요청을 스킬로 연결한다
+
+| 사용자 의도 | 우선 스킬 |
+|---|---|
+| 처음부터 전체 사업계획서 | `complete-business-plan` |
+| 작업 폴더·입력자료 준비 | `setup-business-plan-project` |
+| 초안 작성 | `draft-business-plan` |
+| 기존 초안 검토 | `review-business-plan` |
+| 승인된 HWPX 반영 | `fill-hwpx-template` |
+| 제출 전 완료 검사 | `validate-business-plan` |
+| 발표 PPT | `ppt-editorial` |
+| 견적서·회사소개서·공문 | `create-business-documents` |
+
+HWPX와 PPT는 독립 선택 산출물입니다. PPT를 만들기 위해 HWPX를 먼저 만들도록 강제하지 않습니다.
+
+PPT 렌더 전 bundled Pretendard 1.3.9의 bundle·사용자 범위 설치를 검사하고 없을 때만
+`install_bundled_fonts.py install`을 실행합니다.
+제품·원료·기기·인물 씬은 `cutout`, 환경·공간 장면은 `canvas`로 명시합니다.
+`.safe.json`과 조립 크롭을 분리하고 실제 alpha·가짜 체크무늬·전경 bbox·슬롯 점유율·
+텍스트/크롬 충돌을 검증한 placement receipt가 없으면 PPT를 완료로 보고하지 않습니다.
+
+## 명령
+
+### 먼저 환경을 감지한다
 
 터미널에서 아래 두 명령을 각각 실행할 수 있는지 확인합니다.
 
@@ -49,7 +78,7 @@ claude --version
 
 절대로 전역 설정 디렉터리를 삭제하거나 초기화하지 않습니다. 격리 테스트가 필요하면 새 임시 설정 디렉터리를 만들고 그 안에서만 실행합니다.
 
-## Codex 설치
+### Codex 설치
 
 정확히 다음 순서로 실행합니다.
 
@@ -76,7 +105,7 @@ codex plugin marketplace upgrade dayoun
 codex plugin list
 ```
 
-## Claude Code 설치
+### Claude Code 설치
 
 Claude Code 대화 입력창에서는 다음 slash command를 한 줄씩 사용합니다.
 
@@ -112,7 +141,22 @@ claude plugin update business-documents@dayoun
 claude plugin list
 ```
 
-## Antigravity 설치
+### Claude Code 에서 설치를 요청받았을 때
+
+이 저장소에서 작업하기 전에 [`AGENTS.md`](AGENTS.md)를 전체 읽고 설치·업데이트·스킬 라우팅·안전 규칙을 그대로 따릅니다. `AGENTS.md`가 AI 운영 계약의 단일 원본이며 이 파일에 같은 규칙을 복제하지 않습니다.
+
+사용자가 플러그인 설치를 요청하면 다음 지원 경로를 사용합니다.
+
+```text
+/plugin marketplace add Dayoooun/dayoun-marketplace
+/plugin install business-plan-writer@dayoun
+/plugin install business-documents@dayoun
+/plugin list
+```
+
+설치 후 실제 enabled 상태와 `business-plan-writer 0.12.20`, `business-documents 0.1.0`을 확인하기 전에는 완료라고 보고하지 않습니다. 기존 플러그인·사용자 설정·작업 파일을 삭제하거나 초기화하지 않습니다.
+
+### Antigravity 설치
 
 Antigravity는 이 저장소의 marketplace 명령 지원 대상으로 가장하지 않습니다.
 
@@ -129,7 +173,9 @@ git clone --depth 1 https://github.com/Dayoooun/dayoun-marketplace.git
 
 Antigravity GUI가 비동기로 열렸다는 사실만으로 설치 성공을 주장하지 않습니다. 실제 작업공간에서 스킬을 읽고 결과 파일을 만들 수 있어야 실행 증거가 됩니다.
 
-## 설치 후 smoke test
+## 배포와 확인
+
+### 설치 후 smoke test
 
 실제 회사 정보를 쓰지 않고 다음 요청을 실행합니다.
 
@@ -149,39 +195,7 @@ create-business-documents 스킬을 사용해줘.
 
 성공 조건은 스킬 이름을 인식하고 해당 스킬의 입력 계약을 설명하는 것입니다. 일반적인 사업계획서 조언만 반환하면 설치 성공으로 간주하지 않습니다.
 
-## 사용자 요청을 스킬로 연결한다
-
-| 사용자 의도 | 우선 스킬 |
-|---|---|
-| 처음부터 전체 사업계획서 | `complete-business-plan` |
-| 작업 폴더·입력자료 준비 | `setup-business-plan-project` |
-| 초안 작성 | `draft-business-plan` |
-| 기존 초안 검토 | `review-business-plan` |
-| 승인된 HWPX 반영 | `fill-hwpx-template` |
-| 제출 전 완료 검사 | `validate-business-plan` |
-| 발표 PPT | `ppt-editorial` |
-| 견적서·회사소개서·공문 | `create-business-documents` |
-
-HWPX와 PPT는 독립 선택 산출물입니다. PPT를 만들기 위해 HWPX를 먼저 만들도록 강제하지 않습니다.
-
-PPT 렌더 전 bundled Pretendard 1.3.9의 bundle·사용자 범위 설치를 검사하고 없을 때만
-`install_bundled_fonts.py install`을 실행합니다.
-제품·원료·기기·인물 씬은 `cutout`, 환경·공간 장면은 `canvas`로 명시합니다.
-`.safe.json`과 조립 크롭을 분리하고 실제 alpha·가짜 체크무늬·전경 bbox·슬롯 점유율·
-텍스트/크롬 충돌을 검증한 placement receipt가 없으면 PPT를 완료로 보고하지 않습니다.
-
-## 안전 규칙
-
-- 회사 사실, 외부 근거, 가정, 향후 계획을 구분합니다.
-- 확인되지 않은 수치·날짜·실적·고객명을 만들지 않습니다.
-- 사용자 승인이 필요한 canonical payload와 문서 내용을 임의 승인하지 않습니다.
-- 원본 HWP/HWPX를 덮어쓰지 않습니다.
-- 개인정보·영업비밀을 공개 저장소나 설치 로그에 남기지 않습니다.
-- 설치 실패, 인증 실패, 네트워크 실패를 PASS로 바꾸지 않습니다.
-- 다른 marketplace, 플러그인, 설정, 작업 파일을 삭제하지 않습니다.
-- stable `1.0`이 공개됐다고 추정하지 않습니다. marketplace manifest의 실제 버전을 읽습니다.
-
-## 이 저장소를 개발할 때
+### 이 저장소를 개발할 때
 
 authoritative source와 generated output을 섞지 않습니다.
 
@@ -202,7 +216,7 @@ python scripts/validate_contracts.py contracts
 python -m unittest discover -s tests -v
 ```
 
-## 실패 보고 형식
+### 실패 보고 형식
 
 설치 또는 업데이트가 실패하면 다음 네 줄을 남깁니다.
 
@@ -214,3 +228,23 @@ python -m unittest discover -s tests -v
 ```
 
 경고를 숨기거나, 버전을 확인하지 않고 “설치 완료”라고 말하거나, 일반 채팅형 AI를 설치형 플러그인과 같은 기능으로 안내하지 않습니다.
+
+## 이 저장소에서 승인이 필요한 일
+
+- 릴리즈 workflow(`release-*.yml`) 실행과 tag·GitHub Release 발행
+- 사용자의 기존 플러그인·설정 삭제나 초기화
+
+## 하지 않는 것
+
+- 회사 사실, 외부 근거, 가정, 향후 계획을 구분합니다.
+- 확인되지 않은 수치·날짜·실적·고객명을 만들지 않습니다.
+- 사용자 승인이 필요한 canonical payload와 문서 내용을 임의 승인하지 않습니다.
+- 원본 HWP/HWPX를 덮어쓰지 않습니다.
+- 개인정보·영업비밀을 공개 저장소나 설치 로그에 남기지 않습니다.
+- 설치 실패, 인증 실패, 네트워크 실패를 PASS로 바꾸지 않습니다.
+- 다른 marketplace, 플러그인, 설정, 작업 파일을 삭제하지 않습니다.
+- stable `1.0`이 공개됐다고 추정하지 않습니다. marketplace manifest의 실제 버전을 읽습니다.
+
+## 사고 이력
+
+- (아직 없음)
